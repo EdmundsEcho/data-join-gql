@@ -1,0 +1,6 @@
+{
+  "port": 3099,
+  "endpoint": "obsetl",
+  "email": "myemail@customer.com",
+  "logLevel": "debug"
+}

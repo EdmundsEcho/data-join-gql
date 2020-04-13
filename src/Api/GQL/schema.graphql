@@ -1,0 +1,23 @@
+type ObsEtl {
+    subject: String!
+    quality: Quality!
+}
+input ObsEtlInput {
+    subject: String!
+    quality: QualityInput!
+}
+type Quality {
+    name: String!
+    values: [String!]!
+}
+input QualityInput {
+    name: String!
+    values: [String!]!
+}
+type Query {
+    getObsEtl: ObsEtl
+    getStatus: Text!
+}
+type Mutation {
+    newObsEtl(value: ObsEtlInput!): ObsEtl!
+}

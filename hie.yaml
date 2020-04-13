@@ -1,0 +1,10 @@
+cradle:
+  stack:
+    - path: "./app/Main.hs"
+      component: "obsetl:exe:obsetl-exe"
+
+    - path: "./src"
+      component: "obsetl:lib"
+
+    - path: "./tests/Spec.hs"
+      component: "obsetl:test:obsetl-test"
