@@ -1,15 +1,15 @@
-{-|
-Module      : App
-Description : The WebApp that is hoisted into Servant
-Copyright   : (c) Lucivia, LLC 2020
-License     :
-Maintainer  : edmund@lucivia.com
-Stability   : experimental
-Portability : POSIX
+-- |
+-- Module      : App
+-- Description : The WebApp that is hoisted into Servant
+-- Copyright   : (c) Lucivia, LLC 2020
+-- License     :
+-- Maintainer  : edmund@lucivia.com
+-- Stability   : experimental
+-- Portability : POSIX
 
-The App uses a custom monad to enable use of state. The app is hoisted
-into Servant.
--}
+-- The App uses a custom monad to enable use of state. The app is hoisted
+-- into Servant.
+--
 module App
   ( -- * single export
     --
@@ -29,8 +29,9 @@ import           Network.Wai.Middleware.RequestLogger
 import           Servant
 --------------------------------------------------------------------------------
 import           Api.HTTP.GraphiQL
-import           Api.HTTP.ObsAPI
-import           Types
+import           Api.HTTP.ObsETL
+import           Api.HTTP.ObsTest
+import           AppTypes
 
 --------------------------------------------------------------------------------
 -- | Servant min cors policy
@@ -39,7 +40,7 @@ corsPolicy = simpleCorsResourcePolicy
          { corsRequestHeaders = [ "content-type" ] }
 --------------------------------------------------------------------------------
 -- | Servant has ServerT instance
-type Api = ObsAPI :<|> GraphiQL
+type Api = ObsTest :<|> ObsEtl :<|> GraphiQL
 
 -- | Proxy @Api
 apiType :: Proxy Api
@@ -47,7 +48,7 @@ apiType = Proxy
 
 -- | Custom monad for serving ObsETL.  Provides handler access to @Env@.
 appM :: ServerT Api AppObs
-appM  = serveObsAPI :<|> serveGraphiQL
+appM  = serveObsTest :<|> serveObsEtl :<|> serveGraphiQL
 
 --------------------------------------------------------------------------------
 -- import Network.Wai.Middleware.RequestLogger

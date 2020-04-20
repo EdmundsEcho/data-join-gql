@@ -3,12 +3,12 @@
 module Api.HTTP.GraphiQL (GraphiQL , serveGraphiQL)
     where
 
-import           Data.Morpheus   (Interpreter (..))
+import           Data.Morpheus (Interpreter (..))
 import           Servant
 
-import           Api.GQL.ObsTest (gqlRoot)
+import           Api.GQL.Root  (gqlRoot)
 import           Api.GqlHttp
-import           Types
+import           AppTypes
 
 
 -- Servant Has Server types

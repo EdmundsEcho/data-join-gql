@@ -8,7 +8,7 @@ import           System.Exit
 import           System.IO.Error        (ioeGetFileName, isDoesNotExistError)
 
 import qualified App
-import           Types
+import           AppTypes
 
 
 mkConfig :: Opt.Parser AppConfig

@@ -1,0 +1,100 @@
+# Share data types
+# Share between
+# * ObsETL inputs
+# * ObsETL view
+# * Request input
+# * Request view
+
+# Input
+"""
+Shared between ObsETL and Request
+"""
+input QualityInput {
+  qualityName: String!
+  qualityValues: FieldValuesInput!
+}
+"""
+Used by ObsETL for Component and Quality values. Also used by Quality Requests.
+It is not used by Component requests which require an additional field.  See
+'ReqFieldValuesInput'.
+
+**Note** This field is similar to 'ReqFieldValues'.  This object does not
+include the 'reduced' specification.
+
+"""
+input FieldValuesInput {
+  txtValues: [String!]
+  intValues: [Int!]
+  spanValues: [SpanInput!]
+}
+"""
+TODO: Reduced - can it be coordinated / unified with the reduced field for requests?
+"""
+input SpanInput {
+  rangeStart: Int!
+  rangeLength: Int!
+  reduced: Boolean!
+}
+
+# Type view
+"""
+A subject has many Qualities. Each Quality has a Key:: QualKey
+and values :: FieldValues.
+"""
+type Quality {
+  """
+  A unique identifier.
+  """
+  qualityName: String!
+  """
+  Quality values is a `union` of `TxtValues` and `IntValues`.
+  """
+  qualityValues: QualityValues!
+}
+"""
+Quality values is a `union` of `TxtValues` and `IntValues`.
+"""
+union QualityValues
+  = TxtValues
+  | IntValues
+
+"""
+Object required to be part of a union
+"""
+type TxtValues {
+  """
+  One of three possible `FieldValues`
+  """
+  txtValues: [String!]!
+}
+"""
+Object required to be part of a union
+"""
+type IntValues {
+  """
+  One of three possible `FieldValues`
+  """
+  intValues: [Int!]!
+}
+"""
+Object required to be part of a union. `SpanValues` are
+only relevant for a `Component`.
+"""
+type SpanValues {
+  """
+  One of three possible `FieldValues`. `SpanValues` are relevant for
+  `Measurement` only.  It is a `Component` that describes /time/.
+  """
+  spanValues: [Span!]!
+}
+"""
+Describes a time period (time span). Each span has a start, length and type.
+EXP means Expressed RED means a reduced version.  EXP will generate the number
+of values equal to length.  RED generates a single summary value using a
+monoid binary operation.
+"""
+type Span {
+  rangeStart: Int!
+  rangeLength: Int!
+  reduced: Boolean!
+}

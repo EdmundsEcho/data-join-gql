@@ -1,11 +1,4 @@
--- | Gql root definition
--- Note: There are many resolvers.
--- * Query :: GqlInput -> Model (GqlInput -> Model -> Model) -> View
--- * Mutation :: GqlInput -> Model (GqlInput -> Model -> Model) -> View
--- * View :: Model -> Gql
---
-  {-# LANGUAGE ConstraintKinds            #-}
--- {-# LANGUAGE DeriveAnyClass             #-}
+{-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE DuplicateRecordFields      #-}
@@ -13,35 +6,39 @@
 {-# LANGUAGE NamedFieldPuns             #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TypeFamilies               #-}
-
+-- |
+-- Module     : Api.GQL.ObsTest
+-- Description: Test/Seed to build out GQL capacity
+--
+-- There are many GQL resolvers.
+--   * > Query :: GqlInput -> Model (GqlInput -> Model -> Model) -> View
+--   * > Mutation :: GqlInput -> Model (GqlInput -> Model -> Model) -> View
+--   * > View :: Model -> Gql
+--
 module Api.GQL.ObsTest
   (
     gqlRoot,
   )
 where
-
+-------------------------------------------------------------------------------
 import           Protolude
 
 import           Data.Morpheus.Document           (importGQLDocument)
 import           Data.Morpheus.Types
 import           Data.Morpheus.Types.Internal.AST (OperationType)
 
+import           AppTypes
 import           Control.Concurrent.STM
-import           Control.Monad.Logger
 import           Control.Monad.Trans              (MonadTrans)
-import qualified Model.Types                      as Model
-import           Types
-
-importGQLDocument "src/Api/GQL/schema.graphql"
-
+import qualified Model.ObsTest                    as Model
 
 -------------------------------------------------------------------------------
--- gqlRoot
--- serveGQL :: MonadIO m =>  (GQLReqeust -> IO GQLResponse)
---          -> ServerT GQLAPI m
---
--- api :: GQLRequest -> IO GQLResponse
--- api = interpreter gqlRoot
+importGQLDocument "src/Api/GQL/schema.test.graphql"
+-------------------------------------------------------------------------------
+-- |
+-- == Root Resolver
+-- Maries Queries and Mutations
+gqlRoot :: GQLRootResolver AppObs () Query Mutation Undefined
 gqlRoot = rootResolver
 
 -- GQLRootResolver
@@ -53,10 +50,10 @@ rootResolver =
     GQLRootResolver
         { queryResolver =
               Query
-                  { getObsEtl = resolverGetObsEtl
+                  { getObsTest = resolverGetObsTest
                   , getStatus = resolverGetStatus
                   }
-        , mutationResolver = Mutation {newObsEtl = resolverNewObsEtl}
+        , mutationResolver = Mutation {newObsTest = resolverNewObsTest}
         , subscriptionResolver = Undefined
         }
 ---------------------------------------------------------------------------------
@@ -81,19 +78,20 @@ type GraphQL o
      = ( MonadIO (Resolver o () AppObs)
        , WithOperation o
        , MonadTrans (Resolver o ())
-       , MonadLogger (Resolver o () AppObs))
+       )
 
 -------------------------------------------------------------------------------
--- GQL Query Resolvers
+-- |
+-- == GQL Query Resolvers
 
-resolverGetObsEtl :: OptionalObject QUERY ObsEtl
-resolverGetObsEtl = do
-  obsEtl' <- fmap obsEtl getDb
+resolverGetObsTest :: OptionalObject QUERY ObsTest
+resolverGetObsTest = do
+  obsEtl' <- fmap db getDb
   case obsEtl' of
-    Just o  -> do
-      obsEtl <- resolverObsEtl o
+    DataObsTest o  -> do
+      obsEtl <- resolverObsTest o
       pure $ Just obsEtl
-    Nothing -> pure Nothing
+    _ -> pure Nothing
 
 resolverGetStatus :: Value QUERY Text
 resolverGetStatus = fmap status getDb
@@ -104,19 +102,20 @@ getDb = do
   liftIO . atomically $ readTVar dbTVar
 
 --------------------------------------------------------------------------------
--- GQL Mutation Resolvers
-resolverNewObsEtl :: NewObsEtlArgs -> Object MUTATION ObsEtl
-resolverNewObsEtl NewObsEtlArgs {value = newObs'} = do
-  let newObs = fromInputObsEtl newObs'
+-- |
+-- == GQL Mutation Resolvers
+resolverNewObsTest :: NewObsTestArgs -> Object MUTATION ObsTest
+resolverNewObsTest NewObsTestArgs {value = newObs'} = do
+  let newObs = fromInputObsTest newObs'
   db <- getDb
-  let newDb = db { obsEtl = Just newObs }
+  let newDb = db { db = DataObsTest newObs }
   dbTVar <- lift $ asks database
   liftIO . atomically $ writeTVar dbTVar newDb
-  resolverObsEtl newObs
+  resolverObsTest newObs
 
-fromInputObsEtl :: ObsEtlInput -> Model.ObsEtl
-fromInputObsEtl ObsEtlInput {..}
-  = Model.ObsEtl subject (fromInputQuality quality)
+fromInputObsTest :: ObsTestInput -> Model.ObsTest
+fromInputObsTest ObsTestInput {..}
+  = Model.ObsTest subject (fromInputQuality quality)
 
 fromInputQuality :: QualityInput -> Model.Quality
 fromInputQuality QualityInput {..}
@@ -126,14 +125,15 @@ fromInputValues :: [Text] -> [Text]
 fromInputValues = identity
 
 -------------------------------------------------------------------------------
--- Model -> View resolvers
+-- |
+-- == Model -> View resolvers
 -- fromModelToView
-resolverObsEtl :: GraphQL o => Model.ObsEtl -> Object o ObsEtl
-resolverObsEtl Model.ObsEtl {subject = thisSubject, quality = thisQuality} =
-  do
-    _ <- logInfoN $ "Processing obsEtl view: " <> thisSubject
+resolverObsTest :: GraphQL o => Model.ObsTest -> Object o ObsTest
+resolverObsTest Model.ObsTest {subject = thisSubject, quality = thisQuality} =
+  -- do
+    -- _ <- logInfoN $ "Processing obsEtl view: " <> thisSubject
     pure $
-      ObsEtl
+      ObsTest
         { subject = resolverSubject thisSubject
         , quality = resolverQuality thisQuality
         }
@@ -151,4 +151,3 @@ resolverQuality Model.Quality {name = thisName, values = thisValues} =
     resolverName = pure
     resolverValues = pure
     -- resolverValue = pure
-

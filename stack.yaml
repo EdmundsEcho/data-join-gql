@@ -35,9 +35,9 @@ packages:
 # forks / in-progress versions pinned to a git hash. For example:
 #
 extra-deps:
-  - morpheus-graphql-0.10.0
-# - git: https://github.com/commercialhaskell/stack.git
-#   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
+#  - morpheus-graphql-0.10.0
+  - git: https://github.com/morpheusgraphql/morpheus-graphql.git
+    commit: e6b73088ceb5b29e25f130615210eff0bf3b20eb
 #
 # extra-deps: []
 

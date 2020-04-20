@@ -1,8 +1,8 @@
-type ObsEtl {
+type ObsTest {
     subject: String!
     quality: Quality!
 }
-input ObsEtlInput {
+input ObsTestInput {
     subject: String!
     quality: QualityInput!
 }
@@ -15,9 +15,9 @@ input QualityInput {
     values: [String!]!
 }
 type Query {
-    getObsEtl: ObsEtl
+    getObsTest: ObsTest
     getStatus: Text!
 }
 type Mutation {
-    newObsEtl(value: ObsEtlInput!): ObsEtl!
+    newObsTest(value: ObsTestInput!): ObsTest!
 }

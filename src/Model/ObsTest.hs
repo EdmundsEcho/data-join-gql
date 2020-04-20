@@ -1,9 +1,9 @@
 -- | Model ObsEtl
-module Model.ObsEtl where
+module Model.ObsTest where
 
 import           Protolude
 
-data ObsEtl = ObsEtl {
+data ObsTest = ObsTest {
   subject :: !Text,
   quality :: !Quality
 }
@@ -13,8 +13,8 @@ data Quality = Quality {
   values :: ![Text]
 }
 
-testInstance :: ObsEtl
-testInstance = ObsEtl
+testInstance :: ObsTest
+testInstance = ObsTest
   { subject = "test subject"
   , quality = testQuality
   }
@@ -22,5 +22,5 @@ testInstance = ObsEtl
 testQuality :: Quality
 testQuality = Quality
   { name = "color"
-  , values = ["red", "blud"]
+  , values = ["red", "blue"]
   }
