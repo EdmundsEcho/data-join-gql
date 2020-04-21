@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c2e1a3a83d1b39203de74cc139331c66fbdbae5a4e7a61abe200893f5f3e78b6
+-- hash: 389301110678dd3699b15ef5ade02f275cf23d99000609ac5b820959d50c5f00
 
 name:           obsetl
 version:        0.1.2.0
@@ -46,6 +46,7 @@ library
       Model.ETL.ObsETL
       Model.ETL.Qualities
       Model.ETL.Span
+      Model.ETL.TagRedExp
       Model.ETL.Transformers
       Model.ObsTest
       Model.Request

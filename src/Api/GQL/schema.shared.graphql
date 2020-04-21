@@ -59,6 +59,19 @@ union QualityValues
   | IntValues
 
 """
+Component values is a union of `TxtValues`, `IntValues` and
+`SpanValues`. The values for each are retrieved in their respective
+`Object` with the txt, int or spanValues prop.
+
+__Note__: For Requests, the union ComponentValues is wrapped
+in an object with the extra 'reduced'::Boolean property.
+"""
+union ComponentValues
+  = TxtValues
+  | IntValues
+  | SpanValues
+
+"""
 Object required to be part of a union
 """
 type TxtValues {

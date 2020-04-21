@@ -34,10 +34,15 @@ module Api.GQL.ObsETL
   , fromInputQualities
   , Quality
   , Span
+  , ComponentValues(..)
+  , resolverCompValues
+  , resolverQualities
+  , resolverSpanValue
+  , resolverSubType
   -- * Api.GQL Shared Inputs
   , FieldValuesInput(..)
-  , QualityInput (..)
-  , SpanInput (..)
+  , QualityInput(..)
+  , SpanInput(..)
   )
 where
 -------------------------------------------------------------------------------
@@ -102,8 +107,8 @@ resolverObsEtl Model.ObsETL {..} =
   pure $
     ObsETL
       (resolverID obsID)
-      (resolverSubject obsSubject)
-      (resolverMeasurements obsMeasurements)
+      (resolverSubject obsSubject)            -- :: Model.Subject -> Subject
+      (resolverMeasurements obsMeasurements)  -- :: Model.Measurements -> [Measurement]
 
 resolverID :: GraphQL o => Model.ID -> Value o Text
 resolverID = pure . Model.unID
@@ -114,8 +119,8 @@ fromInputObsEtl :: ObsEtlInput -> Model.ObsETL
 fromInputObsEtl ObsEtlInput {..}
   = Model.ObsETL
       Model.mkID
-      (fromInputSubject subject)
-      (fromInputMeasurements measurements)
+      (fromInputSubject subject)            -- :: Input -> Model.Subject
+      (fromInputMeasurements measurements)  -- :: Input -> Model.Measurements
 
 -------------------------------------------------------------------------------
 -- |
@@ -125,8 +130,8 @@ resolverSubject :: GraphQL o => Model.Subject -> Object o Subject
 resolverSubject Model.Subject {..} =
   pure $
     Subject
-      (resolverSubType subType)
-      (resolverQualities subQualities)
+      (resolverSubType subType)        -- :: Model.Key       -> String!
+      (resolverQualities subQualities) -- :: Model.Qualities -> [Quality!]!
 
 resolverSubType :: GraphQL o => Model.SubKey -> Value o Text
 resolverSubType = pure . Model.unKey
@@ -156,7 +161,7 @@ resolverMeasurements o'
 -- /Note/: The model does not host Measurement
 --
 resolverMeasurement :: GraphQL o
-                => Model.MeaKey -> Model.Components -> Object o Measurement
+                    => Model.MeaKey -> Model.Components -> Object o Measurement
 resolverMeasurement key o' =
   pure $
     Measurement
@@ -180,8 +185,16 @@ type Type' = Text
 --------------------------------------------------------------------------------
 -- |
 -- === Component
+-- Model -> GQL View
+--
+-- > Components { components :: Map Key CompValues }
+--
+-- > type Component {
+-- >   componentName: String!
+-- >   componentValues: ComponentValues!
+-- > }
 resolverComponent :: GraphQL o
-                => Model.CompKey -> Model.CompValues -> Object o Component
+                  => Model.CompKey -> Model.CompValues -> Object o Component
 resolverComponent key o' =
   pure $
     Component
@@ -203,8 +216,11 @@ fromInputComponents vs =
 --------------------------------------------------------------------------------
 -- |
 -- === Model CompValues, GQL Union ComponentValues
+--
+-- > Model TxtSet (Set Text) | IntSet (Set Int) etc..
+--
 -- > GQL { txtValues :: [Text] } | { intValues :: [Int] }
--- > Model TxtSet (Set Text) | IntSet (Set Int)
+--
 -- Pattern match to delegate to one of the 3 value types
 --
 resolverCompValues :: GraphQL o => Model.CompValues -> Object o ComponentValues
@@ -274,17 +290,17 @@ resolverQualValues  _ = panic "QualValues resolver: tried with the wrong type."
 --
 resolverTxtValues :: GraphQL o => Model.FieldValues -> Object o TxtValues
 resolverTxtValues (Model.TxtSet o') = pure $
-  TxtValues { txtValues = pure $ Model.toList o' }
+  TxtValues { txtValues = pure $ Trans.valuesToList o' }
 resolverTxtValues  _ = panic "Values resolver: tried with the wrong type."
 
 resolverIntValues :: GraphQL o => Model.FieldValues -> Object o IntValues
 resolverIntValues (Model.IntSet o') = pure $
-  IntValues { intValues = pure $ Model.toList o' }
+  IntValues { intValues = pure $ Trans.valuesToList o' }
 resolverIntValues  _ = panic "Values resolver: tried with the wrong type."
 
 resolverSpanValues :: GraphQL o => Model.FieldValues -> Object o SpanValues
 resolverSpanValues (Model.SpanSet o') = pure $
-  SpanValues { spanValues = traverse resolverSpanValue (Model.toList o') }
+  SpanValues { spanValues = traverse resolverSpanValue (Trans.valuesToList o') }
 
 resolverSpanValues  _ = panic "Values resolver: tried with the wrong type."
 
@@ -298,10 +314,10 @@ resolverSpanValues  _ = panic "Values resolver: tried with the wrong type."
 -- > }
 --
 fromInputFieldValues :: FieldValuesInput -> Model.FieldValues
-fromInputFieldValues (FieldValuesInput (Just ts) _ _) = Model.TxtSet (Model.fromList ts)
-fromInputFieldValues (FieldValuesInput _ (Just is) _) = Model.IntSet (Model.fromList is)
-fromInputFieldValues (FieldValuesInput _ _ (Just ss)) =
-  Model.SpanSet (Model.fromList (fromInputSpan <$> ss))
+fromInputFieldValues (FieldValuesInput (Just ts) _ _) = Model.TxtSet  (Model.fromList ts)
+fromInputFieldValues (FieldValuesInput _ (Just is) _) = Model.IntSet  (Model.fromList is)
+fromInputFieldValues (FieldValuesInput _ _ (Just ss)) = Model.SpanSet
+                                                       (Model.fromList (fromInputSpan <$> ss))
 fromInputFieldValues FieldValuesInput {} = panic "fromInput: Failed to provide values"
 --------------------------------------------------------------------------------
 -- |
@@ -310,19 +326,15 @@ fromInputFieldValues FieldValuesInput {} = panic "fromInput: Failed to provide v
 resolverSpanValue :: GraphQL o => Model.Span -> Object o Span
 resolverSpanValue = \case
   (Model.Span (Model.Red Model.Range{..})) ->
-    pure $
-      Span
-        { rangeStart = pure rangeStart
-    , rangeLength =  pure rangeLength
-    , reduced = pure True
-    }
+    pure $ Span { rangeStart = pure rangeStart
+                , rangeLength =  pure rangeLength
+                , reduced = pure True
+                }
   (Model.Span (Model.Exp Model.Range{..})) ->
-    pure $
-      Span
-        { rangeStart = pure rangeStart
-    , rangeLength = pure rangeLength
-    , reduced = pure False
-    }
+    pure $ Span { rangeStart = pure rangeStart
+                , rangeLength = pure rangeLength
+                , reduced = pure False
+                }
 
 --------------------------------------------------------------------------------
 -- |

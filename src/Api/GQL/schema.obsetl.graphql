@@ -84,15 +84,6 @@ type Component {
   """
   componentValues: ComponentValues!
 }
-"""
-Component values is a union of `TxtValues`, `IntValues` and
-`SpanValues`. The values for each are retrieved in their respective
-`Object` with the txt, int or spanValues prop.
-"""
-union ComponentValues
-  = TxtValues
-  | IntValues
-  | SpanValues
 
 """
 Union of Keys to encode the key's type. Each is an object.

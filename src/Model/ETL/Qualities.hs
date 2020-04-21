@@ -1,7 +1,10 @@
-{-|
-   @Qualities@ are utilized by both 'Model.ETL.ObsETL' and 'Model.Request'
-
--}
+-- |
+-- Module     : Model.ETL.Qualities
+-- Description: Qualities of a 'Subject'
+--
+-- 'Qualities' describe the properties of a 'Subject'.  A 'Subject' can have
+-- several 'Qualities'.  A 'Subject' is a __product__ made up of 'Qualities'.
+--
 module Model.ETL.Qualities
   ( module Model.ETL.Qualities
   -- * Re-exported types

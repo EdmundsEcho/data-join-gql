@@ -113,7 +113,7 @@ input FieldValuesCompReqInput {
 
 # View of the Model
 type Request {
-  subReq: QualityMix!
+  subReq: QualityMix
   meaReqs: [ComponentMix!]
 }
 type QualityMix {
@@ -126,11 +126,9 @@ type ComponentMix {
 }
 type ReqComponent {
   componentName: String!
-  values: CompReqFieldValues!
+  values: CompReqValues!
 }
-type CompReqFieldValues {
-  txtValues: [String!]
-  intValues: [Int!]
-  spanValues: [Span!]
+type CompReqValues {
+  values: ComponentValues
   reduced: Boolean!
 }

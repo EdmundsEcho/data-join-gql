@@ -44,7 +44,7 @@ import qualified Data.Map.Strict       as Map (fromList)
 import           Model.ETL.FieldValues
 import           Model.ETL.Key
 import           Model.ETL.Qualities   hiding (names)
-import           Model.ETL.Span        (TagRedExp (..))
+import           Model.ETL.TagRedExp
 -------------------------------------------------------------------------------
 
 -- * Request

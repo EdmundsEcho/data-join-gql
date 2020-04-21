@@ -29,10 +29,7 @@ import           Model.ETL.Span
 data FieldValues
     = TxtSet  (Set Text)
     | IntSet  (Set Int)
-    | SpanSet (Set Span)
-    -- | ReqTxtSet TagRedExp (Set Span)  -- ^ Reduced/Expressed capacity for requests
-    -- | ReqIntSet TagRedExp (Set Span)
-    deriving (Show, Eq, Ord)
+    | SpanSet (Set Span) deriving (Show, Eq, Ord)
 
 -- |
 -- Is the collection empty/null?

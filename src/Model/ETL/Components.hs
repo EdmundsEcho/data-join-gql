@@ -1,6 +1,10 @@
-{-|
-   @Components@ is a data type utilized by both @ObsETL@ and @Request@.
--}
+-- |
+-- Module     : Model.ETL.Components
+-- Description: Components of a Measurement
+--
+-- Components describe the slices of a Measurement in the
+-- 'Measurements' collection.
+--
 module Model.ETL.Components
   where
 -------------------------------------------------------------------------------

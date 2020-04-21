@@ -11,6 +11,7 @@ module Model.ETL.ObsETL
   , module Model.ETL.Components
   , module Model.ETL.FieldValues
   , module Model.ETL.Span
+  , module Model.ETL.TagRedExp
   )
   where
 -------------------------------------------------------------------------------
@@ -25,6 +26,7 @@ import           Model.ETL.ID
 import           Model.ETL.Key
 import           Model.ETL.Qualities
 import           Model.ETL.Span
+import           Model.ETL.TagRedExp
 -------------------------------------------------------------------------------
 -- = Observation model
 -- |
