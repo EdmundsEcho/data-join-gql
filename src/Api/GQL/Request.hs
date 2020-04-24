@@ -1,13 +1,8 @@
-{-# LANGUAGE ConstraintKinds            #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE DerivingStrategies         #-}
-{-# LANGUAGE DuplicateRecordFields      #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase                 #-}
-{-# LANGUAGE NamedFieldPuns             #-}
-{-# LANGUAGE PartialTypeSignatures      #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE DerivingStrategies    #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 {-# OPTIONS_HADDOCK ignore-exports #-}
 -- |
@@ -33,150 +28,113 @@
 -- is instantiated using 'Model.ObsETL' data. However, is viewed using the
 -- data types described in @schemas.request.graphql@.
 --
--- Also note, the use of 'Model.ETL.TagRedExp' is used in two ways.  First
--- for Span both in the ETL and Request phases.  Second, to qualify the
--- requests for Components ('Model.Request.ReqComponents'). There is likely redundant use of
--- the 'Model.ETL.TagRedExp' for a 'Model.ETL.Span' included in a 'Request'.
+-- Also note, the use of 'Model.ETL.TagRedExp.TagRedExp' is used in two ways.
+-- First for Span both in the ETL and Request phases.  Second, to qualify the
+-- requests for Components ('Model.Request.ReqComponents'). There is likely
+-- redundant use of the 'Model.ETL.TagRedExp.TagRedExp' for a
+-- 'Model.ETL.Span.Span' included in a 'Request'.
 --
 module Api.GQL.Request where
--------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
 import           Protolude
--------------------------------------------------------------------------------
-import           Data.Morpheus.Document (importGQLDocument)
-import           Data.Morpheus.Types
--------------------------------------------------------------------------------
-import           Control.Concurrent.STM
+---------------------------------------------------------------------------------
 import qualified Data.Set               as Set
--------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
 import           Api.ETL
-import           Api.GQL.ObsETL         (ComponentValues, FieldValuesInput (..),
-                                         Quality, SpanInput (..))
 import qualified Api.GQL.ObsETL         as Shared
 import           Api.GqlHttp
--------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
 import qualified Model.ETL.FieldValues  as Model (fromList)
-import qualified Model.ETL.ObsETL       as Model (CompKey, Components,
-                                                  FieldValues (..),
+import qualified Model.ETL.ObsETL       as Model (CompKey, CompValues,
+                                                  Components, FieldValues (..),
                                                   Measurements, ObsETL (..),
                                                   QualKey, Qualities (..),
                                                   Range (..), Span (..),
                                                   Subject, TagRedExp (..),
-                                                  componentNames, isRed,
-                                                  mkMeaKey, mkQualKey, mkSubKey,
-                                                  unKey, unTag)
+                                                  componentNames,
+                                                  fromListIntValues,
+                                                  fromListSpanValues,
+                                                  fromListTxtValues, isRed,
+                                                  mkCompKey, mkMeaKey,
+                                                  mkQualKey, mkSubKey,
+                                                  qualityNames, unKey, unTag)
 import qualified Model.ETL.Transformers as Trans
 import qualified Model.Request          as Model (CompReqValues (..),
                                                   ComponentMix (..),
                                                   QualityMix (..),
                                                   ReqComponents (..),
-                                                  Request (..), mkQualityMix)
--- AppObs types
-import           AppTypes               (AppObs)
-import qualified AppTypes               as App
--------------------------------------------------------------------------------
--- importGQLDocument "src/Api/GQL/schema.shared.graphql"
-importGQLDocument "src/Api/GQL/schema.request.graphql"
--------------------------------------------------------------------------------
-
--------------------------------------------------------------------------------
--- |
--- == Root Resolver
--- Maries Queries and Mutations
-gqlRoot :: GQLRootResolver AppObs () Query Undefined Undefined
-gqlRoot = rootResolver
-
-rootResolver :: GQLRootResolver AppObs () Query Undefined Undefined
-rootResolver =
-   GQLRootResolver
-       { queryResolver = Query { validate = resolverValidate }
-       , mutationResolver = Undefined
-       , subscriptionResolver = Undefined
-       }
+                                                  Request (..),
+                                                  fromListReqComponents,
+                                                  mkQualityMix)
+---------------------------------------------------------------------------------
+import           Api.GQL.Schemas        hiding (CompReqValues,
+                                         ComponentReqInput,
+                                         FieldValuesCompReqInput, ReqComponent)
+import qualified Api.GQL.Schemas        as GqlType (CompReqValues (..),
+                                                    ReqComponent (..))
+import qualified Api.GQL.Schemas        as GqlInput (ComponentReqInput (..), FieldValuesCompReqInput (..))
+---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------
+-- * Fetch request
 -- |
--- == GQL Query Resolvers
--- Validation = Instantiate 'Model.Request' with the user input objects
--- specified in @schemas.request.graphql@.
+-- GQLInput -> Model.Request
+-- /Note/: Will not display anything unless both fields are present
+-- in the
+-- > input Request { subReq, meaReqs }
 --
-resolverValidate :: ValidateArgs -> OptionalObject QUERY Request
-resolverValidate ValidateArgs { request } = fetchRequest request
+fetchRequest :: RequestInput -> Model.ObsETL -> Maybe Model.Request
+fetchRequest request etl =
+  case request of
+    RequestInput (Just subReq) (Just meaReqs) -> do
+      -- Subject arm
+      sub <- Api.ETL.lookupSubject etl
+      subReq' <- fetchQualityMix subReq sub
 
-getDb :: GraphQL o => Value o App.Database
-getDb = do
-  dbTVar <- lift $ asks App.database
-  liftIO . atomically $ readTVar dbTVar
+      -- Measurements arm
+      meas <- Api.ETL.lookupMeasurements etl
+      -- look ahead at ComponentMixInput,
+      -- convert measurementTypes [String] to multiple single requests
+      -- ComponentMixInput { measurementType: Just Text }
+      -- cons the individual requests to [ComponentMixInput]
+      let subsets  = mconcat $ traverse ppSubset  meaReqs
+      let fullsets = mconcat $ traverse ppFullSet meaReqs
 
----------------------------------------------------------------------------------
--- |
--- == Overall
---
--- > RequestInput -fetch-> etl -> Model.Request -resolver-> Object o Request
---
--- /Note/: Once a Model.Request is instantiated, we guarantee a return value.
---
--- > ChildReqInput -> (parent etl collection -fetch-> child etl collection)
--- >               -> Model.Request -> Object o Request
---
--- fetch :: 'RequestInput' -> 'Model.Request'
---
--- > input RequestInput {
--- >   subReq: QualityMixInput
--- >   meaReqs: [ComponentMixInput!]
--- > }
---
--- > data Request = Request
--- >   { subReq  :: !QualityMix
--- >   , meaReqs :: ![ComponentMix]
--- >   } deriving (Show, Eq)
---
---
-fetchRequest :: GraphQL o => RequestInput -> OptionalObject o Request
-fetchRequest req = do
-  -- get the data, return nothing if not initiated with the right data
-  obsEtl <- fmap App.db getDb
-  case obsEtl of
-    App.DataObsETL obsEtl' ->   -- have the correct data
-      case fetchRequest' req obsEtl' of -- :: Input -> Maybe Model
-        Nothing      -> pure Nothing
-        Just request -> Just <$> resolverRequest request -- (resolverRequest request)
+      let subsets'  = catMaybes $ flip fetchComponentMix meas <$> subsets
+      let fullsets' = catMaybes $ flip fetchComponentMix meas <$> fullsets
 
-    _ -> pure Nothing          -- have the wrong data
+      let meaReqs' = subsets' <> fullsets'
 
-    where
-      -- exploits global access to db's etl :: ObsETL
-      fetchRequest' :: RequestInput -> Model.ObsETL -> Maybe Model.Request
-      fetchRequest' request etl =
-        case request of
-          RequestInput (Just subReq) (Just meaReqs) -> do
-            -- Subject arm
-            sub <- Api.ETL.lookupSubject etl
-            subReq' <- fetchQualityMix subReq sub
 
-            -- Measurements arm
-            meas <- Api.ETL.lookupMeasurements etl
-            -- look ahead at ComponentMixInput,
-            -- convert measurementTypes [String] to multiple single requests
-            -- ComponentMixInput { measurementType: Just Text }
-            -- cons the individual requests to [ComponentMixInput]
-            let meaReqs' = catMaybes
-                          $ flip fetchComponentMix meas
-                          <$> concat (traverse preProcess meaReqs)
-                          -- meaReqs [ComponentMixInput]
+      pure $ Model.Request {
+        subReq  = subReq',  -- :: QualityMix
+        meaReqs = meaReqs'  -- :: [ComponentMix]
+      }
 
-            pure $ Model.Request {
-              subReq  = subReq',  -- :: QualityMix
-              meaReqs = meaReqs'  -- :: [ComponentMix]
-            }
+    -- for now, default everything else to Nothing
+    RequestInput _ _ -> Nothing
 
-          -- for now, default everything else to Nothing
-          RequestInput _ _ -> Nothing
+  where
+    -- full set requests
+    ppFullSet :: ComponentMixInput -> [ComponentMixInput]
+    ppFullSet (ComponentMixInput (Just keys) maybeKey Nothing) =
+      let keys' = case maybeKey of
+                      Just k  -> k:keys
+                      Nothing -> keys
+      in
+        fmap (\key ->
+          ComponentMixInput { measurementTypes = Nothing
+                            , measurementType  = Just key
+                            , componentMix = Nothing
+                            }
+         ) keys'
+    ppFullSet req = [req] -- return untouched wrapped in list
 
-        where
-          preProcess :: ComponentMixInput -> [ComponentMixInput]
-          preProcess (ComponentMixInput (Just meaTypes) _ _) =
-            fmap (\meaType -> ComponentMixInput Nothing (Just meaType) Nothing) meaTypes
-          preProcess meaReq = [meaReq]
+    -- subset requests
+    ppSubset :: ComponentMixInput -> [ComponentMixInput]
+    ppSubset (ComponentMixInput Nothing (Just key) (Just vs)) =
+             [ComponentMixInput Nothing (Just key) (Just vs)]
+    ppSubset _ = []
 
 
 ---------------------------------------------------------------------------------
@@ -184,6 +142,10 @@ fetchRequest req = do
 -- GQLInput -> Model.Request
 -- GQLInput specified by the schema.request.graphql
 -- Model.Request 'Model.Request'
+--
+-- The function will call itself in the event the `qualityMix` field is empty.
+-- It will do so with an augmented request that includse all of the
+-- 'Model.ETL.Qualities.Qualities' in the `qualityMix` field.
 --
 -- /Recall/: The input is a search term.  It is not valid etl data.
 --
@@ -200,13 +162,67 @@ fetchRequest req = do
 --
 -- subject (type: String!) Subject
 fetchQualityMix :: QualityMixInput -> Model.Subject -> Maybe Model.QualityMix
-fetchQualityMix request etl =
-  case request of
-    QualityMixInput subjectTypeReq qualityMixReq -> do
-      let subKey = Model.mkSubKey subjectTypeReq
-      qualities <- Api.ETL.lookupQualities subKey etl
-      result <- fetchQualities qualityMixReq qualities
-      pure $ Model.mkQualityMix subKey result
+fetchQualityMix (QualityMixInput subTypeReq mixReq) etl = do
+
+    -- retrieve etl subject
+    let subKey = Model.mkSubKey subTypeReq
+    etl' <- Api.ETL.lookupQualities subKey etl
+
+    -- cascade the request
+    case mixReq of
+
+      -- the consumer/fetcher
+      Just mix -> do
+        let subsets  = traverse ppSubset  mix  -- :: [Model.Qualities]
+        let fullsets = traverse ppFullSet mix  -- :: [Model.Qualities]
+
+        let subsets'  = mconcat . catMaybes $ flip fetchQualities etl' <$> subsets
+        let fullsets' = mconcat . catMaybes $ flip fetchQualities etl' <$> fullsets
+
+        -- left bias
+        let result = subsets' <> fullsets'
+
+        pure $ Model.mkQualityMix subKey result
+
+      -- augments before delegating fetch to the next call
+      Nothing -> do
+        -- augment this request
+        let qualNames = Model.qualityNames etl'
+        let qualReq = QualityReqInput { qualityNames  = Just qualNames
+                                      , qualityName   = Nothing
+                                      , qualityValues = Nothing
+                                      }
+        let qualityMixInput =
+                      QualityMixInput { subjectType = subTypeReq
+                                      , qualityMix  = Just [qualReq]
+                                      }
+        -- resend the request to this function
+        fetchQualityMix qualityMixInput etl
+
+
+    -- for valus in QualityReqInput { qualityNames }, we need to preProcess to
+    -- eliminate them.
+    where
+      -- full set requests
+      ppFullSet :: QualityReqInput -> [QualityReqInput]
+      ppFullSet (QualityReqInput (Just qualNames) maybeName Nothing) =
+        let names = case maybeName of
+                       Just n  -> n:qualNames
+                       Nothing -> qualNames
+        in
+          fmap (\qualName ->
+            QualityReqInput { qualityNames  = Nothing
+                            , qualityName   = Just qualName
+                            , qualityValues = Nothing
+                            }
+           ) names
+      ppFullSet qualReq = [qualReq] -- return untouched wrapped in list
+
+      -- subset requests
+      ppSubset :: QualityReqInput -> [QualityReqInput]
+      ppSubset (QualityReqInput Nothing (Just name) (Just vs)) =
+               [QualityReqInput Nothing (Just name) (Just vs)]
+      ppSubset _ = []
 
 -- |
 -- QualityReqInput {
@@ -223,6 +239,8 @@ fetchQualityMix request etl =
 -- /Note/ Subsets will over-write fullset selections (left-bias).
 --
 fetchQualities :: [QualityReqInput] -> Model.Qualities -> Maybe Model.Qualities
+
+
 fetchQualities requests etl =
   let subsets = selectQualities (catMaybes (f1 <$> requests)) etl
       fullsets = Just $ filterQualities (concat (catMaybes (f2 <$> requests))) etl
@@ -231,7 +249,12 @@ fetchQualities requests etl =
   -- tag the requests with the type that implements the search
   where
     f1 :: QualityReqInput -> Maybe (Text, Model.FieldValues)
-    f1 (QualityReqInput _ (Just k) (Just vs)) = case vs of
+
+    f1 (QualityReqInput (Just _) _ _) =
+        panic $ "Cannot process multiple qualNames simultaneously here; " <>
+                "the request was not properly pre-processed"
+
+    f1 (QualityReqInput Nothing (Just k) (Just vs)) = case vs of
 
       FieldValuesInput (Just values) Nothing Nothing ->
         Just (k, Model.TxtSet $ Model.fromList values)
@@ -242,8 +265,8 @@ fetchQualities requests etl =
       FieldValuesInput {} -> Nothing
 
     -- No fields to select, no subsetting to do
-    f1 (QualityReqInput _ _ Nothing) = Nothing
     f1 _ = Nothing
+
 
     f2 :: QualityReqInput -> Maybe [Model.QualKey]
     f2 (QualityReqInput maybeKeys _ _) = do
@@ -262,11 +285,8 @@ fetchQualities requests etl =
 -- 2. measurementType + componentMix
 --    * Includes componentMix which encodes subsetting the components
 --
--- /Note/: @Red@ is the same as not having this request.
--- @Exp@ turns the component long -> wide series
---
 -- > input ComponentMixInput {
--- >   measurementTypes: [String!]
+-- >   measurementTypes: [String!]  <<< should have been pre-processed
 -- >   measurementType: String
 -- >   componentMix: [ComponentReqInput!]
 -- > }
@@ -280,7 +300,8 @@ fetchQualities requests etl =
 -- because we are using the same meaType and compName over and over for
 -- each output.  Recall, an output is a field in the matrix data table.
 --
-fetchComponentMix :: ComponentMixInput -> Model.Measurements -> Maybe Model.ComponentMix
+fetchComponentMix
+  :: ComponentMixInput -> Model.Measurements -> Maybe Model.ComponentMix
 
 fetchComponentMix (ComponentMixInput (Just _) _ _) _ =
   panic $ "Cannot process multiple meaKeys simultaneously here; " <>
@@ -299,88 +320,192 @@ fetchComponentMix (ComponentMixInput (Just _) _ _) _ =
 -- upstream by pre-processing the request.
 --
 fetchComponentMix (ComponentMixInput Nothing (Just meaKey) Nothing) etl = do
+  -- delegate to the next call with augmented request
+  -- get the measurement from etl data
   let meaType' = Model.mkMeaKey meaKey
   etl' <- Api.ETL.lookupComponents meaType' etl
-  let names' = Model.componentNames etl'
-      augmentedRequest = ComponentReqInput (Just names') Nothing Nothing
-  componentMix' <- fetchComponents [augmentedRequest] etl'
-  pure Model.ComponentMix {
-    meaType = meaType',
-    componentMix = componentMix'
-  }
+  -- get the names of each component for that measurement
+  let compNames = Model.componentNames etl'
+  -- augment this request with the component names
+  let augmentedRequest
+        = ComponentMixInput { measurementTypes = Nothing
+                            , measurementType  = Just meaKey
+                            , componentMix     = Just [preProcess compNames]
+                            }
+
+  -- recall this function with the augmented request
+  fetchComponentMix augmentedRequest etl
+
+  where
+    preProcess :: [Name] -> GqlInput.ComponentReqInput
+    preProcess compNames' =
+         GqlInput.ComponentReqInput { componentNames  = Just compNames'
+                           , componentName   = Nothing
+                           , componentValues = Nothing
+                           }
+
 -- |
 -- Second Request type.
 -- Subset of values for each of the components specified.
 fetchComponentMix (ComponentMixInput Nothing (Just meaKey) (Just compReqs)) etl = do
+  -- consume the request
+  -- get the measurement from etl data
   let meaType' = Model.mkMeaKey meaKey
   etl' <- Api.ETL.lookupComponents meaType' etl
-  componentMix' <- fetchComponents compReqs etl'
-  pure Model.ComponentMix {
-    meaType = meaType',
-    componentMix = componentMix'
+
+  -- make several
+  -- fullsets :: [ComponentReqInput]
+  let subsets  = traverse ppSubset  compReqs
+  let fullsets = traverse ppFullSet compReqs
+
+  -- fullsets' :: [ReqComponents]
+  let subsets'  = mconcat . catMaybes $ flip fetchComponents etl' <$> subsets
+  let fullsets' = mconcat . catMaybes $ flip fetchComponents etl' <$> fullsets
+
+  -- left bias
+  let compMix' = subsets' <> fullsets'
+
+  pure $ Model.ComponentMix {
+    measurementType = meaType', -- :: Key
+    componentMix    = compMix'  -- :: ReqComponents
   }
 
-fetchComponentMix (ComponentMixInput _ _ _) _ = panic "malformed query"
+  where
+    -- full set requests
+    ppFullSet :: GqlInput.ComponentReqInput -> [GqlInput.ComponentReqInput]
+    ppFullSet (GqlInput.ComponentReqInput (Just keys) maybeKey Nothing) =
+      let keys' = case maybeKey of
+                      Just k  -> k:keys
+                      Nothing -> keys
+      in
+        fmap (\key ->
+          GqlInput.ComponentReqInput { componentNames  = Nothing
+                            , componentName   = Just key
+                            , componentValues = Nothing
+                            }
+         ) keys'
+    ppFullSet req = [req] -- return untouched wrapped in list
+
+    -- subset requests
+    ppSubset :: GqlInput.ComponentReqInput -> [GqlInput.ComponentReqInput]
+    ppSubset (GqlInput.ComponentReqInput Nothing (Just key) (Just vs)) =
+             [GqlInput.ComponentReqInput Nothing (Just key) (Just vs)]
+    ppSubset _ = []
+
+fetchComponentMix ComponentMixInput {} _ = panic "malformed query"
+
+type Name = Text
 
 ---------------------------------------------------------------------------------
 -- |
--- ReqInput {
---   names: [String!]
---   name: String
---   values: FieldValuesCompReqInput
--- }
+--
+-- > ComponentReqInput {
+-- >   componentNames: [String!]
+-- >   componentName: String
+-- >   comopnentValues: FieldValuesCompReqInput
+-- > }
+--
+-- > ReqComponents { reqComponents ::  May Key CompReqValues }
+--
+-- Three inputs
+-- - CompKey, TagRedExp and FieldValues
+--
 -- /Note/ Subsets will over-write fullset selections (left-bias).
 -- The subset request may be problematic.  How consider two mixes that differ
--- only in the RedExp tag?
--- TODO
+-- only in the RedExp tag? Answer: For auto-generation, we use Exp, for custom
+-- the user will provide Gql Aliases to disambiguate the request.
+--
 -- /Note/: A fullset request is a request for a series of data using all of
 -- the values in that component... Powerful long -> wide view request.
-fetchComponents :: [ComponentReqInput] -> Model.Components -> Maybe Model.ReqComponents
+fetchComponents :: [GqlInput.ComponentReqInput]
+                -> Model.Components -> Maybe Model.ReqComponents
 fetchComponents requests etl =
-  let subsets = selectReqComponents (catMaybes (f1 <$> requests)) etl
-      fullsets = Just $ filterReqComponents (concat (catMaybes (f2 <$> requests))) etl
-   in subsets <> fullsets
+  let
+      requests' = preProcess <$> requests
+      fullSetReqs = filter isFullSet requests'
+      subSetReqs  = filter (not . isFullSet) requests'
 
-  -- tag the requests with the type that implements the search
+      fullSetReqs' :: [(Model.CompKey, Model.CompReqValues)]
+      fullSetReqs' = mapMaybe (`fetchFullSet` etl) fullSetReqs
+
+      subSetReqs' :: [(Model.CompKey, Model.CompReqValues)]
+      subSetReqs' = mapMaybe (`fetchSubset` etl) subSetReqs
+
+   in
+      Just $
+        Model.fromListReqComponents subSetReqs' <>
+        Model.fromListReqComponents fullSetReqs'
+
+  -- Model.fromListReqComponents [(CompKey, CompReqValues)] -> ReqComponents
   where
-    f1 :: ComponentReqInput -> Maybe (Text, Model.CompReqValues)
-    f1 (ComponentReqInput _ (Just k) (Just vs)) = case vs of
+    preProcess :: GqlInput.ComponentReqInput -> GqlInput.ComponentReqInput
+    preProcess (GqlInput.ComponentReqInput (Just _) _ _) =
+        panic $ "Cannot process multiple component names simultaneously here; " <>
+                "the request was not properly pre-processed"
+    preProcess req = req
 
-      --   values: FieldValuesCompReqInput {
-      --     txtValues
-      --     intValues
-      --     spanValues
-      --     reduced
-      --   }
-      --
-      FieldValuesCompReqInput (Just values) Nothing Nothing red ->
-        if red then Just (k, (Model.CompReqValues . Model.Red) . Model.TxtSet $ Model.fromList values)
-        else Just        (k, (Model.CompReqValues . Model.Exp) . Model.TxtSet $ Model.fromList values)
+    -- filterCompReqValues :: CompReqValues -> FieldValues -> Maybe CompReqValues
+    fetchSubset :: GqlInput.ComponentReqInput
+                -> Model.Components
+                -> Maybe (Model.CompKey, Model.CompReqValues)
+    fetchSubset req etl' = do
+      (compKey, compValues) <- getEtlFragment req etl'
+      -- extract and prep the req field values
+      compReq <- GqlInput.componentValues req
+      let compReq' = toCompReqValues  compReq
+      -- fetch field values
+      (compKey,) <$> filterCompReqValues compReq' compValues
 
-      FieldValuesCompReqInput Nothing (Just values) Nothing red ->
-        if red then Just (k, (Model.CompReqValues . Model.Red) . Model.IntSet $ Model.fromList values)
-        else Just        (k, (Model.CompReqValues . Model.Exp) . Model.IntSet $ Model.fromList values)
+    -- at this point, fullset has to imply Exp (create a series)
+    -- otherwise, there is no values in subsetting, i.e., making this request
+    -- We are displaying what the request would look like.
+    -- What does it mean if did not specify details? => Expressed
+    -- /Note/: Even when the user specifies every value, the computation
+    -- will get to this place with a specified TagRedExp. So, that will not
+    -- be confused with what we infer.
+    fetchFullSet :: GqlInput.ComponentReqInput
+                 -> Model.Components
+                 -> Maybe (Model.CompKey, Model.CompReqValues)
+    fetchFullSet req etl' =
+      fmap (Model.CompReqValues . Model.Exp) <$> getEtlFragment req etl'
 
-      FieldValuesCompReqInput Nothing Nothing (Just values) red ->
-        if red then Just (k, (Model.CompReqValues . Model.Red) . Model.SpanSet $ Model.fromList (spanFromInput <$>values))
-        else Just        (k, (Model.CompReqValues . Model.Exp) . Model.SpanSet $ Model.fromList (spanFromInput <$> values))
+    -----------------------------------------------------------------------------
+    getEtlFragment :: GqlInput.ComponentReqInput
+                  -> Model.Components
+                  -> Maybe (Model.CompKey, Model.CompValues)
+    getEtlFragment req etl'' = do
+      compName <- GqlInput.componentName req
+      let compKey = Model.mkCompKey compName
+      (compKey,) <$> lookupCompValues compKey etl''
 
-      FieldValuesCompReqInput {} -> Nothing
+    -----------------------------------------------------------------------------
+    isFullSet :: GqlInput.ComponentReqInput -> Bool
+    isFullSet (GqlInput.ComponentReqInput Nothing (Just _) Nothing) = True
+    isFullSet _                                                     = False
+    -----------------------------------------------------------------------------
 
-    -- No fields, no subsetting
-    f1 (ComponentReqInput _ _ Nothing) = Nothing
-    f1 _ = Nothing
+toCompReqValues :: GqlInput.FieldValuesCompReqInput -> Model.CompReqValues
+toCompReqValues input@(GqlInput.FieldValuesCompReqInput _ _ _ red)
+    | red       = go Model.Red input
+    | otherwise = go Model.Exp input
+    where
+      go redExp (GqlInput.FieldValuesCompReqInput (Just vs) _ _ _)
+        = Model.CompReqValues . redExp $ Model.fromListTxtValues vs
 
-    f2 :: ComponentReqInput -> Maybe [Model.QualKey]
-    f2 (ComponentReqInput maybeKeys _ _) = do
-      keys <- maybeKeys
-      pure $ Model.mkQualKey <$> keys
+      go redExp (GqlInput.FieldValuesCompReqInput _ (Just vs) _ _)
+        = Model.CompReqValues . redExp $ Model.fromListIntValues vs
 
-    -- | GraphQL -> Model
-    spanFromInput :: SpanInput -> Model.Span
-    spanFromInput SpanInput{..}
-      | reduced   = Model.Span $ Model.Red (Model.Range rangeStart rangeLength)
-      | otherwise = Model.Span $ Model.Exp (Model.Range rangeStart rangeLength)
+      go redExp (GqlInput.FieldValuesCompReqInput _ _ (Just vs) _)
+        = Model.CompReqValues . redExp $ Model.fromListSpanValues (spanFromInput <$> vs)
+
+      go _ GqlInput.FieldValuesCompReqInput {} =
+        panic "The values type does not match FieldValues"
+
+      -- | GraphQL -> Model
+      spanFromInput :: SpanInput -> Model.Span
+      spanFromInput SpanInput{..}
+        | reduced   = Model.Span $ Model.Red (Model.Range rangeStart rangeLength)
+        | otherwise = Model.Span $ Model.Exp (Model.Range rangeStart rangeLength)
 
 ---------------------------------------------------------------------------------
 -- |
@@ -391,10 +516,11 @@ resolverRequest :: GraphQL o => Model.Request -> Object o Request
 resolverRequest Model.Request {..} =
   pure $
     Request
-      (Just <$> resolverQualityMix subReq)
+      { subReq = Just <$> resolverQualityMix subReq
        -- :: Model.QualityMix -> QualityMix
-      (Just <$> traverse resolverComponentMix meaReqs)
+      , meaReqs = Just <$> traverse resolverComponentMix meaReqs
        -- :: [Model.ComponentMix] -> [ComponentMix!]
+      }
 
 ---------------------------------------------------------------------------------
 -- |
@@ -403,8 +529,9 @@ resolverQualityMix :: GraphQL o => Model.QualityMix -> Object o QualityMix
 resolverQualityMix Model.QualityMix {..} =
   pure $
     QualityMix
-      (Shared.resolverSubType subType)      -- :: Model.Key       -> String!
-      (Shared.resolverQualities qualityMix) -- :: Model.Qualities -> [Quality!]!
+      { subjectType = Shared.resolverSubType subjectType  -- :: Model.Key -> String!
+      , qualityMix  = Shared.resolverQualities qualityMix -- :: Model.Qualities -> [Quality!]!
+      }
 
 ---------------------------------------------------------------------------------
 -- |
@@ -413,8 +540,9 @@ resolverComponentMix :: GraphQL o => Model.ComponentMix -> Object o ComponentMix
 resolverComponentMix Model.ComponentMix {..} =
   pure $
     ComponentMix
-      (pure $ Model.unKey meaType)         -- :: Model.Key           -> String!
-      (resolverReqComponents componentMix) -- :: Model.ReqComponents -> [ReqComponent!]!
+      { measurementType = pure $ Model.unKey measurementType -- :: Model.Key -> String!
+      , componentMix    = resolverReqComponents componentMix -- :: Model.ReqComponents -> [ReqComponent!]!
+      }
 
 ---------------------------------------------------------------------------------
 -- |
@@ -431,16 +559,17 @@ resolverComponentMix Model.ComponentMix {..} =
 -- >   values: CompReqValues!
 -- > }
 --
-resolverReqComponents :: GraphQL o => Model.ReqComponents -> ArrayObject o ReqComponent
+resolverReqComponents :: GraphQL o => Model.ReqComponents -> ArrayObject o GqlType.ReqComponent
 resolverReqComponents reqComps =
   traverse identity $ Trans.fromReqComponents resolverReqComponent reqComps
 
-resolverReqComponent :: GraphQL o => Model.CompKey -> Model.CompReqValues -> Object o ReqComponent
+resolverReqComponent :: GraphQL o => Model.CompKey -> Model.CompReqValues -> Object o GqlType.ReqComponent
 resolverReqComponent compKey o' =
   pure $
-    ReqComponent
-      (pure $ Model.unKey compKey) -- :: Model.CompKey -> String!
-      (resolverCompReqValues o') -- :: Model.CompReqValues ->  CompReqValues!
+    GqlType.ReqComponent
+      { componentName = pure $ Model.unKey compKey -- :: Model.CompKey -> String!
+      , values = resolverCompReqValues o' -- :: Model.CompReqValues ->  CompReqValues!
+      }
 
 ---------------------------------------------------------------------------------
 -- |
@@ -453,13 +582,13 @@ resolverReqComponent compKey o' =
 -- >   reduced: Boolean!
 -- > }
 --
-resolverCompReqValues :: GraphQL o => Model.CompReqValues -> Object o CompReqValues
+resolverCompReqValues :: GraphQL o => Model.CompReqValues -> Object o GqlType.CompReqValues
 resolverCompReqValues (Model.CompReqValues taggedValues) =
     pure $
-      CompReqValues {
-        values  = Just <$> (Shared.resolverCompValues $ Model.unTag taggedValues)
-      , reduced = pure $ Model.isRed taggedValues
-      }
+      GqlType.CompReqValues
+        { values =  Just <$> Shared.resolverCompValues (Model.unTag taggedValues)
+        , reduced = pure $ Model.isRed taggedValues
+        }
 
 ---------------------------------------------------------------------------------
 -- |

@@ -32,12 +32,37 @@ data FieldValues
     | SpanSet (Set Span) deriving (Show, Eq, Ord)
 
 -- |
+-- Use to try and limit the types that can be used to instantiate
+-- CompValues.
+-- /Note/: This is a bit of hack compared to creating a separate
+-- Sum type to split 'FieldValues' into those for 'Model.ETL.Qualities'
+-- and 'Model.ETL.Components'.
+class ToQualValues a where
+  toQualValues :: a -> QualValues
+
+-- |
+-- Use to restrict types that can be used to instantiate CompValues
+class ToCompValues a where
+  toCompValues :: a -> CompValues
+
+
+-- |
 -- Is the collection empty/null?
 --
 null :: FieldValues -> Bool
 null (TxtSet set)  = S.null set
 null (IntSet set)  = S.null set
 null (SpanSet set) = S.null set
+
+-- |
+fromListTxtValues :: [Text] -> FieldValues
+fromListTxtValues vs = TxtSet $ fromList vs
+
+fromListIntValues :: [Int] -> FieldValues
+fromListIntValues vs = IntSet $ fromList vs
+
+fromListSpanValues :: [Span] -> FieldValues
+fromListSpanValues vs = SpanSet $ fromList vs
 
 -- | Utilized by "Models.Request.Transformers"
 fromList :: (Ord a) => [a] -> Set a

@@ -1,17 +1,3 @@
-# Root Query
-type Query {
-  getObsEtl: ObsETL
-  getStatus: Text!
-  # validate(request: RequestInput!): Request
-  # getMatrix(request: RequestInput!): Matix
-  # go: Matrix
-}
-
-# Root Mutation
-type Mutation {
-  newObsEtl(value: ObsEtlInput!): ObsETL!
-}
-
 # Obs - input
 # (state from which all else follows)
 input ObsEtlInput {

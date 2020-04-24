@@ -1,0 +1,35 @@
+# Root Query
+"""
+The App Queries
+
+* View: getObsEtl
+* Validate: validate request
+* Matrix: go request
+
+"""
+type Query {
+  """
+  Query/view the ObsETL data.
+  The structure of the query can be any valid gql query. Thus, any part of the
+  ETL data can be viewed.
+  """
+  getObsEtl: ObsETL
+
+  """
+  Instantiates Model.Request with the user input.
+  Successful instantiation is proof/validation of a valid request structure.
+  A valid request is used to generate a data table (`Matrix`).
+  """
+  validate(request: RequestInput!): Request
+  # getMatrix(request: RequestInput!): Matix
+  # go: Matrix
+  getStatus: Text!
+}
+
+# Root Mutation
+type Mutation {
+  """
+  Load the ObsETL data.
+  """
+  newObsEtl(value: ObsEtlInput!): ObsETL!
+}

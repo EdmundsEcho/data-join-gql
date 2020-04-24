@@ -1,0 +1,95 @@
+{
+  "obsVar": {
+    "subject": {
+      "subjectType": "HCP",
+      "qualities": [{
+          "qualityName": "CalledOn",
+          "qualityValues": {
+            "intValues": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "qualityName": "Specialty",
+          "qualityValues": {
+            "txtValues": [
+              "IM",
+              "OBGYN",
+              "ONC",
+              "PC",
+              "SURG"
+            ]
+          }
+        }
+      ]
+    },
+    "measurements": [{
+        "measurementType": "Distance",
+        "components": [{
+            "componentName": "Motion",
+            "componentValues": {
+              "txtValues": [
+                "Crawl",
+                "Run",
+                "Walk"
+              ]
+            }
+          },
+          {
+            "componentName": "SpanKey",
+            "componentValues": {
+              "spanValues": [{
+                "reduced": false,
+                "rangeStart": 0,
+                "rangeLength": 12
+              }]
+            }
+          }
+        ]
+      },
+      {
+        "measurementType": "Rx",
+        "components": [{
+            "componentName": "Payer",
+            "componentValues": {
+              "txtValues": [
+                "Cash",
+                "Medicaid",
+                "Medicare",
+                "Private"
+              ]
+            }
+          },
+          {
+            "componentName": "RxType",
+            "componentValues": {
+              "txtValues": [
+                "NRx",
+                "Refills"
+              ]
+            }
+          },
+          {
+            "componentName": "SpanKey",
+            "componentValues": {
+              "spanValues": [{
+                  "reduced": false,
+                  "rangeStart": 0,
+                  "rangeLength": 6
+                },
+                {
+                  "reduced": true,
+                  "rangeStart": 0,
+                  "rangeLength": 12
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

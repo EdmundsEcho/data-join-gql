@@ -19,19 +19,23 @@ module Model.Request
   -- * Branches
   -- ** Quality-related
   , QualityMix (..)
+
   -- ** Component-related
   , ComponentMix (..)
   , ReqComponents (..)
 
   -- ** FieldValues-related
   , CompReqValues (..)
+  , ToCompReqValues(..)
+  , toTupleCompReqValues
+  , ToQualValues(..)
 
   -- * Constructors
   , mkQualityMix
   , mkComponentMix
   , fromListReqComponents
+  , fromFieldsCompReqValues
 
-  -- * Shared
   )
   where
 
@@ -60,8 +64,8 @@ data Request = Request
 
 -- | @ map :: ETL values -> Requested values @
 data QualityMix = QualityMix
-  { subType    :: !Key
-  , qualityMix :: !Qualities
+  { subjectType :: !Key
+  , qualityMix  :: !Qualities
   } deriving (Show, Eq)
 
 -- | Smart constructor.
@@ -71,14 +75,15 @@ mkQualityMix :: Key -> Qualities -> QualityMix
 mkQualityMix key@(SubKey _) vs = QualityMix key vs
 mkQualityMix _              _  = panic "mkQualityMix: Tried with wrong type."
 
+
 -- | @ map :: ETL values -> Requested values @
 -- Uses CompReqValues
 --
 -- Measurement Type is also bundled to facilitate referencing Source
 -- (Source = Measurement type)
 data ComponentMix = ComponentMix
-  { meaType      :: !Key
-  , componentMix :: !ReqComponents
+  { measurementType :: !Key
+  , componentMix    :: !ReqComponents
   } deriving (Show, Eq)
 
 -- * ReqComponents
@@ -111,3 +116,18 @@ fromListReqComponents = ReqComponents . Map.fromList
 --   plus an extra tag.  This fits throughout further down the Request tree.
 newtype CompReqValues = CompReqValues { values :: TagRedExp CompValues }
   deriving (Show, Eq, Ord)
+
+class ToCompReqValues a where
+  toCompReqValues :: a -> CompReqValues
+
+toTupleCompReqValues :: CompReqValues -> (CompValues, Reduced)
+toTupleCompReqValues (CompReqValues (Red vs)) = (vs, True)
+toTupleCompReqValues (CompReqValues (Exp vs)) = (vs, False)
+
+fromFieldsCompReqValues :: Reduced -> CompValues -> CompReqValues
+fromFieldsCompReqValues red vs
+  | red       = CompReqValues { values = Red vs }
+  | otherwise = CompReqValues { values = Exp vs }
+
+-- | Synonym used to set TagRedExp value
+type Reduced = Bool

@@ -24,14 +24,11 @@
 --
 module Api.GQL.ObsETL
   (
-  -- * GQL Root
-    resolverGetObsEtl
-  , resolverGetStatus
-  , resolverNewObsETL
-  , Query (..)
-  , Mutation (..)
-  -- * Api.GQL Shared Views
+  -- * Root resolver
+    resolverObsEtl
+  -- * Shared Views
   , fromInputQualities
+  , ObsETL
   , Quality
   , Span
   , ComponentValues(..)
@@ -39,69 +36,39 @@ module Api.GQL.ObsETL
   , resolverQualities
   , resolverSpanValue
   , resolverSubType
+
   -- * Api.GQL Shared Inputs
   , FieldValuesInput(..)
   , QualityInput(..)
   , SpanInput(..)
+
+  -- * Required by root
+  , ObsEtlInput
+  , fromInputObsEtl
   )
 where
 -------------------------------------------------------------------------------
 import           Protolude
 -------------------------------------------------------------------------------
-import           Data.Morpheus.Document (importGQLDocument)
-import           Data.Morpheus.Types
--------------------------------------------------------------------------------
-import           Control.Concurrent.STM
--------------------------------------------------------------------------------
 import qualified Model.ETL.ObsETL       as Model
 import qualified Model.ETL.Transformers as Trans
 -- AppObs types
 import           Api.GqlHttp
-import qualified AppTypes               as App
 -------------------------------------------------------------------------------
-importGQLDocument "src/Api/GQL/schema.shared.graphql"
-importGQLDocument "src/Api/GQL/schema.obsetl.graphql"
+-- import           Data.Morpheus.Document (importGQLDocument)
+-- import           Data.Morpheus.Document (importGQLDocumentWithNamespace)
 -------------------------------------------------------------------------------
--- |
--- == GQL Query Resolvers
-resolverGetObsEtl :: OptionalObject QUERY ObsETL
-resolverGetObsEtl = do
-  obsEtl' <- fmap App.db getDb
-  case obsEtl' of
-    App.DataObsETL o  -> do
-      obsEtl <- resolverObsEtl o
-      pure $ Just obsEtl
-    _ -> pure Nothing
-
-resolverGetStatus :: Value QUERY Text
-resolverGetStatus = fmap App.status getDb
+import           Api.GQL.Schemas
+-- importGQLDocument "src/Api/GQL/schema.shared.graphql"
+-- importGQLDocument "src/Api/GQL/schema.obsetl.graphql"
+-- importGQLDocumentWithNamespace "src/Api/GQL/schema.shared.graphql"
+-- importGQLDocumentWithNamespace "src/Api/GQL/schema.obsetl.graphql"
+-------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
+-- * ObsETL Model -> View
 -- |
--- == GQL Db
-getDb :: GraphQL o => Value o App.Database
-getDb = do
-  dbTVar <- lift $ asks App.database
-  liftIO . atomically $ readTVar dbTVar
-
---------------------------------------------------------------------------------
--- |
--- == GQL Mutation Resolvers
--- TODO: Return a Maybe ObsETL
-resolverNewObsETL :: NewObsEtlArgs -> Object MUTATION ObsETL
-resolverNewObsETL NewObsEtlArgs {value = newObs'} = do
-  let newObs = fromInputObsEtl newObs'
-  db <- getDb
-  let newDb = db { App.db = App.DataObsETL newObs }
-  dbTVar <- lift $ asks App.database
-  liftIO . atomically $ writeTVar dbTVar newDb
-  resolverObsEtl newObs
-
-
--------------------------------------------------------------------------------
--- |
--- === Model -> View resolvers
--- fromModelToView
+--
 resolverObsEtl :: GraphQL o => Model.ObsETL -> Object o ObsETL
 resolverObsEtl Model.ObsETL {..} =
   pure $
@@ -113,19 +80,10 @@ resolverObsEtl Model.ObsETL {..} =
 resolverID :: GraphQL o => Model.ID -> Value o Text
 resolverID = pure . Model.unID
 
--- |
--- ==== fromInput
-fromInputObsEtl :: ObsEtlInput -> Model.ObsETL
-fromInputObsEtl ObsEtlInput {..}
-  = Model.ObsETL
-      Model.mkID
-      (fromInputSubject subject)            -- :: Input -> Model.Subject
-      (fromInputMeasurements measurements)  -- :: Input -> Model.Measurements
-
 -------------------------------------------------------------------------------
+-- ** Subject Model -> View
 -- |
--- === Model -> View resolvers
--- fromModelToView
+--
 resolverSubject :: GraphQL o => Model.Subject -> Object o Subject
 resolverSubject Model.Subject {..} =
   pure $
@@ -136,56 +94,28 @@ resolverSubject Model.Subject {..} =
 resolverSubType :: GraphQL o => Model.SubKey -> Value o Text
 resolverSubType = pure . Model.unKey
 
--- |
--- ==== fromInput
-fromInputSubject :: SubjectInput -> Model.Subject
-fromInputSubject SubjectInput {..}
-  = Model.Subject
-      (fromInputSubType subjectType)
-      (fromInputQualities qualities)
-
-fromInputSubType :: Text -> Model.SubKey
-fromInputSubType = Model.SubKey . Just
 --------------------------------------------------------------------------------
+-- ** Measurements Model -> View
 -- |
--- === Measurements
+-- /Note/: The model does not host Measurement
 --
 resolverMeasurements :: GraphQL o
                      => Model.Measurements -> ArrayObject o Measurement
 resolverMeasurements o'
   = traverse identity $ Trans.fromMeasurements resolverMeasurement o'
-
---------------------------------------------------------------------------------
--- |
--- === Measurement
--- /Note/: The model does not host Measurement
---
-resolverMeasurement :: GraphQL o
-                    => Model.MeaKey -> Model.Components -> Object o Measurement
-resolverMeasurement key o' =
-  pure $
-    Measurement
-       (pure $ Model.unKey key)
-       (traverse identity $ Trans.fromComponents resolverComponent o')
-
---------------------------------------------------------------------------------
--- |
--- ==== Measurement (GQL -> Model)
--- /Note/: The Model does not host Measurement (but rather Measurements)
---
-fromInputMeasurements :: [MeasurementInput] -> Model.Measurements
-fromInputMeasurements vs =
-  Model.Measurements . Model.measFromList $
-    bimap Model.MeaKey fromInputComponents . toTuple <$> vs
   where
-    toTuple :: MeasurementInput -> (Type', [ComponentInput])
-    toTuple MeasurementInput{..} = (measurementType, components)
+    resolverMeasurement :: GraphQL o
+                        => Model.MeaKey -> Model.Components -> Object o Measurement
+    resolverMeasurement key o'' =
+      pure $
+        Measurement
+           (pure $ Model.unKey key)
+           (traverse identity $ Trans.fromComponents resolverComponent o'')
 
-type Type' = Text
 --------------------------------------------------------------------------------
+-- *** Components Model -> View
 -- |
--- === Component
--- Model -> GQL View
+-- /Note/: The model does not host Component
 --
 -- > Components { components :: Map Key CompValues }
 --
@@ -193,6 +123,7 @@ type Type' = Text
 -- >   componentName: String!
 -- >   componentValues: ComponentValues!
 -- > }
+--
 resolverComponent :: GraphQL o
                   => Model.CompKey -> Model.CompValues -> Object o Component
 resolverComponent key o' =
@@ -202,20 +133,9 @@ resolverComponent key o' =
        (resolverCompValues o')
 
 --------------------------------------------------------------------------------
+-- *** ComponentValues Model -> View
 -- |
--- ==== Components (GQL -> Model)
--- /Note/: The Model does not host Component (but rather Components)
-fromInputComponents :: [ComponentInput] -> Model.Components
-fromInputComponents vs =
-  Model.Components . Model.compsFromList $
-    bimap Model.CompKey fromInputFieldValues . toTuple <$> vs
-  where
-    toTuple :: ComponentInput -> (Name, FieldValuesInput)
-    toTuple ComponentInput{..} = (componentName, componentValues)
-
---------------------------------------------------------------------------------
--- |
--- === Model CompValues, GQL Union ComponentValues
+-- Model CompValues, GQL Union ComponentValues
 --
 -- > Model TxtSet (Set Text) | IntSet (Set Int) etc..
 --
@@ -234,17 +154,20 @@ resolverCompValues (Model.SpanSet o') =
   ComponentValuesSpanValues <$> resolverSpanValues (Model.SpanSet o')
 
 --------------------------------------------------------------------------------
+-- ** Qualities Model -> View
 -- |
--- === Quality
+-- /Note/: The model does not host Quality
+--
+-- Model Key + TxtSet (Set Text) | IntSet (Set Text)
+--
+-- GQL Quality is an object with two fields
+--     qualityName :: Text
+--     qualityValues :: Union QualityValuesTxtValues ...
 --
 resolverQualities :: GraphQL o => Model.Qualities -> ArrayObject o Quality
 resolverQualities o'
   = traverse identity $ Trans.fromQualities resolverQuality o'
 
--- | GQL Quality is an object with two fields
---      qualityName :: Text
---      qualityValues :: Union QualityValuesTxtValues ...
---   Model Key + TxtSet (Set Text) | IntSet (Set Text)
 resolverQuality :: GraphQL o
                 => Model.QualKey -> Model.QualValues -> Object o Quality
 resolverQuality key o' =
@@ -254,25 +177,14 @@ resolverQuality key o' =
        (resolverQualValues o')
 
 --------------------------------------------------------------------------------
+-- *** QualValues Model -> View
 -- |
--- ==== Quality (GQL -> Model)
--- /Note/: The Model hosts qualities
+-- Model QualValues, GQL Union QualityValues
 --
-fromInputQualities :: [QualityInput] -> Model.Qualities
-fromInputQualities vs =
-  Model.Qualities . Model.qualsFromList $
-    bimap Model.QualKey fromInputFieldValues . toTuple <$> vs
-  where
-    toTuple :: QualityInput -> (Name, FieldValuesInput)
-    toTuple QualityInput{..} = (qualityName, qualityValues)
-
-type Name = Text
-
---------------------------------------------------------------------------------
--- |
--- === Model CompValues, GQL Union ComponentValues
--- > GQL { txtValues :: [Text] } | { intValues :: [Int] }
 -- > Model TxtSet (Set Text) | IntSet (Set Int)
+--
+-- > GQL { txtValues :: [Text] } | { intValues :: [Int] }
+--
 -- Pattern match to delegate to one of the 3 value types
 --
 resolverQualValues :: GraphQL o => Model.QualValues -> Object o QualityValues
@@ -285,8 +197,9 @@ resolverQualValues (Model.IntSet o') =
 resolverQualValues  _ = panic "QualValues resolver: tried with the wrong type."
 
 --------------------------------------------------------------------------------
+-- **** FieldValues Model -> View
 -- |
--- === FieldValues :: TxtValues | IntValues | SpanValues
+-- FieldValues :: TxtValues | IntValues | SpanValues
 --
 resolverTxtValues :: GraphQL o => Model.FieldValues -> Object o TxtValues
 resolverTxtValues (Model.TxtSet o') = pure $
@@ -305,23 +218,8 @@ resolverSpanValues (Model.SpanSet o') = pure $
 resolverSpanValues  _ = panic "Values resolver: tried with the wrong type."
 
 --------------------------------------------------------------------------------
+-- ***** SpanValue Model -> View
 -- |
--- ==== FieldValuesInput (GQL -> Model)
--- > FieldValuesInput {
--- >   txtValues  :: Maybe [Text]
--- >   intValues  :: Maybe [Int]
--- >   spanValues :: Maybe [Span]
--- > }
---
-fromInputFieldValues :: FieldValuesInput -> Model.FieldValues
-fromInputFieldValues (FieldValuesInput (Just ts) _ _) = Model.TxtSet  (Model.fromList ts)
-fromInputFieldValues (FieldValuesInput _ (Just is) _) = Model.IntSet  (Model.fromList is)
-fromInputFieldValues (FieldValuesInput _ _ (Just ss)) = Model.SpanSet
-                                                       (Model.fromList (fromInputSpan <$> ss))
-fromInputFieldValues FieldValuesInput {} = panic "fromInput: Failed to provide values"
---------------------------------------------------------------------------------
--- |
--- === SpanValue
 --
 resolverSpanValue :: GraphQL o => Model.Span -> Object o Span
 resolverSpanValue = \case
@@ -337,12 +235,142 @@ resolverSpanValue = \case
                 }
 
 --------------------------------------------------------------------------------
+-- * GQL Input
 -- |
--- ==== SpanInput (GQL -> Model)
+-- (GQL -> Model)
+--
+fromInputObsEtl :: ObsEtlInput -> Model.ObsETL
+fromInputObsEtl ObsEtlInput {..}
+  = Model.ObsETL
+      Model.mkID
+      (fromInputSubject subject)            -- :: Input -> Model.Subject
+      (fromInputMeasurements measurements)  -- :: Input -> Model.Measurements
+
+--------------------------------------------------------------------------------
+-- ** Subject
+-- |
+-- (GQL -> Model)
+--
+fromInputSubject :: SubjectInput -> Model.Subject
+fromInputSubject SubjectInput {..}
+  = Model.Subject
+      (fromInputSubType subjectType)
+      (fromInputQualities qualities)
+
+fromInputSubType :: Text -> Model.SubKey
+fromInputSubType = Model.SubKey . Just
+--------------------------------------------------------------------------------
+-- *** List Quality
+-- |
+-- (GQL -> Model)
+--
+-- /Note/: The Model hosts qualities
+--
+fromInputQualities :: [QualityInput] -> Model.Qualities
+fromInputQualities vs =
+  Model.Qualities . Model.qualsFromList $
+    bimap Model.QualKey fromInputFieldValues . toTuple <$> vs
+  where
+    toTuple :: QualityInput -> (Name, FieldValuesInput)
+    toTuple QualityInput{..} = (qualityName, qualityValues)
+
+type Name = Text
+
+--------------------------------------------------------------------------------
+-- **** FieldValues
+-- |
+-- (GQL -> Model)
+--
+-- > FieldValuesInput {
+-- >   txtValues  :: [Text!]
+-- >   intValues  :: [Int!]
+-- >   spanValues :: [Span!]
+-- > }
+--
+-- > data FieldValues
+-- >     = TxtSet  (Set Text)
+-- >     | IntSet  (Set Int)
+-- >     | SpanSet (Set Span)
+--
+fromInputFieldValues :: FieldValuesInput -> Model.FieldValues
+fromInputFieldValues (FieldValuesInput (Just ts) _ _) = Model.TxtSet  (Model.fromList ts)
+fromInputFieldValues (FieldValuesInput _ (Just is) _) = Model.IntSet  (Model.fromList is)
+fromInputFieldValues (FieldValuesInput _ _ (Just ss)) = Model.SpanSet
+                                                       (Model.fromList (fromInputSpan <$> ss))
+fromInputFieldValues FieldValuesInput {} = panic "fromInput: Failed to provide values"
+
+--------------------------------------------------------------------------------
+-- ***** SpanInput
+-- |
+-- (GQL -> Model)
+--
+-- > input SpanInput {
+-- >   rangeStart: Int!
+-- >   rangeLength: Int!
+-- >   reduced: Boolean!
+-- > }
+--
+-- > Span { span :: TagRedExp Range }
 --
 fromInputSpan :: SpanInput -> Model.Span
 fromInputSpan SpanInput {..}
   | reduced   = Model.Span $ Model.Red (Model.Range rangeStart rangeLength)
   | otherwise = Model.Span $ Model.Exp (Model.Range rangeStart rangeLength)
 
+-- |
+toQualValues :: FieldValuesInput -> Model.QualValues
+toQualValues (FieldValuesInput (Just vs) _ _) = Model.fromListTxtValues vs
+toQualValues (FieldValuesInput _ (Just vs) _) = Model.fromListIntValues vs
+toQualValues FieldValuesInput {} = panic "The values type does not match FieldValues"
+
+-- |
+toCompValues :: FieldValuesInput -> Model.CompValues
+toCompValues (FieldValuesInput (Just vs) _ _) = Model.fromListTxtValues vs
+toCompValues (FieldValuesInput _ (Just vs) _) = Model.fromListIntValues vs
+
+toCompValues (FieldValuesInput _ _ (Just vs))
+  = Model.fromListSpanValues (spanFromInput <$> vs)
+      where
+        -- | GraphQL -> Model
+        spanFromInput :: SpanInput -> Model.Span
+        spanFromInput SpanInput{..}
+          | reduced   = Model.Span $ Model.Red (Model.Range rangeStart rangeLength)
+          | otherwise = Model.Span $ Model.Exp (Model.Range rangeStart rangeLength)
+
+toCompValues FieldValuesInput {}
+    = panic "The values type does not match FieldValues"
+
+--------------------------------------------------------------------------------
+-- ** List Measurement
+-- |
+-- (GQL -> Model)
+--
+-- /Note/: The Model does not host Measurement (but rather Measurements)
+--
+fromInputMeasurements :: [MeasurementInput] -> Model.Measurements
+fromInputMeasurements vs =
+  Model.Measurements . Model.measFromList $
+    bimap Model.MeaKey fromInputComponents . toTuple <$> vs
+  where
+    toTuple :: MeasurementInput -> (Type', [ComponentInput])
+    toTuple MeasurementInput{..} = (measurementType, components)
+
+type Type' = Text
+
+--------------------------------------------------------------------------------
+-- *** List Component
+-- |
+-- (GQL -> Model)
+--
+-- /Note/: The Model does not host Component (but rather Components)
+--
+fromInputComponents :: [ComponentInput] -> Model.Components
+fromInputComponents vs =
+  Model.Components . Model.compsFromList $
+    bimap Model.CompKey fromInputFieldValues . toTuple <$> vs
+  where
+    toTuple :: ComponentInput -> (Name, FieldValuesInput)
+    toTuple ComponentInput{..} = (componentName, componentValues)
+
+--------------------------------------------------------------------------------
 --------------------------------------------------------------------------------

@@ -15,7 +15,8 @@ import qualified Data.Map.Strict  as Map (filterWithKey, fromList, lookup,
 import qualified Data.Set         as Set (fromList, intersection)
 import           Model.ETL.ObsETL
 import           Model.Request    (CompReqValues (..), ReqComponents (..),
-                                   fromListReqComponents)
+                                   fromFieldsCompReqValues,
+                                   fromListReqComponents, toTupleCompReqValues)
 
 -- | Functions to retrieve values throughout the Obs structure.
 -- > There are five collections in the Obs data structure:
@@ -143,19 +144,29 @@ filterComponents ks o = Components $ Map.filterWithKey (mkMapFilter ks) (compone
 -- @Exp CompValues@. The request is for a series of the data (long view -> wide view)
 filterReqComponents :: [CompKey] -> Components -> ReqComponents
 filterReqComponents ks o
-  = ReqComponents $ map (CompReqValues . Exp) $
+  = ReqComponents . fmap (CompReqValues . Exp) $
       Map.filterWithKey (mkMapFilter ks) (components o)
-
+-- |
+-- Unifying filter for FieldValues
 filterValues :: FieldValues -> FieldValues -> Maybe FieldValues
 filterValues search values
   | null search = Just values
   | otherwise = go search values
   where
-    go (TxtSet s) (TxtSet values) = Just $ TxtSet $ Set.intersection s values
-    go (IntSet s) (IntSet values) = Just $ IntSet $ Set.intersection s values
-    go (SpanSet s) (SpanSet values) = Just $ SpanSet $ Set.intersection s values
-    go _ _ = Nothing
+    go (TxtSet s) (TxtSet vs)   = Just . TxtSet $ Set.intersection s vs
+    go (IntSet s) (IntSet vs)   = Just . IntSet $ Set.intersection s vs
+    go (SpanSet s) (SpanSet vs) = Just . SpanSet $ Set.intersection s vs
+    go _ _                      = Nothing
 
+-- |
+-- Unifying filter for CompReqValues
+filterCompReqValues :: CompReqValues -> FieldValues -> Maybe CompReqValues
+filterCompReqValues search values = do
+  let (search', reduced) = toTupleCompReqValues search
+  result <- filterValues search' values
+  pure $ fromFieldsCompReqValues reduced result
+
+-- fromFieldsCompReqValues :: Reduced -> CompValues -> CompReqValues
 -- | Retrieve subset of values /Deprecated/
 filterTxtValues :: [Text] -> FieldValues -> FieldValues
 filterTxtValues search inSet =
