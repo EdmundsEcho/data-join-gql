@@ -74,11 +74,13 @@ data QualityMix = QualityMix
   } deriving (Show, Eq)
 
 -- *** ReqQualities
--- | The @Qualities@ node is a @Map@ with
--- @ Key :: QualKey @ and
--- @ Value (child) :: Set of QualValues @
+-- |
+-- Encoding
+-- - QualKey Nothing => display the quality field, select all levels
+-- - QualKey Just vs => display the quality field, select levels
 --
 -- /Note/: QualValues are FieldValues.
+--
 newtype ReqQualities = ReqQualities
         { reqQualities :: Map Key (Maybe QualValues)
         } deriving (Show, Eq, Ord)
@@ -131,8 +133,14 @@ instance Monoid ComponentMixes where
 
 -- * ReqComponents
 -- |
+-- Encoding
+-- - CompKey Nothing => create a series of fields using all levels (Exp)
+-- - CompKey Just vs =>
+--     - Exp: create a series using the levels specified
+--     - Red: create a single summary field using the levels specified
 --
 -- /Note/: @CompReqValues@ are @FieldValues@ tagged using @TagRedExp@.
+--
 newtype ReqComponents = ReqComponents
         { reqComponents :: Map Key (Maybe CompReqValues)  -- CompKey
         } deriving (Show, Eq, Ord, Generic)

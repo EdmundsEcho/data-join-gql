@@ -18,10 +18,8 @@ import           Model.ETL.ID
 -- lookup function for the corresponding collection.
 data Key =
       OIKey   (Maybe ID)    -- ^ Obs ID Key
-    | OSKey                 -- ^ Pull Subject branch (not untilized)
     | SubKey  (Maybe Text)
     | QualKey Text
-    | OMKey                 -- ^ Pull Measurements branch (not utilized)
     | MeaKey  Text
     | CompKey Text
     | SpanKey
@@ -31,10 +29,8 @@ data Key =
 -- === Key-related types and constuctors
 -- ==== Type synonyms = constructor names
 type OIKey     = Key
-type OSKey     = Key
 type SubKey    = Key
 type QualKey   = Key
-type OMKey     = Key
 type MeaKey    = Key
 type CompKey   = Key
 type SpanKey   = Key
@@ -51,11 +47,9 @@ type QualName  = Key
 unKey :: Key -> Text
 unKey (OIKey (Just id))   = unID id
 unKey (OIKey Nothing)     = "OID"        -- Less relevant
-unKey OSKey               = "OSKey"
 unKey (SubKey (Just txt)) = txt
 unKey (SubKey Nothing)    = "SubType"    -- Less relevant
 unKey (QualKey txt)       = txt
-unKey OMKey               = "OMKey"
 unKey (MeaKey txt)        = txt
 unKey (CompKey txt)       = txt
 unKey SpanKey             = "SpanKey"

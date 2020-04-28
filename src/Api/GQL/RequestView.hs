@@ -5,33 +5,8 @@
 
 {-# OPTIONS_HADDOCK ignore-exports #-}
 -- |
--- Module     : Api.GQL.Request
--- Description: UI access point
---
--- This module implements the resolvers for a 'Request'. The GQL inputs and
--- views are specified in @schemas.request.graphql@ and what is shared
--- with the 'Api.GQL.ObsETL' module; see @schemas.shared.graphql@.
---
--- The 'Model.Reqest' is a host for requested data; data fetched from 'Model.ETL'
--- stored in the @Database@ 'AppTypes.Env'.
---
--- The design tries to leverage the 'Model.ObsETL' data types where
--- possible.  However, in order to maintain a clear distinction between request
--- and the ETL source of truth, the design likely would have been better
--- had all request inputs be tagged (one way or another) with a 'Request' moniker.
---
--- Keep in mind,
--- a request is a series of search terms. The @schemas.request.graphql@ define
--- the input object specifications accordingly. However, a 'Request' is not
--- data unto themselves. This line is blurred by the fact that 'Model.Request'
--- is instantiated using 'Model.ObsETL' data. However, is viewed using the
--- data types described in @schemas.request.graphql@.
---
--- Also note, the use of 'Model.ETL.TagRedExp.TagRedExp' is used in two ways.
--- First for Span both in the ETL and Request phases.  Second, to qualify the
--- requests for Components ('Model.Request.ReqComponents'). There is likely
--- redundant use of the 'Model.ETL.TagRedExp.TagRedExp' for a
--- 'Model.ETL.Span.Span' included in a 'Request'.
+-- Module     : Api.GQL.RequestView
+-- Description: UI view
 --
 module Api.GQL.RequestView where
 ---------------------------------------------------------------------------------

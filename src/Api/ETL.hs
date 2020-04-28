@@ -11,7 +11,7 @@ module Api.ETL where
 import           Protolude        hiding (Type, null)
 ---------------------------------------------------------------------------------
 import qualified Data.Map.Strict  as Map (filterWithKey, fromList, lookup,
-                                          singleton, toList, union)
+                                          member, singleton, toList, union)
 import qualified Data.Set         as Set (fromList, intersection)
 import           Model.ETL.ObsETL
 import           Model.Request    (CompReqValues (..), ReqComponents (..),
@@ -38,7 +38,7 @@ import           Model.Request    (CompReqValues (..), ReqComponents (..),
 -- Not strictly a collection but is one of two branches in the Obs object.
 -- The Subject node is ~ Measurements node
 lookupSubject :: ObsETL -> Maybe Subject
-lookupSubject c = Just (obsSubject c)
+lookupSubject o = Just (obsSubject o)
 
 selectQualities :: [(Text, FieldValues)] -> Qualities -> Maybe Qualities
 selectQualities selects qualities
@@ -104,6 +104,15 @@ lookupQualities key@(SubKey (Just _)) c
   | otherwise = Nothing
 lookupQualities _ _ = panic "wrong key type"
 
+-- |
+-- A request to display a Quality field.
+--
+lookupQualityKey, lookupQualityName :: QualKey -> Qualities -> Maybe QualKey
+lookupQualityKey key@(QualKey _) o =
+  if Map.member key (qualities o) then Just key else Nothing
+lookupQualityKey  _ _             = panic "wrong key type"
+lookupQualityName = lookupQualityKey
+
 -- | Lookup the values of a specific Quality.
 lookupQualValues :: QualKey -> Qualities -> Maybe QualValues
 lookupQualValues key@(QualKey _) c = Map.lookup key (qualities c)
@@ -112,7 +121,15 @@ lookupQualValues _ _               = panic "wrong key type"
 -- | Retrieve a reference to the Measurements collection.
 -- The collection is one of two branches in the Obs object.
 lookupMeasurements :: ObsETL -> Maybe Measurements
-lookupMeasurements c = Just (obsMeasurements c)
+lookupMeasurements o = Just (obsMeasurements o)
+
+-- |
+-- A request to display a Measurement field.
+--
+lookupMeasurementType :: MeaKey -> Measurements -> Maybe MeaKey
+lookupMeasurementType key@(MeaKey _) o =
+  if Map.member key (measurements o) then Just key else Nothing
+lookupMeasurementType  _ _             = panic "wrong key type"
 
 -- | Lookup a specific Measurement
 -- Note: the API does not define a type for a single Measurement.
