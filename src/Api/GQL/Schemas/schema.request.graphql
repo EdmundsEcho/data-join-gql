@@ -1,0 +1,187 @@
+# Request inputs
+"""
+A data pull from the ObsETL data.  A subset of the ObsETL universe.
+The request output is a table of data.  The length of the tabel is defined
+by the qualities chosen (qualities that describe the subjects).
+
+The width of the table (number of columns or fields) is often set mostly by
+the mix of components within a measurement.  Measurements and their components
+have no influence on the length of the table, i.e., on the number of records.
+
+The request can include any number of requests from the same 'Measurement'
+can be defined with different mixes of components.
+
+"""
+input RequestInput {
+  """
+  There is only ever one subject type.  Missing input will default to the
+  subject type for the data set. All subjects will be included. No quality
+  field will be included.
+  """
+  subReq: QualityMixInput
+  """
+  If not provided, all measurements will be included.  None of the measurements
+  will be cut into component slices.
+  """
+  meaReqs: [ComponentMixInput!]
+}
+"""
+`QualityMixInput`
+
+Describes the requested mix of Subject Qualities. This mix of qualities
+determines the number of Subjects included in the request (i.e., the
+number of records in the requested data set)
+"""
+input QualityMixInput {
+  subjectType: String
+  qualityMix: [QualityReqInput!]
+}
+"""
+`QualityReqInput`
+
+"""
+input QualityReqInput {
+  """
+  Each entry generates a quality field in the data request.
+  Use this field to pull all of the values for the quality.
+  """
+  qualityNames: [String!]
+  """
+  Each entry generates a quality field in the data request.
+  Use this field in combination with the 'qualityValues' field to
+  pull a subset of the values for that quality.
+  """
+  qualityName: String
+  """
+  This field is a filter that selects a subset of values. Thus
+  it reduces the number of records.  If left empty, all of
+  the qualities will be selected.
+  """
+  qualityValues: QualValuesInput
+}
+"""
+`ComponentMixInput`
+
+Offers two search capacities.
+1. A collection of `ComponentReqInput` for a specific `measurementType`.
+2. List of `measurementTypes`
+
+The input describes which components to include in the measurement.
+"""
+input ComponentMixInput {
+  """
+  Each entry will generate a single field that summarizes the Measurement
+  values for each subject.
+  """
+  measurementTypes: [String!]
+  """
+  Each entry will generate a series of fields that summarize the Measurement
+  value for each combination of component values.
+  """
+  measurementType: String
+  """
+  Describes the combination of component values used to generate the series of
+  measurements (how to cut the pie, each piece contributing to the series).
+  """
+  componentMix: [ComponentReqInput!]
+}
+"""
+`ComponentReqInput`
+
+Use `componentNames` to request *all of the values* in each of the
+components.
+Use *componentName* to request a subset of values of a component.
+"""
+input ComponentReqInput {
+  componentNames: [String!]
+  componentName: String
+  componentValues: FieldValuesCompReqInput
+}
+"""
+A requested component needs to specify if the collection of values is meant
+to create a single (reduced = True) or multiple fields in the requested
+data table (Request -> Matrix).
+"""
+input FieldValuesCompReqInput {
+  txtValues: [String!]
+  intValues: [Int!]
+  spanValues: [SpanInput!]
+  reduced: Boolean!
+}
+
+# View of the Model
+"""
+Minimum viable is a Subject and Measurement type request.  This can be implied
+from any request input.
+"""
+type Request {
+  subReq: QualityMix!
+  meaReqs: [ComponentMix!]!
+}
+type QualityMix {
+  """
+  Reports the subject type for this data set.
+  """
+  subjectType: String!
+  """
+  View - A minimum of one measurement will be included in the request.
+  """
+  qualityMix: [ReqQuality!]
+}
+type ReqQuality {
+  """
+  A field with this name will be included in the request.
+  """
+  qualityName: String!
+  """
+  The values in this field determine what 'Subjects' will be included
+  in the data request. The type is a `union` of `TxtValues` and `IntValues`.
+  """
+  values: QualityValues
+}
+"""
+View - A minimum of one measurement
+"""
+type ComponentMix implements Message {
+  """
+  The request will include a field that summarizes the measurement values
+  based on the combination of components.
+  """
+  measurementType: String!
+  """
+  Produces a series of fields consisting of the combinations of measurement
+  components described here. If none are included, a single summary field will be
+  included in the request (i.e., a series of length one).
+
+  `Todo`: Review how to display. Now [].
+  """
+  componentMix: [ReqComponent!]!
+  message: String
+}
+type ReqComponent implements Message {
+  """
+  Describes which measurement components will be included in the series of
+  measurememt fields.
+  """
+  componentName: String!
+  """
+  Describes what measurement data will be included for each subject.
+  Describes which 'cuts' of the data to include. If left empty when the
+  component is included, it will produce a series with all of the field
+  levels.
+
+  __Note__: For now, only display when the request generates a series using
+  each of the values in the 'ReqCompValues'.
+  """
+  values: ComponentValues
+  """
+  Describes whether the data included will be 'reduced' to a single summary
+  values, or a data series.
+  """
+  reduced: Boolean!
+  message: String
+}
+
+interface Message {
+  message: String
+}

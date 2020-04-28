@@ -7,11 +7,17 @@
 
 # Input
 """
-Shared between ObsETL and Request
+Used by ObsETL for Component and Quality values. Also used by Quality Requests.
+It is not used by Component requests which require an additional field.  See
+'ReqFieldValuesInput'.
+
+**Note** This field is similar to 'ReqFieldValues'.  This object does not
+include the 'reduced' specification.
+
 """
-input QualityInput {
-  qualityName: String!
-  qualityValues: FieldValuesInput!
+input QualValuesInput {
+  txtValues: [String!]
+  intValues: [Int!]
 }
 """
 Used by ObsETL for Component and Quality values. Also used by Quality Requests.
@@ -22,7 +28,7 @@ It is not used by Component requests which require an additional field.  See
 include the 'reduced' specification.
 
 """
-input FieldValuesInput {
+input CompValuesInput {
   txtValues: [String!]
   intValues: [Int!]
   spanValues: [SpanInput!]
@@ -37,20 +43,6 @@ input SpanInput {
 }
 
 # Type view
-"""
-A subject has many Qualities. Each Quality has a Key:: QualKey
-and values :: FieldValues.
-"""
-type Quality {
-  """
-  A unique identifier.
-  """
-  qualityName: String!
-  """
-  Quality values is a `union` of `TxtValues` and `IntValues`.
-  """
-  qualityValues: QualityValues!
-}
 """
 Quality values is a `union` of `TxtValues` and `IntValues`.
 """

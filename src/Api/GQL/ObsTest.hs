@@ -33,7 +33,7 @@ import           Control.Monad.Trans              (MonadTrans)
 import qualified Model.ObsTest                    as Model
 
 -------------------------------------------------------------------------------
-importGQLDocument "src/Api/GQL/schema.test.graphql"
+importGQLDocument "src/Api/GQL/Schemas/schema.test.graphql"
 -------------------------------------------------------------------------------
 -- |
 -- == Root Resolver

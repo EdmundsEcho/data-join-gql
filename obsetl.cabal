@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 13f40eb940d9b80adddee478ae7fdfbc2d747347964bad9259d1f25a48dc71f0
+-- hash: 96b67333d3e6b117fb41a9aad15d9afccbaf959ee77454e6141b04eaca2fe453
 
 name:           obsetl
 version:        0.1.2.0
@@ -30,9 +30,12 @@ library
       Api.ETL
       Api.GQL.ObsETL
       Api.GQL.ObsTest
-      Api.GQL.Request
+      Api.GQL.RequestInput
+      Api.GQL.RequestView
       Api.GQL.Root
-      Api.GQL.Schemas
+      Api.GQL.Schemas.ObsETL
+      Api.GQL.Schemas.Request
+      Api.GQL.Schemas.Shared
       Api.GqlHttp
       Api.HTTP.GraphiQL
       Api.HTTP.ObsETL

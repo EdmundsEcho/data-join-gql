@@ -42,15 +42,20 @@ serveGQL = identity
 type Value (o :: OperationType) a = Resolver o () AppObs a
 
 -- | Resolve object (which includes other fields that need their own resolvers)
-type Object (o :: OperationType) a = Resolver o () AppObs (a (Resolver o () AppObs))
+type Object (o :: OperationType) a
+     = Resolver o () AppObs (a (Resolver o () AppObs))
 
 -- | Resolve (Maybe object)
 type OptionalObject (o :: OperationType) a
      = Resolver o () AppObs (Maybe (a (Resolver o () AppObs)))
 
--- | Resolve [object]
+-- | Resolve [object]!
 type ArrayObject (o :: OperationType) a
      = Resolver o () AppObs [a (Resolver o () AppObs)]
+
+-- | Resolve [object]
+type OptionalArrayObject (o :: OperationType) a
+     = Resolver o () AppObs (Maybe [a (Resolver o () AppObs)])
 
 type GraphQL o
      = ( MonadIO (Resolver o () AppObs)

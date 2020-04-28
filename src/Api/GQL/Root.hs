@@ -12,20 +12,21 @@ module Api.GQL.Root
 ---------------------------------------------------------------------------------
 import           Protolude
 ---------------------------------------------------------------------------------
-import           Data.Morpheus.Document (importGQLDocument)
+import           Data.Morpheus.Document  (importGQLDocument)
 import           Data.Morpheus.Types
 ---------------------------------------------------------------------------------
 import           Control.Concurrent.STM
 ---------------------------------------------------------------------------------
 import           Api.GqlHttp
-import qualified AppTypes               as App
+import qualified AppTypes                as App
 ---------------------------------------------------------------------------------
 import           Api.GQL.ObsETL
-import           Api.GQL.Request
+import           Api.GQL.RequestInput    (fetchRequest)
+import           Api.GQL.RequestView     (resolverRequest)
 import           AppTypes
 ---------------------------------------------------------------------------------
-import           Api.GQL.Schemas
-importGQLDocument "src/Api/GQL/schema.root.graphql"
+import           Api.GQL.Schemas.Request
+importGQLDocument "src/Api/GQL/Schemas/schema.root.graphql"
 ---------------------------------------------------------------------------------
 
 

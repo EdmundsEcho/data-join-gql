@@ -5,18 +5,19 @@
     Module that provides the functions required to
     retrieve values from ObsETL.
  -}
-module Api.ETL
-  where
+module Api.ETL where
 
+---------------------------------------------------------------------------------
 import           Protolude        hiding (Type, null)
-
+---------------------------------------------------------------------------------
 import qualified Data.Map.Strict  as Map (filterWithKey, fromList, lookup,
                                           singleton, toList, union)
 import qualified Data.Set         as Set (fromList, intersection)
 import           Model.ETL.ObsETL
 import           Model.Request    (CompReqValues (..), ReqComponents (..),
-                                   fromFieldsCompReqValues,
+                                   fromComponents, fromFieldsCompReqValues,
                                    fromListReqComponents, toTupleCompReqValues)
+---------------------------------------------------------------------------------
 
 -- | Functions to retrieve values throughout the Obs structure.
 -- > There are five collections in the Obs data structure:
@@ -53,19 +54,18 @@ selectQualities selects qualities
       result <- filterValues searchValues values
       Just (key, result)
 
-selectComponents :: [(Text, FieldValues)] -> Components -> Maybe Components
+selectComponents :: [(CompKey, FieldValues)] -> Components -> Maybe Components
 selectComponents selects components
   = let result = catMaybes $ f components <$> selects
      in case result of
        [] -> Nothing
        _  -> Just $ fromListComponents result
   where
-    f :: Components -> (Text, FieldValues) -> Maybe (CompKey, CompValues)
+    f :: Components -> (CompKey, FieldValues) -> Maybe (CompKey, CompValues)
     f cs (k, searchValues) = do
-      let key = mkCompKey k
-      values <- lookupCompValues key cs
+      values <- lookupCompValues k cs
       result <- filterValues searchValues values
-      Just (key, result)
+      Just (k, result)
 
 -- |
 -- ComponentReqInput {
@@ -73,27 +73,26 @@ selectComponents selects components
 --   componentName
 --   componentValues: FieldValuesCompReqInput
 -- }
-selectReqComponents :: [(Text, CompReqValues)] -> Components -> Maybe ReqComponents
+selectReqComponents :: [(CompKey, CompReqValues)] -> Components -> Maybe ReqComponents
 selectReqComponents selects components
   = let result = catMaybes $ f components <$> selects
      in case result of
        [] -> Nothing
        _  -> Just $ fromListReqComponents result
   where
-    f :: Components -> (Text, CompReqValues) -> Maybe (CompKey, CompReqValues)
+    f :: Components -> (CompKey, CompReqValues)
+      -> Maybe (CompKey, Maybe CompReqValues)
     -- Reduced case
     f cs (k, CompReqValues (Red searchValues)) = do
-      let key = mkCompKey k
-      values <- lookupCompValues key cs
+      values <- lookupCompValues k cs
       result <- filterValues searchValues values
-      Just (key, CompReqValues (Red result))
+      Just (k, Just $ CompReqValues (Red result))
 
     -- Expressed case
     f cs (k, CompReqValues (Exp searchValues)) = do
-      let key = mkCompKey k
-      values <- lookupCompValues key cs
+      values <- lookupCompValues k cs
       result <- filterValues searchValues values
-      Just (key, CompReqValues (Exp result))
+      Just (k, Just $ CompReqValues (Exp result))
 
 -- | Lookup all the qualities that describe the Subject.
 -- Note: This is somewhat redundant with lookupSubject but provides symmetry.
@@ -143,12 +142,12 @@ filterComponents ks o = Components $ Map.filterWithKey (mkMapFilter ks) (compone
 -- /Note/: A user requesting all values of a component is isomorphic with
 -- @Exp CompValues@. The request is for a series of the data (long view -> wide view)
 filterReqComponents :: [CompKey] -> Components -> ReqComponents
-filterReqComponents ks o
-  = ReqComponents . fmap (CompReqValues . Exp) $
-      Map.filterWithKey (mkMapFilter ks) (components o)
+filterReqComponents ks o =
+  fromComponents Exp . Components $ Map.filterWithKey (mkMapFilter ks) (components o)
+
 -- |
 -- Unifying filter for FieldValues
-filterValues :: FieldValues -> FieldValues -> Maybe FieldValues
+filterValues, filterQualReqValues :: FieldValues -> FieldValues -> Maybe FieldValues
 filterValues search values
   | null search = Just values
   | otherwise = go search values
@@ -157,6 +156,7 @@ filterValues search values
     go (IntSet s) (IntSet vs)   = Just . IntSet $ Set.intersection s vs
     go (SpanSet s) (SpanSet vs) = Just . SpanSet $ Set.intersection s vs
     go _ _                      = Nothing
+filterQualReqValues = filterValues
 
 -- |
 -- Unifying filter for CompReqValues

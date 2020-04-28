@@ -7,8 +7,6 @@
 --
 module Model.ETL.Qualities
   ( module Model.ETL.Qualities
-  -- * Re-exported types
-  --
   -- * Functions
   -- Utilized by 'Model.Matrix.Expression'
   , toList        -- Set a -> [a]
@@ -45,8 +43,8 @@ instance Monoid Qualities where
   (Qualities a) `mappend` (Qualities b) = Qualities $ union a b
 
 -- | Utilized by "Model.Matrix.Expression" to generate field names
-qualityNames :: Qualities -> [Text]
-qualityNames = names . qualities
+getQualityNames :: Qualities -> [Text]
+getQualityNames = names . qualities
 
 -- | GQL documentation support
 qualsDes :: Text

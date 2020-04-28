@@ -151,7 +151,7 @@ document.body.className = "script";
 
 <p><a class="all" href="javascript:show('')">All files</a></p>
 <ul>
-<li><a id="file0" href="javascript:show('file0')">./src/Api/GQL/Request.hs (1)</a></li>
+<li><a id="file0" href="javascript:show('file0')">./src/Api/GQL/RequestInput.hs (1)</a></li>
 </ul>
 
 </div>
@@ -163,14 +163,14 @@ v2.1.5
 </p>
 
 <div class="hint0 file0">
-./src/Api/GQL/Request.hs:453:7: Suggestion: Reduce duplication<br/>
+./src/Api/GQL/RequestInput.hs:366:7: Suggestion: Reduce duplication<br/>
 Found<br/>
-<pre><span class='hs-definition'>compName</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-conid'>GqlInput.componentName</span> <span class='hs-varid'>req</span>
-<span class='hs-keyword'>let</span> <span class='hs-varid'>compKey</span> <span class='hs-keyglyph'>=</span> <span class='hs-conid'>Model.mkCompKey</span> <span class='hs-varid'>compName</span>
-<span class='hs-definition'>compValues</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>lookupCompValues</span> <span class='hs-varid'>compKey</span> <span class='hs-varid'>etl'</span>
+<pre><span class='hs-definition'>requests'</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>preProcess</span> <span class='hs-varop'>&lt;$&gt;</span> <span class='hs-varid'>requests</span>
+<span class='hs-definition'>fullSetReqs</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>filter</span> <span class='hs-varid'>isFullSet</span> <span class='hs-varid'>requests'</span>
+<span class='hs-definition'>subSetReqs</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>filter</span> <span class='hs-layout'>(</span><span class='hs-varid'>not</span> <span class='hs-varop'>.</span> <span class='hs-varid'>isFullSet</span><span class='hs-layout'>)</span> <span class='hs-varid'>requests'</span>
 </pre>
 Why not<br/>
-<pre><span class='hs-conid'>Combine</span> <span class='hs-varid'>with</span> <span class='hs-varop'>./</span><span class='hs-varid'>src</span><span class='hs-varop'>/</span><span class='hs-conid'>Api</span><span class='hs-varop'>/</span><span class='hs-conid'>GQL</span><span class='hs-varop'>/</span><span class='hs-conid'>Request.hs</span><span class='hs-conop'>:</span><span class='hs-num'>474</span><span class='hs-conop'>:</span><span class='hs-num'>7</span></pre>
+<pre><span class='hs-conid'>Combine</span> <span class='hs-varid'>with</span> <span class='hs-varop'>./</span><span class='hs-varid'>src</span><span class='hs-varop'>/</span><span class='hs-conid'>Api</span><span class='hs-varop'>/</span><span class='hs-conid'>GQL</span><span class='hs-varop'>/</span><span class='hs-conid'>RequestInput.hs</span><span class='hs-conop'>:</span><span class='hs-num'>436</span><span class='hs-conop'>:</span><span class='hs-num'>7</span></pre>
 
 </div>
 

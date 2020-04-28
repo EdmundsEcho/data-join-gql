@@ -2,8 +2,12 @@
     Defines the data type @FieldValues@.  It is a unifying type to capture
     the range of types hosted in either of:
 
-    * @Components@
-    * @Qualities@
+    * @ObsETL@
+      * @Components@
+      * @Qualities@
+
+    * @Request@
+      * @ReqComponent@
 
 -}
 module Model.ETL.FieldValues

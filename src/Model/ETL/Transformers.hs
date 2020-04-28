@@ -6,14 +6,14 @@ module Model.ETL.Transformers
   where
 
 -------------------------------------------------------------------------------
-import           Protolude        (Ord)
+import           Data.Maybe       (fromJust)
+import           Protolude        hiding (toList)
 -------------------------------------------------------------------------------
-import           Data.Map.Strict  (Map)
 import qualified Data.Map.Strict  as Map (foldrWithKey')
-import           Data.Set         (Set)
 -------------------------------------------------------------------------------
 import           Model.ETL.ObsETL
-import           Model.Request    (CompReqValues, ReqComponents (..))
+import           Model.Request    (CompReqValues, ReqComponents (..),
+                                   toListReqComponents)
 -------------------------------------------------------------------------------
 
 -- | Higher-order functions that facilitate the construction of GraphQL types
@@ -36,7 +36,12 @@ fromComponents :: (CompKey -> CompValues -> a) -> Components -> [a]
 fromComponents f o = fromMap f (components o)
 
 fromReqComponents :: (CompKey -> CompReqValues -> a) -> ReqComponents -> [a]
-fromReqComponents f o = fromMap f (reqComponents o)
+fromReqComponents f o = fmap (uncurry f) (ppJustValues o)
+  where
+    ppJustValues :: ReqComponents -> [(CompKey, CompReqValues)]
+    ppJustValues o' =
+      fmap fromJust <$> filter (\(_,b) -> isJust b) (toListReqComponents o')
+-- toListReqComponents :: ReqComponents -> [(CompKey, Maybe CompReqValues)]
 
 -- | Used by GraphQL QualityValues and ComponentValues Type definitions
 fromFieldValues :: Ord a =>  ([a] -> b) -> Set a -> b

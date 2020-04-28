@@ -12,9 +12,13 @@ input MeasurementInput {
   measurementType: String!
   components: [ComponentInput!]!
 }
+input QualityInput {
+  qualityName: String!
+  qualityValues: QualValuesInput!
+}
 input ComponentInput {
   componentName: String!
-  componentValues: FieldValuesInput!
+  componentValues: CompValuesInput!
 }
 
 # Obs - View
@@ -41,6 +45,20 @@ type Subject {
   """
   subjectType: String!
   qualities: [Quality!]!
+}
+"""
+A subject has many Qualities. Each Quality has a Key:: QualKey
+and values :: FieldValues.
+"""
+type Quality {
+  """
+  A unique identifier.
+  """
+  qualityName: String!
+  """
+  Quality values is a `union` of `TxtValues` and `IntValues`.
+  """
+  qualityValues: QualityValues!
 }
 """
 Each measurement has a collection of Components.

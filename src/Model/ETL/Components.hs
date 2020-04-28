@@ -39,8 +39,8 @@ fromListComponents = Components . Map.fromList
 
 -- |
 -- Used to augment a request that only includes MeaKey
-componentNames :: Components -> [Text]
-componentNames = names . components
+getComponentNames :: Components -> [Text]
+getComponentNames = names . components
 
 -- | GQL documentation support
 comsDes :: Text

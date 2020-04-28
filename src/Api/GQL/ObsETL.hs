@@ -1,13 +1,10 @@
-{-# LANGUAGE ConstraintKinds            #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE DerivingStrategies         #-}
-{-# LANGUAGE DuplicateRecordFields      #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase                 #-}
-{-# LANGUAGE NamedFieldPuns             #-}
-{-# LANGUAGE PartialTypeSignatures      #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DerivingStrategies    #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 {-# OPTIONS_HADDOCK ignore-exports #-}
 -- |
@@ -26,21 +23,24 @@ module Api.GQL.ObsETL
   (
   -- * Root resolver
     resolverObsEtl
+
   -- * Shared Views
   , fromInputQualities
+  , fromInputQualValues
+  , fromInputCompValues
   , ObsETL
   , Quality
   , Span
   , ComponentValues(..)
   , resolverCompValues
-  , resolverQualities
+  , resolverQualValues
   , resolverSpanValue
   , resolverSubType
 
   -- * Api.GQL Shared Inputs
-  , FieldValuesInput(..)
   , QualityInput(..)
-  , SpanInput(..)
+  , QualValuesInput(..)
+  , CompValuesInput(..)
 
   -- * Required by root
   , ObsEtlInput
@@ -58,7 +58,8 @@ import           Api.GqlHttp
 -- import           Data.Morpheus.Document (importGQLDocument)
 -- import           Data.Morpheus.Document (importGQLDocumentWithNamespace)
 -------------------------------------------------------------------------------
-import           Api.GQL.Schemas
+import           Api.GQL.Schemas.ObsETL
+import           Api.GQL.Schemas.Shared
 -- importGQLDocument "src/Api/GQL/schema.shared.graphql"
 -- importGQLDocument "src/Api/GQL/schema.obsetl.graphql"
 -- importGQLDocumentWithNamespace "src/Api/GQL/schema.shared.graphql"
@@ -269,22 +270,21 @@ fromInputSubType = Model.SubKey . Just
 fromInputQualities :: [QualityInput] -> Model.Qualities
 fromInputQualities vs =
   Model.Qualities . Model.qualsFromList $
-    bimap Model.QualKey fromInputFieldValues . toTuple <$> vs
+    bimap Model.QualKey fromInputQualValues . toTuple <$> vs
   where
-    toTuple :: QualityInput -> (Name, FieldValuesInput)
+    toTuple :: QualityInput -> (Name, QualValuesInput)
     toTuple QualityInput{..} = (qualityName, qualityValues)
 
 type Name = Text
 
 --------------------------------------------------------------------------------
--- **** FieldValues
+-- **** QualValues
 -- |
 -- (GQL -> Model)
 --
--- > FieldValuesInput {
+-- > QualValuesInput {
 -- >   txtValues  :: [Text!]
 -- >   intValues  :: [Int!]
--- >   spanValues :: [Span!]
 -- > }
 --
 -- > data FieldValues
@@ -292,53 +292,10 @@ type Name = Text
 -- >     | IntSet  (Set Int)
 -- >     | SpanSet (Set Span)
 --
-fromInputFieldValues :: FieldValuesInput -> Model.FieldValues
-fromInputFieldValues (FieldValuesInput (Just ts) _ _) = Model.TxtSet  (Model.fromList ts)
-fromInputFieldValues (FieldValuesInput _ (Just is) _) = Model.IntSet  (Model.fromList is)
-fromInputFieldValues (FieldValuesInput _ _ (Just ss)) = Model.SpanSet
-                                                       (Model.fromList (fromInputSpan <$> ss))
-fromInputFieldValues FieldValuesInput {} = panic "fromInput: Failed to provide values"
-
---------------------------------------------------------------------------------
--- ***** SpanInput
--- |
--- (GQL -> Model)
---
--- > input SpanInput {
--- >   rangeStart: Int!
--- >   rangeLength: Int!
--- >   reduced: Boolean!
--- > }
---
--- > Span { span :: TagRedExp Range }
---
-fromInputSpan :: SpanInput -> Model.Span
-fromInputSpan SpanInput {..}
-  | reduced   = Model.Span $ Model.Red (Model.Range rangeStart rangeLength)
-  | otherwise = Model.Span $ Model.Exp (Model.Range rangeStart rangeLength)
-
--- |
-toQualValues :: FieldValuesInput -> Model.QualValues
-toQualValues (FieldValuesInput (Just vs) _ _) = Model.fromListTxtValues vs
-toQualValues (FieldValuesInput _ (Just vs) _) = Model.fromListIntValues vs
-toQualValues FieldValuesInput {} = panic "The values type does not match FieldValues"
-
--- |
-toCompValues :: FieldValuesInput -> Model.CompValues
-toCompValues (FieldValuesInput (Just vs) _ _) = Model.fromListTxtValues vs
-toCompValues (FieldValuesInput _ (Just vs) _) = Model.fromListIntValues vs
-
-toCompValues (FieldValuesInput _ _ (Just vs))
-  = Model.fromListSpanValues (spanFromInput <$> vs)
-      where
-        -- | GraphQL -> Model
-        spanFromInput :: SpanInput -> Model.Span
-        spanFromInput SpanInput{..}
-          | reduced   = Model.Span $ Model.Red (Model.Range rangeStart rangeLength)
-          | otherwise = Model.Span $ Model.Exp (Model.Range rangeStart rangeLength)
-
-toCompValues FieldValuesInput {}
-    = panic "The values type does not match FieldValues"
+fromInputQualValues :: QualValuesInput -> Model.QualValues
+fromInputQualValues (QualValuesInput (Just vs) Nothing) = Model.fromListTxtValues vs
+fromInputQualValues (QualValuesInput Nothing (Just vs)) = Model.fromListIntValues vs
+fromInputQualValues QualValuesInput {} = panic "The values type does not match FieldValues"
 
 --------------------------------------------------------------------------------
 -- ** List Measurement
@@ -367,10 +324,50 @@ type Type' = Text
 fromInputComponents :: [ComponentInput] -> Model.Components
 fromInputComponents vs =
   Model.Components . Model.compsFromList $
-    bimap Model.CompKey fromInputFieldValues . toTuple <$> vs
+    bimap Model.CompKey fromInputCompValues . toTuple <$> vs
   where
-    toTuple :: ComponentInput -> (Name, FieldValuesInput)
+    toTuple :: ComponentInput -> (Name, CompValuesInput)
     toTuple ComponentInput{..} = (componentName, componentValues)
+
+--------------------------------------------------------------------------------
+-- **** CompValues
+-- |
+-- (GQL -> Model)
+--
+-- > CompValuesInput {
+-- >   txtValues  :: [Text!]
+-- >   intValues  :: [Int!]
+-- >   spanValues :: [Span!]
+-- > }
+--
+-- > data FieldValues
+-- >     = TxtSet  (Set Text)
+-- >     | IntSet  (Set Int)
+-- >     | SpanSet (Set Span)
+--
+-- where...
+-- > input SpanInput {
+-- >   rangeStart: Int!
+-- >   rangeLength: Int!
+-- >   reduced: Boolean!
+-- > }
+--
+-- > Span { span :: TagRedExp Range }
+--
+--
+fromInputCompValues :: CompValuesInput -> Model.CompValues
+fromInputCompValues CompValuesInput { txtValues  = Just vs } = Model.fromListTxtValues vs
+fromInputCompValues CompValuesInput { intValues  = Just vs } = Model.fromListIntValues vs
+fromInputCompValues CompValuesInput { spanValues = Just vs }
+  = Model.fromListSpanValues (spanFromInput <$> vs)
+      where
+        -- | GraphQL -> Model
+        spanFromInput :: SpanInput -> Model.Span
+        spanFromInput SpanInput{..}
+          | reduced   = Model.Span $ Model.Red (Model.Range rangeStart rangeLength)
+          | otherwise = Model.Span $ Model.Exp (Model.Range rangeStart rangeLength)
+fromInputCompValues CompValuesInput {}
+  = panic "The values type does not match that for CompValues"
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
