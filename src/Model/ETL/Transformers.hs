@@ -11,7 +11,7 @@ import           Protolude        hiding (toList)
 -------------------------------------------------------------------------------
 import qualified Data.Map.Strict  as Map (foldrWithKey')
 -------------------------------------------------------------------------------
-import           Model.ETL.ObsETL
+import           Model.ETL.ObsETL hiding (filter, toList)
 import           Model.Request    (CompReqValues, ReqComponents (..),
                                    toListReqComponents)
 -------------------------------------------------------------------------------
@@ -44,15 +44,15 @@ fromReqComponents f o = fmap (uncurry f) (ppJustValues o)
 -- toListReqComponents :: ReqComponents -> [(CompKey, Maybe CompReqValues)]
 
 -- | Used by GraphQL QualityValues and ComponentValues Type definitions
-fromFieldValues :: Ord a =>  ([a] -> b) -> Set a -> b
-fromFieldValues f o = f (toList o)
+-- fromFieldValues :: Ord a =>  ([a] -> b) -> Set a -> b
+-- fromFieldValues f o = f (toList o)
 
 -- |
 -- Ideally, this would take 'FieldValues'.  However, the caller must
 -- unwrap the values whilst pattern matching on the types defined
 -- in the Sum type 'FieldValues'.
-valuesToList :: Ord a => Set a -> [a]
-valuesToList = toList
+-- valuesToList :: Ord a => Set a -> [a]
+-- valuesToList = S.toList
 
 -- | Internal support function
 {- HLINT ignore fromMap -}

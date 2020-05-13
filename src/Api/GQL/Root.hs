@@ -1,4 +1,7 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 {-# OPTIONS_HADDOCK ignore-exports #-}
 -- |
@@ -10,25 +13,32 @@ module Api.GQL.Root
     where
 
 ---------------------------------------------------------------------------------
+import           Control.Exception.Safe
+import           Control.Monad.Logger
+import           Control.Monad.Trans.Class
 import           Protolude
 ---------------------------------------------------------------------------------
-import           Data.Morpheus.Document  (importGQLDocument)
+import           Data.Morpheus.Document    (importGQLDocument)
 import           Data.Morpheus.Types
 ---------------------------------------------------------------------------------
 import           Control.Concurrent.STM
 ---------------------------------------------------------------------------------
 import           Api.GqlHttp
-import qualified AppTypes                as App
+import qualified Model.ETL.ObsETL          as Model
+import qualified Model.Request             as Model (Request, validate)
+import           Model.Status
 ---------------------------------------------------------------------------------
+import qualified AppTypes                  as App
+import qualified ObsExceptions             as App
+---------------------------------------------------------------------------------
+import           Api.GQL.Input.Request     (fetchRequest)
 import           Api.GQL.ObsETL
-import           Api.GQL.RequestInput    (fetchRequest)
-import           Api.GQL.RequestView     (resolverRequest)
+import           Api.GQL.RequestView       (resolverRequest)
 import           AppTypes
 ---------------------------------------------------------------------------------
 import           Api.GQL.Schemas.Request
 importGQLDocument "src/Api/GQL/Schemas/schema.root.graphql"
 ---------------------------------------------------------------------------------
-
 
 ---------------------------------------------------------------------------------
 -- * Root resolver
@@ -36,6 +46,7 @@ importGQLDocument "src/Api/GQL/Schemas/schema.root.graphql"
 --
 gqlRoot :: GQLRootResolver AppObs () Query Mutation Undefined
 gqlRoot = rootResolver
+--
 -- >  GQLRootResolver
 -- >      queryResolver :: query (Resolver QUERY event m)
 -- >      mutationResolver :: mut (Resolver MUTATION event m)
@@ -127,20 +138,42 @@ resolverNewObsETL NewObsEtlArgs {value = newObs'} = do
 --
 delegateForValidate :: GraphQL o => RequestInput -> OptionalObject o Request
 delegateForValidate req = do
-  -- get the data, return nothing if not initiated with the right data
-  obsEtl <- fmap App.db getDb
-  case obsEtl of
-    App.DataObsETL obsEtl' ->   -- have the correct data
-      case fetchRequest req obsEtl' of -- :: Input -> Maybe Model
-        Nothing      -> pure Nothing
-        Just request -> Just <$> resolverRequest request -- (resolverRequest request)
+  ---- get the data, return nothing if not initiated with the right data
+  obsEtl :: Model.ObsETL                     <- getEtlData
+  result :: Maybe (Model.Request 'Inprocess) <- lift $ fetchRequest req obsEtl
+  traverse resolverRequest (Model.validate result)
 
-    _ -> pure Nothing          -- have the wrong data
+---------------------------------------------------------------------------------
+  -- Goal: App that provides MonadLogger and MonadThrow
+  -- how marry AppObs with
+-- goFetch :: GraphQL o => RequestInput -> Value o a
+-- goFetch request = fetchRequest request -- runFetch' request
 
--------------------------------------------------------------------------------
+-- testLookup :: (MonadLogger m, MonadThrow m)
+--            => TestInput
+--            -> m (Maybe ResultModel)
+---------------------------------------------------------------------------------
 -- * Utility functions
 -- |
+-- MonadLogger (Resolver MUTATION () AppObs)
+--
 getDb :: GraphQL o => Value o App.Database
 getDb = do
   dbTVar <- lift $ asks App.database
   liftIO . atomically $ readTVar dbTVar
+
+getEtlData :: GraphQL o => Value o Model.ObsETL
+getEtlData = do
+  dats <- getDb
+  case App.db dats of
+    App.DataObsETL obsEtl -> do
+      -- subType <- Model.subType $ lookupSubject obsEtl
+      let subType = Model.subType $ Model.obsSubject obsEtl
+      lift $ logInfoN ("Loading db with Subject type: " <> show subType)
+      pure obsEtl  -- have the correct data
+    _                     -> do
+      lift $ logErrorN "Failed to load the correct data"
+      lift . throw $ App.TypeException Nothing -- "Wrong ini data" -- have the wrong data
+
+---------------------------------------------------------------------------------
+  --

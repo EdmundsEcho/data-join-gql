@@ -19,11 +19,12 @@ module App
     exec
   ) where
 
+--------------------------------------------------------------------------------
 import           Control.Concurrent.STM.TVar          (newTVarIO)
 import           Protolude                            hiding (State)
 --------------------------------------------------------------------------------
 import           Network.Wai
-import qualified Network.Wai.Handler.Warp             as W
+import qualified Network.Wai.Handler.Warp             as Warp
 import           Network.Wai.Middleware.Cors
 import           Network.Wai.Middleware.RequestLogger
 import           Servant
@@ -31,7 +32,9 @@ import           Servant
 import           Api.HTTP.GraphiQL
 import           Api.HTTP.ObsETL
 import           Api.HTTP.ObsTest
-import           AppTypes
+import           AppTypes                             (AppConfig (..), AppObs,
+                                                       Env (..), dbInit, nat)
+--------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- | Servant min cors policy
@@ -40,15 +43,18 @@ corsPolicy = simpleCorsResourcePolicy
          { corsRequestHeaders = [ "content-type" ] }
 --------------------------------------------------------------------------------
 -- | Servant has ServerT instance
-type Api = ObsTest :<|> ObsEtl :<|> GraphiQL
+type Api = ObsTest :<|> ObsEtlApi :<|> GraphiQL
 
 -- | Proxy @Api
 apiType :: Proxy Api
 apiType = Proxy
 
 -- | Custom monad for serving ObsETL.  Provides handler access to @Env@.
+-- > type ServerT api (m :: * -> *) :: *
+-- nat :: AppObs -> Handler
+--
 appM :: ServerT Api AppObs
-appM  = serveObsTest :<|> serveObsEtl :<|> serveGraphiQL
+appM  = serveObsTest :<|> serveObsEtlApi :<|> serveGraphiQL
 
 --------------------------------------------------------------------------------
 -- import Network.Wai.Middleware.RequestLogger
@@ -59,6 +65,9 @@ appM  = serveObsTest :<|> serveObsEtl :<|> serveGraphiQL
 -- serve from Servant.Server
 -- > serve :: HasServer api '[] => Proxy api -> Server api -> Application
 -- > Server api :: ServerT api Handler
+-- hoistServer :: HasServer api '[]
+--             => Proxy api -> (forall x. m x -> n x)
+--             -> ServerT api m -> ServerT api n
 --
 app :: Env -> Application
 app env = logStdout . cors ( const $ Just corsPolicy )
@@ -69,4 +78,14 @@ exec :: AppConfig -> IO ()
 exec config = do
   let p = port config
   db <- newTVarIO dbInit
-  W.run p $ app (Env db Nothing config)
+  Warp.run p $ app (Env db Nothing config)
+
+-- nat env :: Env -> AppObs a -> Handler a
+-- appM :: ServerT Api AppObs
+-- hoistServer :: Proxy api
+--             -> (forall x. m x -> n x) -> ServerT api m -> ServerT api n
+-- serve :: Server api -> Application
+
+
+  --
+--------------------------------------------------------------------------------

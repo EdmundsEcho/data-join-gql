@@ -3,14 +3,20 @@
 -}
 module Model.ETL.ID
   where
-
+--------------------------------------------------------------------------------
 import           Protolude
+--------------------------------------------------------------------------------
+import           Data.Aeson (ToJSON (..), Value (String))
+--------------------------------------------------------------------------------
 
 -- | Private
 -- Unifies new generation ObsKeys with wrapping
 -- previously generated IDs under type ID.
 data ID = NewID Text
         | KeyID Text  deriving (Show, Ord, Generic)
+
+instance ToJSON ID where
+  toJSON = String . unID
 
 instance Eq ID where
   (NewID a) == (NewID b) = a == b

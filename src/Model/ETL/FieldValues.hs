@@ -13,14 +13,21 @@
 module Model.ETL.FieldValues
   where
 -------------------------------------------------------------------------------
+import           Prelude            (String)
 import           Protolude
 -------------------------------------------------------------------------------
--- import           Data.Set       (Set)
-import qualified Data.Set       as S
-import qualified Data.Vector    as V
+import           Data.Aeson         (ToJSON)
 -------------------------------------------------------------------------------
+-- import           Data.Set           (Set)
+import qualified Data.Set           as Set
+import qualified Data.Vector        as V
+-------------------------------------------------------------------------------
+import           Model.ETL.Fragment
 import           Model.ETL.Span
 -------------------------------------------------------------------------------
+  --
+{-# ANN module ("HLint: ignore Orphan instance"::String) #-}
+
 {- | Unifying data type for a collection of FieldValues.
      The type is a sum type that unifies the three types that might be used to
      describe a subject's qualities or a measurement's components (including
@@ -33,7 +40,33 @@ import           Model.ETL.Span
 data FieldValues
     = TxtSet  (Set Text)
     | IntSet  (Set Int)
-    | SpanSet (Set Span) deriving (Show, Eq, Ord)
+    | SpanSet (Set Span) deriving (Show, Eq, Ord, Generic)
+
+instance Fragment FieldValues where
+  null (TxtSet set)  = Set.null set
+  null (IntSet set)  = Set.null set
+  null (SpanSet set) = Set.null set
+
+  len (TxtSet set)  = Set.size set
+  len (IntSet set)  = Set.size set
+  len (SpanSet set) = Set.size set
+
+instance FragmentPlus FieldValues Text where
+  fromList = TxtSet . Set.fromList
+  toList (TxtSet vs) = Set.toList vs
+  filterF xs (TxtSet vs) = TxtSet $ Set.fromList xs `Set.intersection` vs
+
+instance FragmentPlus FieldValues Int where
+  fromList = IntSet . Set.fromList
+  toList (IntSet vs) = Set.toList vs
+  filterF xs (IntSet vs) = IntSet $ Set.fromList xs `Set.intersection` vs
+
+instance FragmentPlus FieldValues Span where
+  fromList = SpanSet . Set.fromList
+  toList (SpanSet vs) = Set.toList vs
+  filterF xs (SpanSet vs) = SpanSet $ Set.fromList xs `Set.intersection` vs
+
+instance ToJSON FieldValues
 
 -- |
 -- Use to try and limit the types that can be used to instantiate
@@ -49,36 +82,9 @@ class ToQualValues a where
 class ToCompValues a where
   toCompValues :: a -> CompValues
 
-
--- |
--- Is the collection empty/null?
---
-null :: FieldValues -> Bool
-null (TxtSet set)  = S.null set
-null (IntSet set)  = S.null set
-null (SpanSet set) = S.null set
-
--- |
-fromListTxtValues :: [Text] -> FieldValues
-fromListTxtValues vs = TxtSet $ fromList vs
-
-fromListIntValues :: [Int] -> FieldValues
-fromListIntValues vs = IntSet $ fromList vs
-
-fromListSpanValues :: [Span] -> FieldValues
-fromListSpanValues vs = SpanSet $ fromList vs
-
--- | Utilized by "Models.Request.Transformers"
-fromList :: (Ord a) => [a] -> Set a
-fromList = S.fromList
-
--- | Utilized by "Models.Request.Transformers"
-toList :: (Ord a) => Set a -> [a]
-toList = S.toList
-
 -- | Private support function
-fromVector :: (Ord a) => V.Vector a -> S.Set a
-fromVector = S.fromList . V.toList
+fromVector :: (Ord a) => V.Vector a -> Set.Set a
+fromVector = Set.fromList . V.toList
 
 -- * Type synonyms
 -- (user support, not enforced by the compiler)
@@ -117,9 +123,9 @@ unwrapSetErr = panic "unTxtSet: wrong type"
 
 -- | Utilized by the "Models.Matrix.Filter"
 count :: FieldValues -> Int
-count (TxtSet set)  = S.size set
-count (IntSet set)  = S.size set
-count (SpanSet set) = S.size set
+count (TxtSet set)  = Set.size set
+count (IntSet set)  = Set.size set
+count (SpanSet set) = Set.size set
 
 -- | Utilized by Expression
 toSetInt :: FieldValues -> Set Int

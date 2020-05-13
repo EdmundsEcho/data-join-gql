@@ -13,12 +13,16 @@ module Model.ETL.Qualities
   , map           -- Set a -> Set b (note: not strictly a Functor)
   )
   where
--------------------------------------------------------------------------------
-import           Data.Map.Strict       (keys, union)
-import qualified Data.Map.Strict       as Map (fromList)
+---------------------------------------------------------------------------------
 import           Protolude             hiding (toList)
 -------------------------------------------------------------------------------
+import           Data.Aeson            (ToJSON)
+-------------------------------------------------------------------------------
+import           Data.Map.Strict       (keys, union)
+import qualified Data.Map.Strict       as Map (fromList, lookup, null, size)
+-------------------------------------------------------------------------------
 import           Model.ETL.FieldValues
+import           Model.ETL.Fragment
 import           Model.ETL.Key
 -------------------------------------------------------------------------------
 -- *** Qualities
@@ -30,6 +34,16 @@ import           Model.ETL.Key
 newtype Qualities = Qualities
         { qualities :: Map Key QualValues
         } deriving (Show, Eq, Ord, Generic)
+
+instance ToJSON Qualities
+
+instance GetEtlFragment Qualities QualKey QualValues where
+  getValues Qualities { qualities } k
+    = Map.lookup k qualities
+
+instance Fragment Qualities where
+  null (Qualities vs) = Map.null vs
+  len  (Qualities vs) = Map.size vs
 
 fromListQualities :: [(QualKey, QualValues)] -> Qualities
 fromListQualities = Qualities . Map.fromList

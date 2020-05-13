@@ -1,0 +1,135 @@
+{-# LANGUAGE DerivingStrategies    #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+
+{-# OPTIONS_HADDOCK ignore-exports #-}
+-- |
+-- Module     : Api.GQL.RequestInput
+-- Description: UI access point
+--
+-- This module implements the resolvers for a 'Request'. The GQL inputs and
+-- views are specified in @schemas.request.graphql@ and what is shared
+-- with the 'Api.GQL.ObsETL' module; see @schemas.shared.graphql@.
+--
+-- The 'Model.Reqest' is a host for requested data; data fetched from 'Model.ETL'
+-- stored in the @Database@ 'AppTypes.Env'.
+--
+-- The design tries to leverage the 'Model.ObsETL' data types where
+-- possible.  However, in order to maintain a clear distinction between request
+-- and the ETL source of truth, the design likely would have been better
+-- had all request inputs be tagged (one way or another) with a 'Request' moniker.
+--
+-- Goal: Minimize how often field values are required to specify a request.
+--
+-- Keep in mind,
+-- a request is a series of search terms. The @schemas.request.graphql@ define
+-- the input object specifications accordingly. However, a 'Request' is not
+-- data unto themselves. This line is blurred by the fact that 'Model.Request'
+-- is instantiated using 'Model.ObsETL' data. However, is viewed using the
+-- data types described in @schemas.request.graphql@.
+--
+-- Also note, the use of 'Model.ETL.TagRedExp.TagRedExp' is used in two ways.
+-- First for Span both in the ETL and Request phases.  Second, to qualify the
+-- requests for Components ('Model.Request.ReqComponents'). There is likely
+-- redundant use of the 'Model.ETL.TagRedExp.TagRedExp' for a
+-- 'Model.ETL.Span.Span' included in a 'Request'.
+--
+module Api.GQL.Input.Request where
+---------------------------------------------------------------------------------
+import           Protolude                 hiding (null)
+---------------------------------------------------------------------------------
+import           Data.Maybe                (fromJust)
+---------------------------------------------------------------------------------
+import           Control.Exception.Safe
+import           Control.Monad.Logger
+---------------------------------------------------------------------------------
+import           Api.ETL
+---------------------------------------------------------------------------------
+import           Model.ETL.Fragment
+import           Model.ETL.ObsETL          (mkMeaKey)
+import qualified Model.ETL.ObsETL          as Model (ObsETL (..))
+import qualified Model.Request             as Model (ComponentMixes,
+                                                     Request (..),
+                                                     fromListComponentMixes,
+                                                     minSubResult)
+import           Model.Status
+---------------------------------------------------------------------------------
+import qualified Api.GQL.Schemas.Request   as GqlInput
+---------------------------------------------------------------------------------
+import           Api.GQL.Input.MeaRequests (fetchSubsetComponentMix)
+import           Api.GQL.Input.SubRequest  (fetchQualityMix)
+---------------------------------------------------------------------------------
+  -- Request
+-------------------------------------------------------------------------------
+--
+-- > Request
+-- >   { subReq  :: !QualityMix
+-- >   , meaReqs :: !ComponentMixes
+-- >   } deriving (Show, Eq)
+--
+-- Alternative to encode a default
+-- maybeSubReq <|> Model.minQualityMix
+-- maybeResult <|> throw NoValueFound Nothing
+
+
+fetchRequest :: (MonadLogger m, MonadThrow m)
+             => GqlInput.RequestInput
+             -> Model.ObsETL
+             -> m (Maybe (Model.Request 'Inprocess))
+
+fetchRequest request etl =
+
+  case request of
+
+    GqlInput.RequestInput maybeSubReq (Just meaReqs) -> do
+
+      -- augment the subReq result if required
+      subResult <- fetchQualityMix maybeSubReq (Model.obsSubject etl)
+      let subResult' = fromJust
+                     $ subResult
+                     <|> (Just . Model.minSubResult $ getSubjectType etl)
+
+      -- Measurements arm
+      meas <- Api.ETL.lookupMeasurements etl  -- (~ EtlFragment)
+      let subsetReqs = concat $ GqlInput.subsets <$> meaReqs
+      let fullsetReqs = concat $ traverse GqlInput.fullsets meaReqs
+      logDebugN $ "Measurements subset requests:  " <> show (length subsetReqs)
+      logDebugN $ "Measurements fullset requests: " <> show (length fullsetReqs)
+
+
+      -- subset
+      subsetResults  <- catMaybes
+                        <$> traverse (`fetchSubsetComponentMix` meas) subsetReqs
+
+      -- fullset
+      let results     = catMaybes $ getEtlFragment meas mkMeaKey
+                      <$> fullsetReqs  -- lift over a list of requests
+      let fullsetResults = (\(meaKey, _) -> (meaKey, Nothing)) <$> results
+
+      -- mea subset <> fullset
+      let meaResults = Model.fromListComponentMixes subsetResults
+                     <> Model.fromListComponentMixes fullsetResults
+
+      if null meaResults
+
+         then do
+                logErrorN $ "The measurements requested returned null."
+                          <> "\n" <> show meaReqs
+                pure Nothing
+         else
+
+            pure . Just $ Model.Request
+                   { subReq  = subResult'
+                   , meaReqs = meaResults :: Model.ComponentMixes
+                   }
+
+    -- I can't think of a min return value when nothing is specified
+    -- in the measurements arm of the request.
+    GqlInput.RequestInput _ Nothing -> do
+      logWarnN "No measurements specified in the request; request cancelled."
+      pure Nothing
+
+
+
+---------------------------------------------------------------------------------

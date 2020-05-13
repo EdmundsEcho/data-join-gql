@@ -2,7 +2,7 @@
 -- Module      : Api.HTTP.ObsEtl
 -- Description : The endpoint for the UI
 --
-module Api.HTTP.ObsETL (ObsEtl , serveObsEtl)
+module Api.HTTP.ObsETL (ObsEtlApi , serveObsEtlApi)
     where
 
 --------------------------------------------------------------------------------
@@ -17,13 +17,26 @@ import           AppTypes
 -- |
 -- == Endpoint type
 -- Servant Has Server types
-type ObsEtl  = GQLAPI "obsetl" "v1"
+type ObsEtlApi  = GQLAPI "obsetl" "v1"
 
+-- |
+-- interpreter :: Monad m
+--             => RootResCon m e query mut sub
+--             => GQLRootResolver m e query mut sub -> a -> b
+--
+-- gqlRoot :: GQLRootResolver AppObs () Query Mutation Undefined
+--
+-- a :: GQLRequest
+-- b :: m GQLResponse
+-- m :: AppObs
+--
 api :: GQLRequest -> AppObs GQLResponse
 api = interpreter gqlRoot
 
 -- |
 -- == Handlers
 -- Servant Has Handler
-serveObsEtl :: ServerT ObsEtl AppObs
-serveObsEtl = serveGQL api
+-- > type ServerT api (m :: * -> *) :: *
+--
+serveObsEtlApi :: ServerT ObsEtlApi AppObs
+serveObsEtlApi = serveGQL api

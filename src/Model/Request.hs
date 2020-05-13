@@ -1,4 +1,8 @@
-{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE PatternSynonyms       #-}
+
 {-|
   = Overview
 
@@ -16,6 +20,7 @@ module Model.Request
   (
   -- * Request
     Request(..)
+  , validate
 
   -- * Branches
   -- ** Quality-related
@@ -24,6 +29,8 @@ module Model.Request
   , mkQualityMix
   , fromListReqQualities
   , toListReqQualities
+  , minQualityMix
+  , minSubResult
 
   -- ** Component-related
   , ComponentMixes (componentMixes)
@@ -45,25 +52,39 @@ module Model.Request
   where
 
 ---------------------------------------------------------------------------------
-import           Protolude
+import           Protolude             hiding (null)
+---------------------------------------------------------------------------------
+import           Data.Aeson            (ToJSON)
 ---------------------------------------------------------------------------------
 import           Data.Map.Strict       (union)
-import qualified Data.Map.Strict       as Map (fromList, toList)
+import qualified Data.Map.Strict       as Map (fromList, null, size, toList)
 ---------------------------------------------------------------------------------
 import           Model.ETL.Components
 import           Model.ETL.FieldValues
+import           Model.ETL.Fragment
 import           Model.ETL.Key
 import           Model.ETL.TagRedExp
+import           Model.Status
 ---------------------------------------------------------------------------------
 
 -- * Request
 
 -- | Request is a subset of the ObsETL
 -- @ ~validate :: RequestInput -fetch-> Request @
-data Request = Request
+data Request (status::Status) = Request
   { subReq  :: !QualityMix
   , meaReqs :: !ComponentMixes
-  } deriving (Show, Eq)
+  -- , status  :: Proxy 'Inprocess
+  } deriving (Show, Eq, Generic)
+
+instance ToJSON (Request status)
+
+-- |
+-- A placeholder for enforcing validation using the type-system.
+--
+validate :: Maybe (Request 'Inprocess) -> Maybe (Request 'Success)
+validate (Just Request {..}) = Just $ Request {..}
+validate Nothing             = Nothing
 
 -- ** Branches
 
@@ -71,7 +92,18 @@ data Request = Request
 data QualityMix = QualityMix
   { subjectType :: !Key
   , qualityMix  :: !(Maybe ReqQualities)
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance ToJSON QualityMix
+
+-- |
+--
+minQualityMix, minSubResult :: SubKey -> QualityMix
+minQualityMix key
+  = QualityMix { subjectType = key
+               , qualityMix = Nothing
+               }
+minSubResult = minQualityMix
 
 -- *** ReqQualities
 -- |
@@ -82,8 +114,14 @@ data QualityMix = QualityMix
 -- /Note/: QualValues are FieldValues.
 --
 newtype ReqQualities = ReqQualities
-        { reqQualities :: Map Key (Maybe QualValues)
-        } deriving (Show, Eq, Ord)
+        { reqQualities :: Map QualKey (Maybe QualValues)
+        } deriving (Show, Eq, Ord, Generic)
+
+instance Fragment ReqQualities where
+  null (ReqQualities vs) = Map.null vs
+  len  (ReqQualities vs) = Map.size vs
+
+instance ToJSON ReqQualities
 
 fromListReqQualities :: [(QualKey, Maybe QualValues)] -> ReqQualities
 fromListReqQualities = ReqQualities . Map.fromList
@@ -102,7 +140,8 @@ instance Monoid ReqQualities where
   mempty = ReqQualities mempty
   (ReqQualities a) `mappend` (ReqQualities b) = ReqQualities $ union a b
 
--- | Smart constructor.
+-- |
+-- Smart constructor.
 --
 mkQualityMix :: Key -> ReqQualities -> QualityMix
 mkQualityMix key@(SubKey _) vs = QualityMix key (Just vs)
@@ -111,8 +150,14 @@ mkQualityMix _              _  = panic "mkQualityMix: Tried with wrong type."
 -- |
 --
 newtype ComponentMixes = ComponentMixes
-        { componentMixes :: Map Key (Maybe ReqComponents) -- MeaType
+        { componentMixes :: Map CompKey (Maybe ReqComponents) -- MeaType
         } deriving (Show, Eq, Ord, Generic)
+
+instance Fragment ComponentMixes where
+  null (ComponentMixes vs) = Map.null vs
+  len  (ComponentMixes vs) = Map.size vs
+
+instance ToJSON ComponentMixes
 
 -- |
 -- Constructor
@@ -145,6 +190,12 @@ newtype ReqComponents = ReqComponents
         { reqComponents :: Map Key (Maybe CompReqValues)  -- CompKey
         } deriving (Show, Eq, Ord, Generic)
 
+instance Fragment ReqComponents where
+  null (ReqComponents vs) = Map.null vs
+  len  (ReqComponents vs) = Map.size vs
+
+instance ToJSON ReqComponents
+
 instance Semigroup ReqComponents where
   (ReqComponents a) <> (ReqComponents b) = ReqComponents $ union a b
 
@@ -175,7 +226,15 @@ fromComponents redExp o =
 --   of the associated measurement value. So, just the same FieldValues
 --   plus an extra tag.  This fits throughout further down the Request tree.
 newtype CompReqValues = CompReqValues { values :: TagRedExp CompValues }
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic)
+
+instance Fragment CompReqValues where
+  null (CompReqValues (Red vs)) = null vs
+  null (CompReqValues (Exp vs)) = null vs
+  len  (CompReqValues (Red vs)) = len vs
+  len  (CompReqValues (Exp vs)) = len vs
+
+instance ToJSON CompReqValues
 
 toTupleCompReqValues :: CompReqValues -> (CompValues, Reduced)
 toTupleCompReqValues (CompReqValues (Red vs)) = (vs, True)

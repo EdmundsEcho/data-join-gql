@@ -203,19 +203,18 @@ resolverQualValues  _ = panic "QualValues resolver: tried with the wrong type."
 -- FieldValues :: TxtValues | IntValues | SpanValues
 --
 resolverTxtValues :: GraphQL o => Model.FieldValues -> Object o TxtValues
-resolverTxtValues (Model.TxtSet o') = pure $
-  TxtValues { txtValues = pure $ Trans.valuesToList o' }
+resolverTxtValues vs@(Model.TxtSet _) = pure $
+  TxtValues { txtValues = pure $ Model.toList vs }
 resolverTxtValues  _ = panic "Values resolver: tried with the wrong type."
 
 resolverIntValues :: GraphQL o => Model.FieldValues -> Object o IntValues
-resolverIntValues (Model.IntSet o') = pure $
-  IntValues { intValues = pure $ Trans.valuesToList o' }
+resolverIntValues vs@(Model.IntSet _) = pure $
+  IntValues { intValues = pure $ Model.toList vs }
 resolverIntValues  _ = panic "Values resolver: tried with the wrong type."
 
 resolverSpanValues :: GraphQL o => Model.FieldValues -> Object o SpanValues
-resolverSpanValues (Model.SpanSet o') = pure $
-  SpanValues { spanValues = traverse resolverSpanValue (Trans.valuesToList o') }
-
+resolverSpanValues vs@(Model.SpanSet _) = pure $
+  SpanValues { spanValues = traverse resolverSpanValue (Model.toList vs) }
 resolverSpanValues  _ = panic "Values resolver: tried with the wrong type."
 
 --------------------------------------------------------------------------------
@@ -259,7 +258,7 @@ fromInputSubject SubjectInput {..}
       (fromInputQualities qualities)
 
 fromInputSubType :: Text -> Model.SubKey
-fromInputSubType = Model.SubKey . Just
+fromInputSubType = Model.SubKey
 --------------------------------------------------------------------------------
 -- *** List Quality
 -- |
@@ -293,8 +292,8 @@ type Name = Text
 -- >     | SpanSet (Set Span)
 --
 fromInputQualValues :: QualValuesInput -> Model.QualValues
-fromInputQualValues (QualValuesInput (Just vs) Nothing) = Model.fromListTxtValues vs
-fromInputQualValues (QualValuesInput Nothing (Just vs)) = Model.fromListIntValues vs
+fromInputQualValues QualValuesInput { txtValues = Just vs } = (Model.fromList @Model.QualValues) vs
+fromInputQualValues QualValuesInput { intValues = Just vs } = (Model.fromList @Model.QualValues) vs
 fromInputQualValues QualValuesInput {} = panic "The values type does not match FieldValues"
 
 --------------------------------------------------------------------------------
@@ -356,10 +355,10 @@ fromInputComponents vs =
 --
 --
 fromInputCompValues :: CompValuesInput -> Model.CompValues
-fromInputCompValues CompValuesInput { txtValues  = Just vs } = Model.fromListTxtValues vs
-fromInputCompValues CompValuesInput { intValues  = Just vs } = Model.fromListIntValues vs
-fromInputCompValues CompValuesInput { spanValues = Just vs }
-  = Model.fromListSpanValues (spanFromInput <$> vs)
+fromInputCompValues CompValuesInput { txtValues  = Just vs } = (Model.fromList @Model.CompValues) vs
+fromInputCompValues CompValuesInput { intValues  = Just vs } = (Model.fromList @Model.CompValues) vs
+fromInputCompValues CompValuesInput { spanValues = Just vs } =
+  (Model.fromList @Model.CompValues) (spanFromInput <$> vs)
       where
         -- | GraphQL -> Model
         spanFromInput :: SpanInput -> Model.Span

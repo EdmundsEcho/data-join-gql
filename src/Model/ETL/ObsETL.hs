@@ -5,23 +5,29 @@
 module Model.ETL.ObsETL
   ( module Model.ETL.ObsETL
   -- * Re-exported types
-  , module Model.ETL.ID   -- beginnings of a Node UID generator; now for root only.
+  , module Model.ETL.ID       -- beginnings of a Node UID generator; now for root only.
   , module Model.ETL.Qualities
   , module Model.ETL.Key
   , module Model.ETL.Components
   , module Model.ETL.FieldValues
+  , module Model.ETL.Fragment  -- type class
   , module Model.ETL.Span
   , module Model.ETL.TagRedExp
   )
   where
 -------------------------------------------------------------------------------
-import qualified Data.Map.Strict       as Map (fromList, union)
-import           Data.Text             (append)
 import           Protolude
+---------------------------------------------------------------------------------
+import qualified Data.Map.Strict       as Map (fromList, lookup, null, size,
+                                               union)
+import           Data.Text             (append)
 -------------------------------------------------------------------------------
+import           Data.Aeson            (ToJSON)
+---------------------------------------------------------------------------------
 import           Lib.NodeManager
 import           Model.ETL.Components  hiding (names)
 import           Model.ETL.FieldValues
+import           Model.ETL.Fragment
 import           Model.ETL.ID
 import           Model.ETL.Key
 import           Model.ETL.Qualities
@@ -36,10 +42,13 @@ data ObsETL = ObsETL
         , obsMeasurements :: !Measurements
         } deriving (Show, Eq, Ord, Generic)
 
+instance ToJSON ObsETL
+
 -- |  documentation
 obsDes :: Text
 obsDes = "Describes the data available to construct\
         \ the matrix required for the analysis."
+
 
 -- | Private smart constructor that utilizes an ID generator.
 -- /Note/: The ID generator is implemented, but not exploited by the app.
@@ -62,6 +71,11 @@ data Subject = Subject
         , subQualities :: !Qualities
         } deriving (Show, Eq, Ord, Generic)
 
+instance ToJSON Subject
+
+instance GetEtlFragment Subject SubKey Qualities where
+  getValues Subject { subQualities } _ = Just subQualities
+
 -- | documentation
 subDes :: Text
 subDes = "Subject branch for which there is only one. The requested subset\
@@ -75,13 +89,22 @@ newtype Measurements = Measurements
         { measurements  :: Map Key Components
         } deriving (Show, Eq, Ord, Generic)
 
+instance ToJSON Measurements
+
 instance Semigroup Measurements where
   (Measurements a) <> (Measurements b) = Measurements $ Map.union a b
 
 instance Monoid Measurements where
   mempty = Measurements mempty
-  (Measurements a) `mappend` (Measurements b) = Measurements $ Map.union a b
+  Measurements a `mappend` Measurements b = Measurements $ Map.union a b
 
+instance GetEtlFragment Measurements MeaKey Components where
+  getValues Measurements { measurements } k
+    = Map.lookup k measurements
+
+instance Fragment Measurements where
+  null (Measurements vs) = Map.null vs
+  len  (Measurements vs) = Map.size vs
 
 -- | As of yet, unused support function (perhaps for @Matrix@)
 meaTypes :: Measurements -> [Text]
@@ -92,6 +115,7 @@ measDes :: Text
 measDes = "A Map collection of the available Measurements.\n\
           \ Key :: TypeKey that describes the Measurement Type\n\
           \ Value :: A Map to the Components of the Measurement."
+
 
 
 -- | fromList constructors

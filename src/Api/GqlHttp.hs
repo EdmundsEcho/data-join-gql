@@ -6,8 +6,9 @@ Description : Bridge between Servant, GraphQL and the WebApp types
 module Api.GqlHttp where
 
 -------------------------------------------------------------------------------
-import           Protolude                        (Maybe, MonadIO, Symbol,
-                                                   identity)
+import           Data.Aeson                       hiding (Value)
+import           Data.Aeson.Encode.Pretty
+import           Protolude
 -------------------------------------------------------------------------------
 import           Control.Monad.Trans              (MonadTrans)
 -------------------------------------------------------------------------------
@@ -29,10 +30,25 @@ type GQLAPI (name :: Symbol) (version :: Symbol)
 -- == xx
 -- Usage
 --   > serveGQL ( interpreter rootResolver )
+--   later,
+--   serveObsEtlApi :: ServerT ObsEtlApi AppObs
+--   serveObsEtlApi = serveGQL api
+--
+--   api :: GQLRequest -> AppObs GQLResponse
+--   api = interpreter gqlRoot
+--
 serveGQL :: (GQLRequest -> AppObs GQLResponse)
          -> ServerT (GQLAPI name version) AppObs
 serveGQL = identity
 
+
+-- |
+-- <there you can access logger>
+-- $ runReaderT (runApp resolver) readerContext
+--
+-- logger :: (ToJSON a, GraphQL o) => a -> Value o ()
+logger :: (ToJSON a, MonadIO m) => a -> m ()
+logger = liftIO . putStrLn . encodePretty
 
 ---------------------------------------------------------------------------------
 -- | Type level Resolvers
@@ -59,6 +75,12 @@ type OptionalArrayObject (o :: OperationType) a
 
 type GraphQL o
      = ( MonadIO (Resolver o () AppObs)
-       , WithOperation o
        , MonadTrans (Resolver o ())
+       , WithOperation o
        )
+
+
+
+
+---------------------------------------------------------------------------------
+  --

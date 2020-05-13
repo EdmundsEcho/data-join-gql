@@ -7,14 +7,21 @@ Description : The WebApp type definitions
 -}
 module AppTypes where
 
+--------------------------------------------------------------------------------
+import           Data.Aeson
+import           Protolude              hiding (State)
+--------------------------------------------------------------------------------
 import           Control.Concurrent.STM (TVar)
+--------------------------------------------------------------------------------
+  -- Logging
+--------------------------------------------------------------------------------
+  -- Monad stack
 import           Control.Exception.Safe hiding (Handler)
 import           Control.Monad.Logger
-import           Prelude                (Show (..))
-import           Protolude              hiding (State)
+--------------------------------------------------------------------------------
 import           Servant
 --------------------------------------------------------------------------------
--- Data stored in Database
+-- App specific
 import           Model.ETL.ObsETL
 import           Model.ObsTest
 --------------------------------------------------------------------------------
@@ -23,7 +30,7 @@ import           Model.ObsTest
 --
 newtype AppObs a =
     AppObs
-        { runApp :: LoggingT (ReaderT Env Handler) a
+        { iniApp :: ReaderT Env (LoggingT Handler) a
         }
     deriving ( Functor
              , Applicative
@@ -31,8 +38,26 @@ newtype AppObs a =
              , MonadReader Env
              , MonadIO
              , MonadLogger
+             , MonadThrow
+             -- , MonadError Text Already defined by Server
              )
 
+-- statelessResolver
+--   :: (Monad m, RootResCon m event query mut sub)
+--   => GQLRootResolver m event query mut sub
+--   -> GQLRequest
+--   -> m GQLResponse
+-- statelessResolver root req =
+--     renderResponse <$> runResultT (coreResolver root req)
+--
+-- coreResolver
+--   :: forall event m query mut sub
+--    . (Monad m, RootResCon m event query mut sub)
+--   => GQLRootResolver m event query mut sub
+--   -> GQLRequest
+--   -> ResponseStream event m ValidValue
+--
+--
 -- |
 -- == > Custom monad -> Handler
 -- Natural transformation required to map the custom monad back to `Handler`.
@@ -40,9 +65,11 @@ newtype AppObs a =
 -- >:: AppObs a -> Handler a
 --
 nat :: Env -> AppObs a -> Handler a
-nat env app = runReaderT (
-               runStderrLoggingT (runApp app) ) env
+nat env app = runStderrLoggingT (
+                 runReaderT (iniApp app) env)
 
+-- defaultFormatter = colorLvlFormatter ("[" <:> Lvl <:> "] ") <:> Msg
+-- defaultFormatterTH = colorLvlFormatter ("[" <:> Lvl <:> "] ") <:> Loc <:> ": " <:> Msg
 --------------------------------------------------------------------------------
 -- |
 -- == Context for the GraphQL capacity
@@ -90,22 +117,19 @@ dbInit =
     }
 
 -------------------------------------------------------------------------------
--- |
--- == Not yet implemented
---
-data ObsException
-  = ObsNotInitialized
-  | MalformedConfig
-  | ObsOtherException
+data LogMessage = LogMessage {
+  message        :: !Text
+  -- , timestamp    :: !UTCTime
+  , level        :: !Text
+  , lversion     :: !Text
+  , lenvironment :: !Text
+} deriving (Eq, Show, Generic)
 
--- |
-instance Show ObsException where
-  show ObsNotInitialized = "The server was not initialized with a valid state object."
-  show ObsOtherException = "Something else when wrong"
-  show MalformedConfig = "The input is not properly formatted"
+instance FromJSON LogMessage
+instance ToJSON LogMessage where
+  toEncoding = genericToEncoding defaultOptions
 
--- |
-instance Exception ObsException
-
+instance ToLogStr LogMessage where
+  toLogStr = toLogStr . encode
 
 -------------------------------------------------------------------------------

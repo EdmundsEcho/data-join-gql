@@ -10,10 +10,13 @@ module Model.ETL.Components
 -------------------------------------------------------------------------------
 import           Protolude
 -------------------------------------------------------------------------------
+import           Data.Aeson            (ToJSON)
+---------------------------------------------------------------------------------
 import           Data.Map.Strict       (keys, union)
-import qualified Data.Map.Strict       as Map (fromList)
+import qualified Data.Map.Strict       as Map (fromList, lookup, null, size)
 -------------------------------------------------------------------------------
 import           Model.ETL.FieldValues
+import           Model.ETL.Fragment
 import           Model.ETL.Key
 -------------------------------------------------------------------------------
 
@@ -26,6 +29,16 @@ import           Model.ETL.Key
 newtype Components = Components
         { components :: Map Key CompValues
         } deriving (Show, Eq, Ord, Generic)
+
+instance ToJSON Components
+
+instance Fragment Components where
+  null (Components cs) = Map.null cs
+  len (Components cs)  = Map.size cs
+
+instance GetEtlFragment Components CompKey CompValues where
+  getValues Components { components } k
+    = Map.lookup k components
 
 instance Semigroup Components where
   (Components a) <> (Components b) = Components $ union a b

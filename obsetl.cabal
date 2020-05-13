@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 96b67333d3e6b117fb41a9aad15d9afccbaf959ee77454e6141b04eaca2fe453
+-- hash: 78fec10975fd1f1e902dd71eeee0f46c85577335761b2e83377cfc68c5daa519
 
 name:           obsetl
 version:        0.1.2.0
@@ -28,9 +28,11 @@ source-repository head
 library
   exposed-modules:
       Api.ETL
+      Api.GQL.Input.MeaRequests
+      Api.GQL.Input.Request
+      Api.GQL.Input.SubRequest
       Api.GQL.ObsETL
       Api.GQL.ObsTest
-      Api.GQL.RequestInput
       Api.GQL.RequestView
       Api.GQL.Root
       Api.GQL.Schemas.ObsETL
@@ -45,6 +47,7 @@ library
       Lib.NodeManager
       Model.ETL.Components
       Model.ETL.FieldValues
+      Model.ETL.Fragment
       Model.ETL.ID
       Model.ETL.Key
       Model.ETL.ObsETL
@@ -54,25 +57,30 @@ library
       Model.ETL.Transformers
       Model.ObsTest
       Model.Request
+      Model.Status
+      ObsExceptions
   other-modules:
       Paths_obsetl
   hs-source-dirs:
       src
-  default-extensions: DataKinds DeriveGeneric FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
+  default-extensions: DataKinds DeriveGeneric FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings PatternSynonyms QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
   ghc-options: -Wall -fno-warn-redundant-constraints
   build-depends:
       aeson >=1.4.6.0 && <1.5
+    , aeson-pretty
     , base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.20
     , containers >=0.6.2.1 && <0.7
+    , hslogger >=1.3.1.0 && <1.4
     , monad-logger >=0.3.32 && <0.4
-    , morpheus-graphql >=0.10.0 && <0.20
+    , morpheus-graphql >=0.11.0 && <0.20
     , mtl >=2.2.2 && <3
     , optparse-applicative >=0.15.1.0 && <0.20
     , protolude
     , safe-exceptions >=0.1.7.0 && <0.2
     , servant-server >=0.16.2 && <0.26
     , stm >=2.5.0.0 && <2.6
+    , template-haskell >=2.14.0.0 && <2.20
     , text >=1.2.4.0 && <1.3
     , transformers >=0.5.6 && <0.6
     , vector >=0.12.1.2 && <0.13
@@ -88,15 +96,17 @@ executable obsetl-exe
       Paths_obsetl
   hs-source-dirs:
       app
-  default-extensions: DataKinds DeriveGeneric FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
+  default-extensions: DataKinds DeriveGeneric FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings PatternSynonyms QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
   ghc-options: -Wall -fno-warn-redundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson >=1.4.6.0 && <1.5
+    , aeson-pretty
     , base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.20
     , containers >=0.6.2.1 && <0.7
+    , hslogger >=1.3.1.0 && <1.4
     , monad-logger >=0.3.32 && <0.4
-    , morpheus-graphql >=0.10.0 && <0.20
+    , morpheus-graphql >=0.11.0 && <0.20
     , mtl >=2.2.2 && <3
     , obsetl
     , optparse-applicative >=0.15.1.0 && <0.20
@@ -104,6 +114,7 @@ executable obsetl-exe
     , safe-exceptions >=0.1.7.0 && <0.2
     , servant-server >=0.16.2 && <0.26
     , stm >=2.5.0.0 && <2.6
+    , template-haskell >=2.14.0.0 && <2.20
     , text >=1.2.4.0 && <1.3
     , transformers >=0.5.6 && <0.6
     , vector >=0.12.1.2 && <0.13
@@ -120,15 +131,17 @@ test-suite obsetl-test
       Paths_obsetl
   hs-source-dirs:
       test
-  default-extensions: DataKinds DeriveGeneric FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
+  default-extensions: DataKinds DeriveGeneric FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings PatternSynonyms QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
   ghc-options: -Wall -fno-warn-redundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson >=1.4.6.0 && <1.5
+    , aeson-pretty
     , base >=4.7 && <5
     , bytestring >=0.10.10.0 && <0.20
     , containers >=0.6.2.1 && <0.7
+    , hslogger >=1.3.1.0 && <1.4
     , monad-logger >=0.3.32 && <0.4
-    , morpheus-graphql >=0.10.0 && <0.20
+    , morpheus-graphql >=0.11.0 && <0.20
     , mtl >=2.2.2 && <3
     , obsetl
     , optparse-applicative >=0.15.1.0 && <0.20
@@ -136,6 +149,7 @@ test-suite obsetl-test
     , safe-exceptions >=0.1.7.0 && <0.2
     , servant-server >=0.16.2 && <0.26
     , stm >=2.5.0.0 && <2.6
+    , template-haskell >=2.14.0.0 && <2.20
     , text >=1.2.4.0 && <1.3
     , transformers >=0.5.6 && <0.6
     , vector >=0.12.1.2 && <0.13

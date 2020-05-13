@@ -1,0 +1,253 @@
+{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE DuplicateRecordFields      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TupleSections              #-}
+{-# LANGUAGE TypeFamilies               #-}
+
+{-# OPTIONS_HADDOCK ignore-exports #-}
+-- |
+-- Module     : Api.GQL.Input.SubRequest
+-- Description: UI access point - Subject Request
+--
+module Api.GQL.Input.SubRequest where
+---------------------------------------------------------------------------------
+import           Protolude
+---------------------------------------------------------------------------------
+import           Control.Exception.Safe
+import           Control.Monad.Logger
+import           Control.Monad.Trans.Maybe
+---------------------------------------------------------------------------------
+import           Api.ETL
+import qualified Api.GQL.ObsETL            as Shared
+---------------------------------------------------------------------------------
+import qualified Model.ETL.Fragment        as Model
+import qualified Model.ETL.ObsETL          as Model (QualName, QualValues,
+                                                     Qualities (..), SubKey,
+                                                     Subject, mkQualKey,
+                                                     mkSubKey)
+import qualified Model.Request             as Model (QualityMix (..),
+                                                     ReqQualities,
+                                                     fromListReqQualities,
+                                                     mkQualityMix)
+---------------------------------------------------------------------------------
+import qualified Api.GQL.Schemas.Request   as GqlInput
+import qualified Api.GQL.Schemas.Shared    as GqlInput
+---------------------------------------------------------------------------------
+import           Api.GQL.Input.Shared
+import           AppTypes
+import           ObsExceptions
+---------------------------------------------------------------------------------
+
+-- newtype Fetch a = Fetch { runFetch :: ExceptT ObsException (LoggingT Maybe) a }
+newtype Fetch a = Fetch { runFetch :: MaybeT (LoggingT AppObs) a }
+    deriving ( Functor
+             , Applicative
+             , Monad
+             , MonadThrow
+             , MonadLogger
+             )
+
+goFetch :: Fetch a -> AppObs (Maybe a)
+goFetch request = runStderrLoggingT (runMaybeT (runFetch request))
+
+-- runEtlApp :: AppEtl a -> WebApp a
+-- runEtlApp app = runStderrLoggingT (runEtl app)
+
+---------------------------------------------------------------------------------
+  -- SubRequest - Qualities arm
+---------------------------------------------------------------------------------
+-- |
+-- GQLInput -> Model.Request
+-- GQLInput specified by the schema.request.graphql
+-- Model.Request 'Model.Request'
+--
+-- In the event the `qualityMix` field is empty, we are done.
+--
+-- /Recall/: The input is a search term that filters out ETL data.
+-- It is not valid etl data unto itself.
+--
+-- >  QualityMixInput {
+-- >    subjectType: String
+-- >    qualityMix: [QualityReqInput!]
+-- >  }
+--
+-- > data QualityMix = QualityMix
+-- >   { subType    :: !Key
+-- >   , qualityMix :: !Qualities
+-- >   } deriving (Show, Eq)
+--
+--
+-- subject (type: String!) Subject
+fetchQualityMix :: GqlInput.QualityMixInput -> Model.Subject
+                -> Maybe Model.QualityMix
+fetchQualityMix (GqlInput.QualityMixInput subTypeReq qualMixReq) etl = do
+
+    -- retrieve etl subject
+    let subKey = Model.mkSubKey subTypeReq
+    etl' <- Api.ETL.lookupQualities subKey etl
+
+    go subKey qualMixReq etl'
+
+      where
+        -- Augment the request when [QualityReqInput] is Nothing
+        --
+        go :: Model.SubKey -> Maybe [GqlInput.QualityReqInput] -> Model.Qualities
+           -> Maybe Model.QualityMix
+
+        go k mixReq etl'' = case mixReq of
+
+          -- instantiate minimum Model.Request
+          Nothing -> Just $
+              Model.QualityMix { subjectType = k      :: Model.SubKey
+                               , qualityMix = Nothing :: Maybe Model.ReqQualities
+                               }                         -- null
+
+          -- instantiate the next level of Model.Request
+          Just mixReq' -> do
+            -- propogate the request to child requests
+            let subSetReqs  = filter isSubset mixReq'       :: [GqlInput.QualityReqInput]
+                subsets' = fetchQualities subSetReqs etl''  :: Maybe Model.ReqQualities
+
+            let fullSetReqs = mconcat $ traverse ppFullSets mixReq' :: [GqlInput.QualityReqInput]
+                fullSets' = fetchQualities fullSetReqs etl''        :: Maybe Model.ReqQualities
+
+            -- instantiate the Model.Request
+            Model.mkQualityMix k <$> (subsets' <> fullSets')
+
+            -- for values in `QualityReqInput { qualityNames }` preProcess to create
+            -- a list of `QualityReqInput { qualityName }`.
+            where
+              -- full set request has zero filtering capacity BUT, does mean the
+              -- quality field will be included in the Matrix request.
+              -- ... so include it in what we echo, augmented.
+              ppFullSets :: GqlInput.QualityReqInput -> [GqlInput.QualityReqInput]
+
+              ppFullSets (GqlInput.QualityReqInput (Just keys) maybeKey Nothing) =
+                let keys' = case maybeKey of
+                               Just k' -> k':keys
+                               Nothing -> keys
+                in
+                  fmap (\key ->
+                    GqlInput.QualityReqInput
+                                    { qualityNames  = Nothing
+                                    , qualityName   = Just key
+                                    , qualityValues = Nothing
+                                    }
+                   ) keys'
+
+              -- flawed, but reparable request
+              ppFullSets (GqlInput.QualityReqInput (Just keys) Nothing (Just _)) =
+                ppFullSets (GqlInput.QualityReqInput (Just keys) Nothing Nothing)
+
+              -- redirect to the workhorse
+              ppFullSets (GqlInput.QualityReqInput Nothing (Just key) Nothing) =
+                ppFullSets (GqlInput.QualityReqInput (Just [key]) Nothing Nothing)
+
+              ppFullSets _ = panic "Something is wrong with the search" -- not a fullset request
+
+              -- subset requests
+              isSubset :: GqlInput.QualityReqInput -> Bool
+              isSubset (GqlInput.QualityReqInput Nothing (Just _) (Just _)) = True
+              isSubset _                                                    = False
+
+
+fetchQualities :: [GqlInput.QualityReqInput] -> Model.Qualities
+               -> Maybe Model.ReqQualities
+fetchQualities requests etl =
+  let
+      -- wrap, process using shared logic, unwrap
+      (subSetReqs, fullSetReqs) = mapTuple (catMaybes . (fmap unWrapQual))
+                                $ ppSubsetting (Qual <$> requests)
+
+      fullSetReqs' :: [(Model.QualName, Maybe Model.QualValues)]
+      fullSetReqs' = mapMaybe (`fetchFullSet` etl) fullSetReqs
+
+      subSetReqs' :: [(Model.QualName, Maybe Model.QualValues)]
+      subSetReqs' = mapMaybe (`fetchSubset` etl) subSetReqs
+
+      result = Model.fromListReqQualities subSetReqs'
+             <> Model.fromListReqQualities fullSetReqs'
+   in
+      if Model.null result then Nothing
+                           else Just result
+
+
+  -- Model.fromListReqQualities [(QualName, Maybe QualValues)] -> ReqQualities
+  where
+    -- filterCompReqValues :: CompReqValues -> FieldValues -> Maybe CompReqValues
+    fetchSubset :: GqlInput.QualityReqInput
+                -> Model.Qualities
+                -> Maybe (Model.QualName, Maybe Model.QualValues)
+
+    fetchSubset req etl' = do
+      -- process key
+      (key, etlValues) <- getEtlFragment req etl' :: Maybe (Model.QualName, Model.QualValues)
+      -- process values
+      let valuesReq  = GqlInput.qualityValues req :: Maybe GqlInput.QualValuesInput
+      case valuesReq of
+          Nothing         -> Just (key, Nothing)
+          Just valuesReq' -> do
+            let valuesReq'' = fromInputReqQualValues valuesReq'
+            values <- filterQualReqValues valuesReq'' etlValues
+            if Model.null values then Nothing
+                                 else Just (key, Just values)
+
+
+      -- TODO: Log message when Nothing came back when something was requested.
+      --       No records should be returned if asked for quality values that
+      --       all do not exist.
+
+    -- > QualityReqInput {
+    -- >   qualityNames:  [String!]
+    -- >   qualityName:   String
+    -- >   qualityValues: QualValuesInput
+    -- > }
+    --
+    -- > QualValuesInput {
+    -- >   txtValues: [String!]
+    -- >   intValues: [Int!]
+    -- > }
+    --
+    fetchFullSet :: GqlInput.QualityReqInput
+                 -> Model.Qualities
+                 -> Maybe (Model.QualName, Maybe Model.QualValues)
+    fetchFullSet req etl' = do
+      let reqName = getQualName req
+      case reqName of
+         Nothing   -> Nothing        -- no key in the request
+         Just name -> do
+            key <- lookupQualityKey (Model.mkQualKey name) etl'
+            ((,Nothing) <$> key)       -- key determines return
+
+    -----------------------------------------------------------------------------
+    -- |
+    -- Processes the req qualKey
+    -- when the reqFragment can't be found, return Nothing
+    --
+    getEtlFragment :: GqlInput.QualityReqInput
+                   -> Model.Qualities
+                   -> Maybe (Model.QualName, Model.QualValues)
+    getEtlFragment req etl'' = do
+      let reqName = getQualName req :: Maybe Text  -- hack to avoid namespace collision
+      case reqName of
+        Nothing -> Nothing             -- no key in the request
+        Just name -> do
+           key <- lookupQualityKey (Model.mkQualKey name) etl''
+           case key of
+             Nothing  -> Nothing       -- no key in the data
+             Just key' -> do
+               values <- lookupQualValues key' etl''
+               ((key',) <$> values)    -- Nothing when QualValues = Nothing
+
+    -----------------------------------------------------------------------------
+
+    getQualName :: GqlInput.QualityReqInput -> Maybe Text
+    getQualName GqlInput.QualityReqInput {..} = qualityName
+
+
+---------------------------------------------------------------------------------
+-- |
+--
+fromInputReqQualValues :: GqlInput.QualValuesInput -> Model.QualValues
+fromInputReqQualValues = Shared.fromInputQualValues

@@ -7,6 +7,8 @@ module Model.ETL.Key
 -------------------------------------------------------------------------------
 import           Protolude
 -------------------------------------------------------------------------------
+import           Data.Aeson   (ToJSON (..), ToJSONKey (..))
+-------------------------------------------------------------------------------
 import           Model.ETL.ID
 -------------------------------------------------------------------------------
 
@@ -18,12 +20,17 @@ import           Model.ETL.ID
 -- lookup function for the corresponding collection.
 data Key =
       OIKey   (Maybe ID)    -- ^ Obs ID Key
-    | SubKey  (Maybe Text)
+    | SubKey  Text
     | QualKey Text
     | MeaKey  Text
     | CompKey Text
     | SpanKey
     deriving (Show, Eq, Ord, Generic)
+
+instance ToJSONKey Key
+instance ToJSON Key
+  --where
+  --toJSON = String . unKey
 
 -- |
 -- === Key-related types and constuctors
@@ -45,14 +52,13 @@ type QualName  = Key
 --
 -- Used to generate Response (outgoing) from the API data store.
 unKey :: Key -> Text
-unKey (OIKey (Just id))   = unID id
-unKey (OIKey Nothing)     = "OID"        -- Less relevant
-unKey (SubKey (Just txt)) = txt
-unKey (SubKey Nothing)    = "SubType"    -- Less relevant
-unKey (QualKey txt)       = txt
-unKey (MeaKey txt)        = txt
-unKey (CompKey txt)       = txt
-unKey SpanKey             = "SpanKey"
+unKey (OIKey (Just id)) = unID id
+unKey (OIKey Nothing)   = "OID"        -- Less relevant
+unKey (SubKey txt)      = txt
+unKey (QualKey txt)     = txt
+unKey (MeaKey txt)      = txt
+unKey (CompKey txt)     = txt
+unKey SpanKey           = "SpanKey"
 
 -- |
 -- ==== Key-constructors from @Text@ values
@@ -62,9 +68,8 @@ mkOIKey :: Maybe Text -> OIKey
 mkOIKey Nothing    = OIKey Nothing
 mkOIKey (Just txt) = OIKey (Just (KeyID txt))
 
-mkSubKey :: Maybe Text -> SubKey
-mkSubKey Nothing    = SubKey Nothing
-mkSubKey (Just txt) = SubKey $ Just txt
+mkSubKey :: Text -> SubKey
+mkSubKey = SubKey
 
 mkQualKey :: Text -> QualKey
 mkQualKey = QualKey

@@ -27,6 +27,7 @@ import qualified Model.Request           as Model (CompReqValues (..),
                                                    toListReqComponents,
                                                    toListReqQualities,
                                                    toTupleCompReqValues)
+import           Model.Status
 ---------------------------------------------------------------------------------
 import           Api.GqlHttp
 ---------------------------------------------------------------------------------
@@ -39,16 +40,19 @@ import qualified Api.GQL.Schemas.Request as GqlType
 -- Model -> GraphQL View
 -- Request data types -> Types specified in the schema
 -- Request (Resolver o () AppObs)
-resolverRequest :: GraphQL o => Model.Request -> Object o GqlType.Request
-resolverRequest (Model.Request subReq meaReqs) =
+resolverRequest :: GraphQL o => Model.Request 'Success -> Object o GqlType.Request
+resolverRequest (Model.Request subReq meaReqs) = do
+
+  logger subReq
+
   pure $
     GqlType.Request
 
       { subReq =  resolverQualityMix subReq
-          :: GraphQL o => Object o GqlType.QualityMix
+        :: GraphQL o => Object o GqlType.QualityMix
 
       , meaReqs = resolverComponentMixes meaReqs
-          :: GraphQL o => ArrayObject o GqlType.ComponentMix
+        :: GraphQL o => ArrayObject o GqlType.ComponentMix
       }
 
 ---------------------------------------------------------------------------------
@@ -56,12 +60,17 @@ resolverRequest (Model.Request subReq meaReqs) =
 -- Model -> GraphQL View
 resolverQualityMix :: GraphQL o => Model.QualityMix -> Object o GqlType.QualityMix
 resolverQualityMix Model.QualityMix {..} =
-  pure $
-    GqlType.QualityMix
-      { subjectType  = Shared.resolverSubType subjectType  -- :: Model.Key -> String!
-        , qualityMix = resolverReqQualities qualityMix
-                       :: GraphQL o => OptionalArrayObject o GqlType.ReqQuality
-      }
+   let display = if isJust qualityMix
+       then Nothing
+       else Just "No subject qualifiers included in the request."
+
+   in pure $
+     GqlType.QualityMix
+       {   subjectType = Shared.resolverSubType subjectType  -- :: Model.Key -> String!
+         , qualityMix  = resolverReqQualities qualityMix
+                      :: GraphQL o => OptionalArrayObject o GqlType.ReqQuality
+         , warning = pure display
+       }
 
 resolverReqQualities :: GraphQL o
                      => Maybe Model.ReqQualities -> OptionalArrayObject o GqlType.ReqQuality
@@ -78,6 +87,7 @@ resolverReqQualities (Just vs) =
       pure $ GqlType.ReqQuality
         { qualityName = pure $ Model.unKey key
         , values = pure Nothing
+        , message = pure $ Just "Field included; fullset request."
         }
 
     -- values
@@ -88,6 +98,8 @@ resolverReqQualities (Just vs) =
 
         , values      = Just <$> Shared.resolverQualValues qualValues
                         :: GraphQL o =>  OptionalObject o GqlType.QualityValues
+
+        , message = pure $ Just "Field included with a *subset* of levels selected."
         }
 
 ---------------------------------------------------------------------------------
@@ -103,8 +115,9 @@ resolverComponentMixes mixes =
     resolverComponentMix :: GraphQL o
                          => (Model.MeaKey, Maybe Model.ReqComponents)
                          -> Object o GqlType.ComponentMix
+
     -- TODO: review how to display request for the Measurement field
-    --       => all reduced.  Is it worthwhile to show all levelts?
+    --       => all reduced.  Is it worthwhile to show all levels?
     resolverComponentMix (meaType, compMix) =
       let displayCompMix =
            if isJust compMix
@@ -147,15 +160,16 @@ resolverReqComponents reqComps =
                          -> Object o GqlType.ReqComponent
 
     -- TODO: review how to display request for the Measurement field
-    --       => all reduced.  Is it worthwhile to show all levelts?
+    --       => all reduced.  Is it worthwhile to show all levels?
     resolverReqComponent (compKey, mCompReqVs) =
 
+      -- (Maybe ArrayObject compValues, Maybe message)
       let displayCompReqValues =
            if isJust mCompReqVs
-              then ( Just <$> Shared.resolverCompValues ( fst
-                                                      . Model.toTupleCompReqValues
-                                                      $ fromJust mCompReqVs
-                                                      )
+              then ( Just <$> Shared.resolverCompValues
+                            ( fst . Model.toTupleCompReqValues
+                            $ fromJust mCompReqVs
+                            )
                    , Nothing)
 
               else ( pure Nothing
@@ -165,12 +179,11 @@ resolverReqComponents reqComps =
          GqlType.ReqComponent
            { componentName = pure $ Model.unKey compKey
            , values        = fst displayCompReqValues -- :: ComponentValues
-           , reduced       = pure . isRed $ fromJust mCompReqVs
+           , reduced       = case mCompReqVs of
+               Just Model.CompReqValues { values } -> pure . Model.isRed $ values
+               Nothing -> pure False
            , message       = pure $ snd displayCompReqValues
            }
-
-      where
-        isRed Model.CompReqValues { values } = Model.isRed values
 
 
 ---------------------------------------------------------------------------------

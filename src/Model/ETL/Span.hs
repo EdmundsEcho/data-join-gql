@@ -27,12 +27,15 @@ module Model.ETL.Span
 -------------------------------------------------------------------------------
 import           Protolude
 -------------------------------------------------------------------------------
+import           Data.Aeson          (ToJSON)
+-------------------------------------------------------------------------------
 import           Model.ETL.TagRedExp
 -------------------------------------------------------------------------------
 
 -- | Span
 -- Exp ~ Expressed, Red ~ Reduced
-newtype Span = Span { span :: TagRedExp Range } deriving (Show, Eq)
+newtype Span = Span { span :: TagRedExp Range } deriving (Show, Eq, Generic)
+instance ToJSON Span
 
 -- | Ord used to test for a Subset relation between Spans.
 instance Ord Span where
@@ -64,6 +67,8 @@ data Range = Range
   { rangeStart  :: !Int
   , rangeLength :: !Int
   } deriving (Show, Eq, Ord, Generic)
+
+instance ToJSON Range
 
 -- | Support function to access Range values
 spanEnd :: Range -> Int

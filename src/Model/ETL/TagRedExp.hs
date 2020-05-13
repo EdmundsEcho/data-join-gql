@@ -14,13 +14,17 @@ module Model.ETL.TagRedExp
   where
 
 -------------------------------------------------------------------------------
-import           Protolude (Bool (..), Eq, Ord, Show)
+import           Protolude
+-------------------------------------------------------------------------------
+import           Data.Aeson (ToJSON)
 -------------------------------------------------------------------------------
   --
 data TagRedExp a
   = Red a   -- ^ Reduced, summary computation
   | Exp a   -- ^ Expressed series
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic)
+
+instance ToJSON a => ToJSON (TagRedExp a)
 
 -- |
 -- Utility function

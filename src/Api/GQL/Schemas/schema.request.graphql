@@ -42,9 +42,9 @@ input QualityMixInput {
 ### Encoding
 | Keys   | Key  | Values | Means |
 | :------|:---- | :----- | :---- |
-| Keys | Nothing | Nothing | Display a field for each quality; select all subjects |
-| Nothing | Key | Nothing  | Dispaly a field for the quality; select all subjects |
-| Nothing | Key | Values   | Display a field for the quality; select subjects using values |
+| Keys | Nothing | Nothing | Field for each quality; all subjects |
+| Nothing | Key | Nothing  | Field for the quality; all subjects |
+| Nothing | Key | Values   | Field for the quality; subset of subjects |
 | Nothing | Nothing | Values   | Invalid |
 
   - QualKey Nothing => display the quality field, select all levels
@@ -137,14 +137,14 @@ input ComponentReqInput {
   to a summary computation.
 
   """
-  componentValues: FieldValuesCompReqInput
+  componentValues: CompValuesReqInput
 }
 """
 A requested component needs to specify if the collection of values is meant
 to create a single (reduced = True) or multiple fields in the requested
 data table (Request -> Matrix).
 """
-input FieldValuesCompReqInput {
+input CompValuesReqInput {
   txtValues: [String!]
   intValues: [Int!]
   spanValues: [SpanInput!]
@@ -155,12 +155,14 @@ input FieldValuesCompReqInput {
 """
 Minimum viable is a Subject and Measurement type request.  This can be implied
 from any request input.
+
+Displays warning.
 """
 type Request {
   subReq: QualityMix!
   meaReqs: [ComponentMix!]!
 }
-type QualityMix {
+type QualityMix implements Warning {
   """
   Reports the subject type for this data set.
   """
@@ -169,8 +171,9 @@ type QualityMix {
   View - A minimum of one measurement will be included in the request.
   """
   qualityMix: [ReqQuality!]
+  warning: String
 }
-type ReqQuality {
+type ReqQuality implements Message {
   """
   A field with this name will be included in the request.
   """
@@ -180,6 +183,7 @@ type ReqQuality {
   in the data request. The type is a `union` of `TxtValues` and `IntValues`.
   """
   values: QualityValues
+  message: String
 }
 """
 View - A minimum of one measurement
@@ -223,7 +227,12 @@ type ReqComponent implements Message {
   reduced: Boolean!
   message: String
 }
-
+"""
+Interfaces to provide meta-data
+"""
+interface Warning {
+  warning: String
+}
 interface Message {
   message: String
 }
