@@ -39,6 +39,7 @@ newtype AppObs a =
              , MonadIO
              , MonadLogger
              , MonadThrow
+             , MonadCatch
              -- , MonadError Text Already defined by Server
              )
 

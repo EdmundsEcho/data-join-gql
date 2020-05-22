@@ -1,3 +1,4 @@
+{-# OPTIONS_HADDOCK prune #-}
 {-# LANGUAGE DerivingStrategies    #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -12,11 +13,13 @@ module Api.GQL.RequestView where
 ---------------------------------------------------------------------------------
 import           Protolude
 ---------------------------------------------------------------------------------
-import           Data.Maybe              (fromJust)
+import           Control.Monad.Logger
 import qualified Data.Set                as Set
 ---------------------------------------------------------------------------------
+import qualified Model.ETL.FieldValues   as FV (areSpanValues)
+import           Model.ETL.Fragment      (fieldCount, getCount)
 import qualified Model.ETL.ObsETL        as Model (CompKey, MeaKey, QualKey,
-                                                   QualValues, isRed, unKey)
+                                                   QualValues, mkCompKey, unKey)
 import qualified Model.Request           as Model (CompReqValues (..),
                                                    ComponentMixes (..),
                                                    QualityMix (..),
@@ -41,9 +44,13 @@ import qualified Api.GQL.Schemas.Request as GqlType
 -- Request data types -> Types specified in the schema
 -- Request (Resolver o () AppObs)
 resolverRequest :: GraphQL o => Model.Request 'Success -> Object o GqlType.Request
-resolverRequest (Model.Request subReq meaReqs) = do
+resolverRequest req@Model.Request {..} = do
 
+  lift . logDebugN $ ("\n--------------\n"::Text)
   logger subReq
+  lift . logDebugN $ ("\n--------------\n"::Text)
+  logger meaReqs
+  lift . logDebugN $ ("\n--------------\n"::Text)
 
   pure $
     GqlType.Request
@@ -53,23 +60,28 @@ resolverRequest (Model.Request subReq meaReqs) = do
 
       , meaReqs = resolverComponentMixes meaReqs
         :: GraphQL o => ArrayObject o GqlType.ComponentMix
+
+      , fieldCount = pure $ fieldCount req
+
       }
 
 ---------------------------------------------------------------------------------
 -- |
 -- Model -> GraphQL View
 resolverQualityMix :: GraphQL o => Model.QualityMix -> Object o GqlType.QualityMix
-resolverQualityMix Model.QualityMix {..} =
-   let display = if isJust qualityMix
-       then Nothing
-       else Just "No subject qualifiers included in the request."
+resolverQualityMix req@Model.QualityMix {..} =
+
+    let warning' = if isJust qualityMix
+                     then Nothing
+                     else Just "No subject qualifiers included in this request"
 
    in pure $
      GqlType.QualityMix
        {   subjectType = Shared.resolverSubType subjectType  -- :: Model.Key -> String!
          , qualityMix  = resolverReqQualities qualityMix
                       :: GraphQL o => OptionalArrayObject o GqlType.ReqQuality
-         , warning = pure display
+         , warning = pure warning'
+         , fieldCount = pure $ fieldCount req
        }
 
 resolverReqQualities :: GraphQL o
@@ -86,22 +98,19 @@ resolverReqQualities (Just vs) =
     fromTuple (key, Nothing) =
       pure $ GqlType.ReqQuality
         { qualityName = pure $ Model.unKey key
-        , values = pure Nothing
-        , message = pure $ Just "Field included; fullset request."
+        , values      = pure Nothing
+        , message     = pure $ Just "Field included; fullset request."
         }
 
     -- values
     fromTuple (key, Just qualValues) =
       pure $ GqlType.ReqQuality
         { qualityName = pure $ Model.unKey key
-                        :: GraphQL o =>  Value o Text
-
         , values      = Just <$> Shared.resolverQualValues qualValues
-                        :: GraphQL o =>  OptionalObject o GqlType.QualityValues
-
-        , message = pure $ Just "Field included with a *subset* of levels selected."
+        , message     = pure $ Just "Field included with a *subset* of levels selected."
         }
-
+        -- qualityName :: GraphQL o =>  Value o Text
+        -- values      :: GraphQL o =>  OptionalObject o GqlType.QualityValues
 ---------------------------------------------------------------------------------
 -- |
 -- Model -> GraphQL View
@@ -109,6 +118,8 @@ resolverReqQualities (Just vs) =
 resolverComponentMixes :: GraphQL o
                        => Model.ComponentMixes -> ArrayObject o GqlType.ComponentMix
 resolverComponentMixes mixes =
+  -- lift . logDebugN $ ("\nHERE"::Text)
+  -- lift . logDebugN $ ("mixes: "::Text) <> show mixes
   traverse resolverComponentMix (Model.toListComponentMixes mixes)
 
   where
@@ -117,26 +128,28 @@ resolverComponentMixes mixes =
                          -> Object o GqlType.ComponentMix
 
     -- TODO: review how to display request for the Measurement field
-    --       => all reduced.  Is it worthwhile to show all levels?
-    resolverComponentMix (meaType, compMix) =
-      let displayCompMix =
-           if isJust compMix
-              then (resolverReqComponents (fromJust compMix), Nothing)
-              else ( pure []
-                   , Just "A single summary computation for the measurement")
+    --       => all reduced.  Is it worthwhile to show all levels? No.
+    --
+    resolverComponentMix (meaType, maybeReqComponents) = do
 
-      in pure $
+      let message' = if isJust maybeReqComponents
+              then Nothing
+              else Just "A single summary computation for the measurement"
+
+      pure $
          GqlType.ComponentMix
-           { measurementType = pure $ Model.unKey meaType  -- :: Model.Key -> String!
-           , componentMix    = fst displayCompMix
-           , message         = pure $ snd displayCompMix
+           { measurementType = pure $ Model.unKey meaType                        -- :: Text
+           , componentMix    = traverse resolverReqComponents maybeReqComponents -- :: Maybe [ReqComponent]
+           , fieldCount      = pure $ getCount meaType mixes
+           , message         = pure message'
            }
 
 ---------------------------------------------------------------------------------
 -- |
 -- Model -> GraphQL View
--- /Note/: The use of @traverse identity :: [Object o a] -> ArrayObject o a
--- to coerce the change in type.
+--
+-- TODO: Make sure decision whether to display all levels when the intent is
+--       to generate a series is consistently applied.
 --
 -- > ReqComponents
 -- >   { reqComponents :: Map Key (Maybe CompReqValues)
@@ -151,6 +164,8 @@ resolverReqComponents :: GraphQL o
                       => Model.ReqComponents
                       -> ArrayObject o GqlType.ReqComponent
 resolverReqComponents reqComps =
+  -- lift . logDebugN $ ("\nHERE"::Text)
+  -- lift . logDebugN $ ("compKey: "::Text) <> show reqComps
   traverse resolverReqComponent (Model.toListReqComponents reqComps)
 
   where
@@ -161,33 +176,44 @@ resolverReqComponents reqComps =
 
     -- TODO: review how to display request for the Measurement field
     --       => all reduced.  Is it worthwhile to show all levels?
-    resolverReqComponent (compKey, mCompReqVs) =
 
-      -- (Maybe ArrayObject compValues, Maybe message)
-      let displayCompReqValues =
-           if isJust mCompReqVs
-              then ( Just <$> Shared.resolverCompValues
-                            ( fst . Model.toTupleCompReqValues
-                            $ fromJust mCompReqVs
-                            )
-                   , Nothing)
+    resolverReqComponent (compKey, maybeCompReqValues) = do
 
-              else ( pure Nothing
-                   , Just "A series of fields; one for each level in this component")
+      -- CompReqValues encodes both TagRedExp and Values
+      let maybeValues  = fst . Model.toTupleCompReqValues <$> maybeCompReqValues
+      let maybeReduced = snd . Model.toTupleCompReqValues <$> maybeCompReqValues
+           -- Shared.resolverCompValues $ (fst . Model.toTupleCompReqValues) <$> maybeCompReqVs
 
-      in pure $
+      let reduced' = fromMaybe True maybeReduced
+
+      let message' = if reduced'
+                        then "A single summary field using records matching the "
+                          <> "selected component values"
+                        else "A series of fields; the number of fields depends "
+                          <> "on the number of values included in the requested "
+                          <> "mix of components"
+
+      -- debugging SpanType
+      if compKey == Model.mkCompKey "SpanType"
+         then do
+            lift . logDebugN $ ("\n"::Text)
+            lift . logDebugN $ ("compKey: "::Text) <> show compKey
+            lift . logDebugN $ ("maybeValues: "::Text) <> show maybeValues
+            lift . logDebugN $ ("areSpanValues: "::Text) <> show (FV.areSpanValues <$> maybeValues)
+         else
+            pure ()
+
+
+      pure $
          GqlType.ReqComponent
-           { componentName = pure $ Model.unKey compKey
-           , values        = fst displayCompReqValues -- :: ComponentValues
-           , reduced       = case mCompReqVs of
-               Just Model.CompReqValues { values } -> pure . Model.isRed $ values
-               Nothing -> pure False
-           , message       = pure $ snd displayCompReqValues
+           { componentName = pure $ Model.unKey compKey                      -- :: Text
+           , values        = traverse Shared.resolverCompValues maybeValues  -- :: Maybe ComponentValues
+           , reduced       = pure reduced'                                   -- :: Bool
+           , message       = pure $ Just message'                            -- :: Maybe Text
            }
 
 
 ---------------------------------------------------------------------------------
--- |
 -- Utility function
 dedup :: Ord a => [a] -> [a]
 dedup = Set.toList . Set.fromList

@@ -42,6 +42,7 @@ serveGQL :: (GQLRequest -> AppObs GQLResponse)
 serveGQL = identity
 
 
+---------------------------------------------------------------------------------
 -- |
 -- <there you can access logger>
 -- $ runReaderT (runApp resolver) readerContext

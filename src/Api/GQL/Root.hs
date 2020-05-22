@@ -77,10 +77,8 @@ resolverGetObsEtl :: OptionalObject QUERY ObsETL
 resolverGetObsEtl = do
   obsEtl' <- fmap App.db getDb
   case obsEtl' of
-    App.DataObsETL o  -> do
-      obsEtl <- resolverObsEtl o
-      pure $ Just obsEtl
-    _ -> pure Nothing
+    App.DataObsETL o -> Just <$> resolverObsEtl o
+    _                -> pure Nothing
 
 ---------------------------------------------------------------------------------
 -- ** Query validate
@@ -102,14 +100,22 @@ resolverGetStatus = fmap App.status getDb
 -- |
 -- > Input -> Model -> View
 --
+-- Processes the Maybe value returned by fromInputObsEtl that can fail
+-- with improper 'Model.ETL.Span' values.
+--
 resolverNewObsETL :: NewObsEtlArgs -> Object MUTATION ObsETL
-resolverNewObsETL NewObsEtlArgs {value = newObs'} = do
-  let newObs = fromInputObsEtl newObs'                     -- parse input
-  db <- getDb
-  let newDb = db { App.db = App.DataObsETL newObs }
-  dbTVar <- lift $ asks App.database
+resolverNewObsETL NewObsEtlArgs {value = newObs} = do
+  newObs' <- lift $ fromInputObsEtl newObs          -- parse input, returns Either
+  db      <- getDb
+  newDb   <- case newObs' of
+                Left  e        -> do lift . logErrorN $ show e; pure db
+                Right newObs'' -> pure $ db { App.db = App.DataObsETL newObs'' }
+
+  let App.DataObsETL newObs''' = App.db db
+
+  dbTVar  <- lift $ asks App.database
   liftIO . atomically $ writeTVar dbTVar newDb
-  resolverObsEtl newObs                                   -- display result
+  resolverObsEtl newObs'''                          -- display result
 
 ---------------------------------------------------------------------------------
 -- * validate

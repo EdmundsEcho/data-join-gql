@@ -158,11 +158,12 @@ from any request input.
 
 Displays warning.
 """
-type Request {
+type Request implements FieldCount {
   subReq: QualityMix!
   meaReqs: [ComponentMix!]!
+  fieldCount: Int!
 }
-type QualityMix implements Warning {
+type QualityMix implements Warning & FieldCount {
   """
   Reports the subject type for this data set.
   """
@@ -171,6 +172,13 @@ type QualityMix implements Warning {
   View - A minimum of one measurement will be included in the request.
   """
   qualityMix: [ReqQuality!]
+  """
+  Contribution to the number of fields in the data request.
+  """
+  fieldCount: Int!
+  """
+  Warning in the event there are not qualities in the request.
+  """
   warning: String
 }
 type ReqQuality implements Message {
@@ -188,7 +196,7 @@ type ReqQuality implements Message {
 """
 View - A minimum of one measurement
 """
-type ComponentMix implements Message {
+type ComponentMix implements Message & FieldCount {
   """
   The request will include a field that summarizes the measurement values
   based on the combination of components.
@@ -199,9 +207,13 @@ type ComponentMix implements Message {
   components described here. If none are included, a single summary field will be
   included in the request (i.e., a series of length one).
 
-  `Todo`: Review how to display. Now [].
   """
-  componentMix: [ReqComponent!]!
+  componentMix: [ReqComponent!]
+  """
+  Contribution to the number of fields in the data request.
+  """
+  fieldCount: Int!
+
   message: String
 }
 type ReqComponent implements Message {
@@ -235,4 +247,10 @@ interface Warning {
 }
 interface Message {
   message: String
+}
+interface FieldCount {
+  """
+  Contribution to the number of fields in the data request.
+  """
+  fieldCount: Int!
 }

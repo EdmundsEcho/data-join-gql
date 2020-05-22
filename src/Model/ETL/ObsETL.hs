@@ -25,14 +25,15 @@ import           Data.Text             (append)
 import           Data.Aeson            (ToJSON)
 ---------------------------------------------------------------------------------
 import           Lib.NodeManager
-import           Model.ETL.Components  hiding (names)
+import           Model.ETL.Components  hiding (getValues, len, names, null)
 import           Model.ETL.FieldValues
-import           Model.ETL.Fragment
 import           Model.ETL.ID
 import           Model.ETL.Key
-import           Model.ETL.Qualities
+import           Model.ETL.Qualities   hiding (getValues, len, null, toList)
 import           Model.ETL.Span
 import           Model.ETL.TagRedExp
+-------------------------------------------------------------------------------
+import           Model.ETL.Fragment
 -------------------------------------------------------------------------------
 -- = Observation model
 -- |
@@ -115,10 +116,13 @@ measDes :: Text
 measDes = "A Map collection of the available Measurements.\n\
           \ Key :: TypeKey that describes the Measurement Type\n\
           \ Value :: A Map to the Components of the Measurement."
+{-# DEPRECATED measDes "Use the gql schema instead" #-}
 
 
-
--- | fromList constructors
+-- ** Instantiation
+-- |
+-- Utilized by 'Api.GQL.ObsETL'
+--
 measFromList :: Ord k => [(k,vs)] -> Map k vs
 measFromList = mapFromList
 

@@ -4,6 +4,7 @@
 {-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE TypeFamilies          #-}
 
 {-# OPTIONS_HADDOCK ignore-exports #-}
@@ -27,7 +28,7 @@ module Api.GQL.ObsETL
   -- * Shared Views
   , fromInputQualities
   , fromInputQualValues
-  , fromInputCompValues
+  -- , fromInputCompValues
   , ObsETL
   , Quality
   , Span
@@ -41,6 +42,7 @@ module Api.GQL.ObsETL
   , QualityInput(..)
   , QualValuesInput(..)
   , CompValuesInput(..)
+  , SpanInput(..)
 
   -- * Required by root
   , ObsEtlInput
@@ -48,22 +50,20 @@ module Api.GQL.ObsETL
   )
 where
 -------------------------------------------------------------------------------
-import           Protolude
+import           Protolude              hiding (catch, catchJust, handleJust)
 -------------------------------------------------------------------------------
-import qualified Model.ETL.ObsETL       as Model
+import           Control.Exception.Safe
+import           Control.Monad.Logger
+import           ObsExceptions
+-------------------------------------------------------------------------------
+import           Model.ETL.ObsETL       (fromList)
+import qualified Model.ETL.ObsETL       as Model hiding (fromList)
 import qualified Model.ETL.Transformers as Trans
--- AppObs types
-import           Api.GqlHttp
 -------------------------------------------------------------------------------
--- import           Data.Morpheus.Document (importGQLDocument)
--- import           Data.Morpheus.Document (importGQLDocumentWithNamespace)
+import           Api.GqlHttp
 -------------------------------------------------------------------------------
 import           Api.GQL.Schemas.ObsETL
 import           Api.GQL.Schemas.Shared
--- importGQLDocument "src/Api/GQL/schema.shared.graphql"
--- importGQLDocument "src/Api/GQL/schema.obsetl.graphql"
--- importGQLDocumentWithNamespace "src/Api/GQL/schema.shared.graphql"
--- importGQLDocumentWithNamespace "src/Api/GQL/schema.obsetl.graphql"
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
@@ -235,16 +235,26 @@ resolverSpanValue = \case
                 }
 
 --------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- * GQL Input
 -- |
 -- (GQL -> Model)
 --
-fromInputObsEtl :: ObsEtlInput -> Model.ObsETL
+fromInputObsEtl :: (MonadLogger m, MonadCatch m, MonadThrow m)
+                => ObsEtlInput -> m (Either ObsException Model.ObsETL)
 fromInputObsEtl ObsEtlInput {..}
-  = Model.ObsETL
-      Model.mkID
-      (fromInputSubject subject)            -- :: Input -> Model.Subject
-      (fromInputMeasurements measurements)  -- :: Input -> Model.Measurements
+  = catch
+    (do result <-
+          Model.ObsETL Model.mkID (fromInputSubject subject)  -- :: Input -> Model.Subject
+          <$> fromInputMeasurements measurements                -- :: Input -> m Model.Measurements
+        pure $ pure result
+    ) handler
+
+    where
+       handler :: MonadLogger m => ObsException
+               -> m (Either ObsException Model.ObsETL)
+       handler e = do logErrorN $ show e; pure $ Left e
 
 --------------------------------------------------------------------------------
 -- ** Subject
@@ -292,8 +302,8 @@ type Name = Text
 -- >     | SpanSet (Set Span)
 --
 fromInputQualValues :: QualValuesInput -> Model.QualValues
-fromInputQualValues QualValuesInput { txtValues = Just vs } = (Model.fromList @Model.QualValues) vs
-fromInputQualValues QualValuesInput { intValues = Just vs } = (Model.fromList @Model.QualValues) vs
+fromInputQualValues QualValuesInput { txtValues = Just vs } = (fromList @Model.QualValues) vs
+fromInputQualValues QualValuesInput { intValues = Just vs } = (fromList @Model.QualValues) vs
 fromInputQualValues QualValuesInput {} = panic "The values type does not match FieldValues"
 
 --------------------------------------------------------------------------------
@@ -303,10 +313,14 @@ fromInputQualValues QualValuesInput {} = panic "The values type does not match F
 --
 -- /Note/: The Model does not host Measurement (but rather Measurements)
 --
-fromInputMeasurements :: [MeasurementInput] -> Model.Measurements
+fromInputMeasurements :: MonadThrow m => [MeasurementInput] -> m Model.Measurements
 fromInputMeasurements vs =
-  Model.Measurements . Model.measFromList $
-    bimap Model.MeaKey fromInputComponents . toTuple <$> vs
+  fmap (Model.Measurements . Model.measFromList)
+  <$> sequence
+  $ (\(key, mValues) -> (key,) <$> mValues)
+  . bimap Model.MeaKey fromInputComponents . toTuple
+  <$> vs
+
   where
     toTuple :: MeasurementInput -> (Type', [ComponentInput])
     toTuple MeasurementInput{..} = (measurementType, components)
@@ -320,13 +334,17 @@ type Type' = Text
 --
 -- /Note/: The Model does not host Component (but rather Components)
 --
-fromInputComponents :: [ComponentInput] -> Model.Components
+fromInputComponents :: MonadThrow m => [ComponentInput] -> m Model.Components
 fromInputComponents vs =
-  Model.Components . Model.compsFromList $
-    bimap Model.CompKey fromInputCompValues . toTuple <$> vs
+  fmap (Model.Components . Model.compsFromList)
+  <$> sequence
+  $ (\(key, mValues) -> (key,) <$> mValues)
+  . bimap Model.CompKey fromInputCompValues . toTuple -- :: [(Key, m CompValues)]
+  <$> vs
+
   where
-    toTuple :: ComponentInput -> (Name, CompValuesInput)
-    toTuple ComponentInput{..} = (componentName, componentValues)
+     toTuple :: ComponentInput -> (Name, CompValuesInput)
+     toTuple ComponentInput{..} = (componentName, componentValues)
 
 --------------------------------------------------------------------------------
 -- **** CompValues
@@ -354,17 +372,18 @@ fromInputComponents vs =
 -- > Span { span :: TagRedExp Range }
 --
 --
-fromInputCompValues :: CompValuesInput -> Model.CompValues
-fromInputCompValues CompValuesInput { txtValues  = Just vs } = (Model.fromList @Model.CompValues) vs
-fromInputCompValues CompValuesInput { intValues  = Just vs } = (Model.fromList @Model.CompValues) vs
+fromInputCompValues :: MonadThrow m => CompValuesInput -> m Model.CompValues
+fromInputCompValues CompValuesInput { txtValues  = Just vs } = pure $ (fromList @Model.CompValues) vs
+fromInputCompValues CompValuesInput { intValues  = Just vs } = pure $ (fromList @Model.CompValues) vs
 fromInputCompValues CompValuesInput { spanValues = Just vs } =
-  (Model.fromList @Model.CompValues) (spanFromInput <$> vs)
+  (fromList @Model.CompValues) <$> traverse spanFromInput vs
       where
         -- | GraphQL -> Model
-        spanFromInput :: SpanInput -> Model.Span
+        spanFromInput ::MonadThrow m => SpanInput -> m Model.Span
         spanFromInput SpanInput{..}
-          | reduced   = Model.Span $ Model.Red (Model.Range rangeStart rangeLength)
-          | otherwise = Model.Span $ Model.Exp (Model.Range rangeStart rangeLength)
+          | reduced   = Model.mkSpanM Model.Red rangeStart rangeLength
+          | otherwise = Model.mkSpanM Model.Exp rangeStart rangeLength
+
 fromInputCompValues CompValuesInput {}
   = panic "The values type does not match that for CompValues"
 

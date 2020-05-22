@@ -88,10 +88,8 @@ resolverGetObsTest :: OptionalObject QUERY ObsTest
 resolverGetObsTest = do
   obsEtl' <- fmap db getDb
   case obsEtl' of
-    DataObsTest o  -> do
-      obsEtl <- resolverObsTest o
-      pure $ Just obsEtl
-    _ -> pure Nothing
+    DataObsTest o -> Just <$> resolverObsTest o
+    _             -> pure Nothing
 
 resolverGetStatus :: Value QUERY Text
 resolverGetStatus = fmap status getDb

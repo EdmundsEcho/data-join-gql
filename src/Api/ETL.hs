@@ -1,13 +1,20 @@
+{-# OPTIONS_HADDOCK prune #-}
+
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE TypeFamilies          #-}
 -- |
---    Module that provides the functions required to
---    retrieve values from ObsETL.
----------------------------------------------------------------------------------
--- Description
--- Functions to retrieve values throughout the Obs structure.
+-- Module     : Api.ETL
+-- Description: Search the 'Model.ETL.ObsETL' data
+--
+-- == Overview
+--
+-- Much of the computations required to access the 'Model.ETL.ObsETL' data
+-- is defined in the 'Model.ETL.Fragment' typeclass module.
+--
+-- == Description of the data
+--
 -- > There are five collections in the Obs data structure:
 -- > 1. Qualities     parent :: Subject       Key :: Key (QualKey)
 -- > 2. QualValues    parent :: Quality       NA
@@ -15,51 +22,32 @@
 -- > 4. Components    parent :: Measurement   Key :: Key (CompKey)
 -- > 5. CompValues    parent :: Component     NA
 --
--- QualValues :: FieldValues (wrap Text || Int)
--- CompValues :: FieldValues (wrap Text || Int || Span)
+-- QualValues :: FieldValues (wrap Text | Int)
+-- CompValues :: FieldValues (wrap Text | Int | Span)
 --
 -- Note: The range of QualValue Types is not enforced by the Haskell Type system.
 --
--- :: Key -> Node Collection -> Maybe Value
--- Not strictly a collection as there is only one Obs instance.
-
--- | Retrieve a reference to the one Subject associated with the Obs collection.
+-- Retrieve a reference to the one Subject associated with the Obs collection.
 -- Not strictly a collection but is one of two branches in the Obs object.
 -- The Subject node is ~ Measurements node
 --
--- /Note/ null FieldValues in what is returned will return a request
--- with the Quality removed from the search term from the request.
--- This means, records may be returned despite what otherwise would be expected.
 --
--- However, QualKey without a search term will return (QualKey, Nothing). This
--- encodes the intention to show the field but not use the field to filter
--- the records.
 module Api.ETL
   where
 ---------------------------------------------------------------------------------
-import           Protolude                 hiding (Type, null, throwIO)
+import           Protolude              hiding (Type, null)
 ---------------------------------------------------------------------------------
--- import           Data.Aeson.Encode.Pretty
+import           Data.Coerce
 ---------------------------------------------------------------------------------
 import           Control.Exception.Safe
 import           Control.Monad.Logger
-import           Control.Monad.Trans.Maybe
-import           Data.Text                 (pack)
-import           ObsExceptions
 ---------------------------------------------------------------------------------
-import qualified Data.Map.Strict           as Map (filterWithKey, fromList,
-                                                   lookup, member, singleton,
-                                                   toList, union)
-import qualified Data.Set                  as Set (fromList, intersection)
 import           Model.ETL.Fragment
-import           Model.ETL.ObsETL
-import           Model.Request             (CompReqValues (..),
-                                            ReqComponents (..), ReqQualities,
-                                            fromComponents,
-                                            fromFieldsCompReqValues,
-                                            fromListReqComponents,
-                                            fromListReqQualities,
-                                            toTupleCompReqValues)
+import           Model.Search
+---------------------------------------------------------------------------------
+import           Model.ETL.ObsETL       hiding (request)
+import           Model.Request          (CompReqValues (..),
+                                         toTupleCompReqValues)
 ---------------------------------------------------------------------------------
 -- |
 --
@@ -67,187 +55,9 @@ getSubjectType :: ObsETL -> SubKey
 getSubjectType = subType . obsSubject
 
 -- |
---
-lookupSubjectT :: (MonadLogger m)
-              => SubKey -> ObsETL -> MaybeT m Subject
-lookupSubjectT search o = MaybeT $ lookupSubject search o
-
-lookupSubject :: (MonadLogger m)
-              => SubKey -> ObsETL -> m (Maybe Subject)
-lookupSubject search o
-  | subType (obsSubject o) == search = pure . Just $ obsSubject o
-  | otherwise = pure Nothing
-
--- | Lookup all the qualities that describe the Subject.
--- /Note/: This is somewhat redundant with lookupSubject but provides symmetry
---       with the Measurements branch.
-lookupQualitiesT :: (MonadLogger m, MonadThrow m)
-                => SubKey -> Subject
-                -> MaybeT m Qualities
-lookupQualitiesT key vs = MaybeT $ lookupQualities key vs
-
-lookupQualities :: (MonadLogger m, MonadThrow m)
-                => SubKey -> Subject
-                -> m (Maybe Qualities)
-lookupQualities search@(SubKey _) o
-  | subType o == search = pure . Just $ subQualities o
-  | otherwise = pure Nothing
-lookupQualities key _ = throw $ TypeException (Just . pack $ show key)
-
--- |
--- Request -> Model -> Fullfilled Request
-selectQualitiesT :: (MonadLogger m, MonadThrow m)
-                => [(Text, FieldValues)] -> Qualities
-                -> MaybeT m ReqQualities
-selectQualitiesT selects qualities = MaybeT $ selectQualities selects qualities
-
-selectQualities :: (MonadLogger m, MonadThrow m)
-                => [(Text, FieldValues)] -> Qualities
-                -> m (Maybe ReqQualities)
-selectQualities selects qualities = do
-  result <- traverse (selectFrom qualities) selects
-  let result' = fromListReqQualities . catMaybes $ result
-  pure $ if null result' then Nothing
-                         else Just result'
-  where
-    selectFrom :: (MonadLogger m, MonadThrow m)
-      => Qualities -> (Text, FieldValues)
-      -> m (Maybe (QualKey, Maybe QualValues))
-
-    selectFrom qs (k, searchValues) = do
-      let key = mkQualKey k
-      (collection :: Maybe QualValues) <- lookupQualValues key qs
-           -- logWarnN $ "The QualKey was not found: " <> show key
-      if null collection then do
-                         logWarnN $ "QualKey not found: " <> show key
-                         pure Nothing
-      else do
-        (result :: Maybe QualValues) <- traverse (filterValues searchValues) collection
-        if null result then do
-                         logWarnN $ "No values despite valid key: " <> show key
-                         pure $ Just (key, Nothing)
-                       else do
-                         logDebugN $ "selectQualities: " <> show key
-                         pure $ (key,) . Just <$> result
-
-
--- |
--- ComponentReqInput {
---   componentNames
---   componentName
---   componentValues: FieldValuesCompReqInput
--- }
---
--- FieldValues are optional.  In the event no values are included,
--- the return Request will be `Exp FieldValues` with all values.
-selectReqComponents :: (MonadLogger m, MonadThrow m)
-                    => [(CompKey, Maybe CompReqValues)] -> Components
-                    -> m (Maybe ReqComponents)
-
-selectReqComponents selects components = do
-  result <- traverse (selectFrom components) selects
-  let result' = fromListReqComponents . catMaybes $ result
-  if null result' then pure Nothing
-                  else pure $ Just result'
-
-  where
-    selectFrom :: (MonadLogger m, MonadThrow m)
-               => Components -> (CompKey, Maybe CompReqValues)
-               -> m (Maybe (CompKey, Maybe CompReqValues))
-
-    -- values specified -> return Exp/Red values
-    selectFrom cs (key, Just (CompReqValues search)) = do
-      let tag = if isRed search then Red else Exp
-      (collection :: Maybe CompValues) <- lookupCompValues key cs
-      if null collection
-         then do
-           logWarnN $ "CompKey not found: " <> show key
-           pure Nothing
-         else do
-           (result :: Maybe CompValues) <-
-             traverse (filterValues (unTag search)) collection
-
-           if null result
-              then do
-                 logWarnN $ "Values for CompKey not found: " <> show key
-                 pure $ Just (key, Nothing)
-
-              else do
-                  logDebugN $ "selectReqComponents: "
-                            <> show key
-                            <> " size: " <> show (len result)
-                  pure $ (key,)
-                        . Just
-                        . CompReqValues
-                        . tag <$> result
-
-    -- No values specified -> return Exp all values
-    selectFrom cs (key, Nothing) = do
-      collection <- lookupCompValues key cs
-      if null collection
-         then pure Nothing
-         else pure $ Just (key, CompReqValues . Exp <$> collection)
-
-
--- |
--- A request to display a Quality field.
---
-lookupQualityKeyT :: (MonadLogger m, MonadThrow m)
-                  => QualKey -> Qualities -> MaybeT m QualKey
-lookupQualityKeyT k vs = MaybeT $ lookupQualityKey k vs
-
-lookupQualityKey, lookupQualityName :: (MonadLogger m, MonadThrow m)
-    => QualKey -> Qualities -> m (Maybe QualKey)
-
-lookupQualityKey key@(QualKey _) o =
-  if Map.member key (qualities o)
-    then do
-      logDebugN $ "lookupQualityKey found: " <> show key
-      pure $ Just key
-
-    else do
-      logWarnN $ "lookupQualityKey does not exist: " <> show key
-      pure Nothing
-
-lookupQualityKey  key _ = throw $ TypeException (Just (pack $ show key))
-lookupQualityName = lookupQualityKey
-
--- |
--- A request to display a Quality field.
---
-lookupComponentKey, lookupComponentName :: (MonadLogger m, MonadThrow m)
-  => CompKey -> Components -> m (Maybe CompKey)
-
-lookupComponentKey key@(CompKey _) o =
-  if Map.member key (components o)
-    then do
-      logDebugN $ "lookupComponentKey found: " <> show key
-      pure $ Just key
-    else do
-      logWarnN $ "lookupComponentKey does not exist: " <> show key
-      pure Nothing
-
-lookupComponentKey  key _ = throw $ TypeException (Just (pack $ show key))
-lookupComponentName = lookupComponentKey
-
--- | Lookup the values of a specific Quality.
-lookupQualValues :: (MonadLogger m, MonadThrow m)
-                 => QualKey -> Qualities
-                 -> m (Maybe QualValues)
-lookupQualValues key@(QualKey _) c =
-  case Map.lookup key (qualities c) of
-    Nothing -> do
-      logWarnN $ "Values for QualKey not found: " <> show key
-      pure Nothing
-    Just qs -> do
-      logDebugN $ "lookupQualValues: "
-        <> show key
-        <> " size: " <> show (len qs)
-      pure $ Just qs
-lookupQualValues key _ = throw $ TypeException (Just . pack $ show key)
-
--- | Retrieve a reference to the Measurements collection.
+-- Retrieve a reference to the Measurements collection.
 -- The collection is one of two branches in the Obs object.
+--
 lookupMeasurements :: MonadLogger m
                    => ObsETL -> m Measurements
 lookupMeasurements o = do
@@ -256,123 +66,58 @@ lookupMeasurements o = do
             <> " count: " <> show (len result)
   pure result
 
--- |
--- A request to display a Measurement field.
---
-lookupMeasurementType :: (MonadLogger m, MonadThrow m)
-                      => MeaKey -> Measurements
-                      -> m (Maybe MeaKey)
-lookupMeasurementType key@(MeaKey _) o =
-  if Map.member key (measurements o) then pure $ Just key else pure Nothing
-lookupMeasurementType  key _ = throw $ TypeException (Just . pack $ show key)
-
--- | Lookup a specific Measurement
--- Note: the API does not define a type for a single Measurement.
--- GraphQL Measurement = MeaKey (aka measurement type) + Components
-lookupComponents, lookupMeasurement
-  :: (MonadLogger m, MonadThrow m)
-  => MeaKey -> Measurements
-  -> m Components
-lookupComponents key@(MeaKey _) c =
-  case Map.lookup key (measurements c) of
-    Nothing -> pure mempty
-    Just vs -> pure vs
-lookupComponents key _ = throw $ TypeException (Just . pack $ show key)
-lookupMeasurement = lookupComponents
-
--- | Lookup the values of a specific Component.
-lookupCompValues :: (MonadLogger m, MonadThrow m)
-                 => CoSpKey -> Components
-                 -> m (Maybe CompValues)
-lookupCompValues key@(CompKey _) c =
-  case Map.lookup key (components c) of
-    Nothing -> pure Nothing
-    Just vs -> pure $ Just vs
-lookupCompValues key@SpanKey     c =
-  case Map.lookup key (components c) of
-    Nothing -> pure Nothing
-    Just vs -> pure $ Just vs
-lookupCompValues key _ = throw $ TypeException (Just . pack $ show key)
-
--- | Subselect a collection :: [Key] -> Collection -> Collection
--- Test for null for a "failed" search
-filterQualities :: [QualKey] -> Qualities -> Qualities
-filterQualities ks o = Qualities $
-  Map.filterWithKey (mkMapFilter ks) (qualities o)
-
-filterMeasurements :: [MeaKey] -> Measurements -> Measurements
-filterMeasurements ks o = Measurements $
-  Map.filterWithKey (mkMapFilter ks) (measurements o)
-
-filterComponents :: [CompKey] -> Components -> Components
-filterComponents ks o = Components $
-  Map.filterWithKey (mkMapFilter ks) (components o)
-
--- |
--- /Note/: A user requesting all values of a component is isomorphic with
--- @Exp CompValues@. The request is for a series of the data (long view -> wide view)
-filterReqComponents :: (MonadLogger m)
-                    => [CompKey] -> Components -> m ReqComponents
-filterReqComponents keys o = do
-  logDebugN $ "filterReqComponents search keys: " <> show keys
-  pure .  fromComponents Exp . Components $
-    Map.filterWithKey (mkMapFilter keys) (components o)
-
+-- ** Request
 -- |
 -- Unifying filter for CompReqValues
 -- In the event no values are provided, the filter delivers all values
 -- with the Exp tag.
-filterCompReqValues :: (MonadLogger m, MonadThrow m)
-                    => CompReqValues -> FieldValues
-                    -> m CompReqValues
-filterCompReqValues search values
+--
+requestCompReqValues :: (MonadLogger m, MonadThrow m)
+                    => CompReqValues -> SearchFragment CompValues 'ETL
+                    -> m (SearchFragment CompReqValues 'ETLSubset)
+requestCompReqValues search values
+
   | null search = do
-      logDebugN "filterCompReqValues with null search"
-      filterCompReqValues (fromFieldsCompReqValues False values) values
+      logWarnN "Ran a search with a null value search => series with all values"
+      requestCompReqValues (coerce (fromFieldCompReqValues False (coerce values))) values
+      -- expressed = False -- this is confusing; False encodes Expressed
+
   | otherwise   = do
       let (search', reduced) = toTupleCompReqValues search
-      result <- filterValues search' values
-      logDebugN $ "filterCompReqValues search: "
-                <> show search <> "\n result:" <> show result
-      pure $ fromFieldsCompReqValues reduced result
+      result <- request (toFragmentReq search') values
+      logRequest "requestCompReqValues" search values result
+      pure $ fromFieldCompReqValues reduced result
+
+-- ** requestValues
+-- |
+-- Unifying filter for FieldValues. The null search returns a null set.
+--
+requestValues, requestQualReqValues :: (MonadLogger m, MonadThrow m)
+  => FieldValues -> SearchFragment FieldValues 'ETL
+  -> m (SearchFragment FieldValues 'ETLSubset)
+
+requestValues search values = do
+  result <- request (toFragmentReq search) values
+  logRequest "requestValues" search values result
+  pure result
 
 -- |
--- Unifying filter for FieldValues
--- The null search returns a null set.
-filterValues, filterQualReqValues
-  :: (MonadLogger m, MonadThrow m)
-  => FieldValues -> FieldValues -> m FieldValues
-filterValues (TxtSet s) (TxtSet vs)   = pure . TxtSet  $ Set.intersection s vs
-filterValues (IntSet s) (IntSet vs)   = pure . IntSet  $ Set.intersection s vs
-filterValues (SpanSet s) (SpanSet vs) = pure . SpanSet $ Set.intersection s vs
-filterValues s _                      = throw $ TypeException (Just . pack $ show s)
-filterQualReqValues = filterValues
+-- Unlike 'requestCompReqValues' we do not augment a null search request.
+--
+requestQualReqValues = requestValues
 
--- | Internal. Pre-processes input for the filter node @:: Map@ functions
-mkMapFilter :: [Key] -> Key -> a -> Bool
-mkMapFilter search k _ = k `elem` search
+logRequest :: (MonadLogger m, Show a, Show b, Show c)
+           => Text -> a -> b -> c -> m ()
+logRequest heading search values result = do
+  logDebugN logDivide
+  logDebugN $ "ETL - " <> heading
+  logDebugN $ "search: " <> show search
+  logDebugN $ "values: " <> show values
+  logDebugN $ "result: " <> show result
+  logDebugN logDivide
 
--- |
--- == Validate and reconstruct
--- Utilized by functions that validate and reconstruct core types
--- e.g., "Schemas.Request.Types.RequestInput"
-qualitiesToList :: Qualities -> [(Key,QualValues)]
-qualitiesToList (Qualities qs) = mapToList qs
+logDivide :: Text
+logDivide = "-------------------------------------------------------------------"
 
-componentsToList :: Components -> [(Key,CompValues)]
-componentsToList (Components cs) = mapToList cs
 
-setFromList ::(Ord a) => [a] -> Set a
-setFromList = Set.fromList
-
-mapToList :: Map k vs -> [(k,vs)]
-mapToList = Map.toList
-
-mapFromList ::(Ord k) => [(k,vs)] -> Map k vs
-mapFromList = Map.fromList
-
-mapAppend :: (Ord k) => k -> a -> Map k a -> Map k a
-mapAppend k a mp = Map.union mp $ singleton k a
-
-singleton :: (Ord k) => k -> a -> Map k a
-singleton = Map.singleton
+---------------------------------------------------------------------------------

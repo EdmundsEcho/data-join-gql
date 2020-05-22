@@ -1,15 +1,33 @@
+{-# OPTIONS_HADDOCK prune #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
+-- |
+-- Module      : Model.ETL.Key
+-- Description : Describes the status of a 'Model.Request'
+-- Copyright   : (c) Lucivia LLC, 2020
+-- Maintainer  : edmund.cape@lucivia.com
+-- Stability   : experimental
+-- Portability : POSIX
+--
+--
 module Model.ETL.Fragment where
 
---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
 import           Protolude                 hiding (null)
---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+import           Model.ETL.FieldValues     (FieldValues (..))
+import           Model.ETL.Key             (Key)
+import           Model.ETL.Span
+import           Model.ETL.TagRedExp
+---------------------------------------------------------------------------------
+import qualified Data.Set                  as Set
+---------------------------------------------------------------------------------
+import           Control.Monad.Logger
 import           Control.Monad.Trans.Maybe
 ---------------------------------------------------------------------------------
-import           Api.GQL.Schemas.Request
+import           Api.GQL.Schemas.Request   (RequestKey (..))
 ---------------------------------------------------------------------------------
-
+--
 -- |
 -- Unifying classtype for a fragment of ETL data ~ collection
 -- without a key.
@@ -19,9 +37,9 @@ class Fragment fragment where
   len      :: fragment -> Int
 
 class FragmentPlus fragment item | item -> fragment where
-  filterF  :: [item] -> fragment -> fragment
   fromList :: [item] -> fragment
   toList   :: fragment -> [item]
+  -- filterF  :: [item] -> fragment -> fragment
 
 instance Fragment a => Fragment (Maybe a) where
   null Nothing   = True
@@ -29,13 +47,113 @@ instance Fragment a => Fragment (Maybe a) where
   len Nothing   = 0
   len (Just vs) = len vs
 
+instance Fragment [a] where
+  null [] = True
+  null _  = False
+  len [] = 0
+  len xs = length xs
+
+instance Fragment FieldValues where
+  null (TxtSet set)  = Set.null set
+  null (IntSet set)  = Set.null set
+  null (SpanSet set) = Set.null set
+
+  len (TxtSet set)  = Set.size set
+  len (IntSet set)  = Set.size set
+  len (SpanSet set) = Set.size set
+
+instance FragmentPlus FieldValues Text where
+  fromList = TxtSet . Set.fromList
+  toList (TxtSet vs) = Set.toList vs
+  toList _           = panic $ message "toList" "Text"
+  -- filterF xs (TxtSet vs) = TxtSet $ Set.fromList xs `Set.intersection` vs
+  -- filterF _ _            = panic $ message  "filterF" "Text"
+
+instance FragmentPlus FieldValues Int where
+  fromList = IntSet . Set.fromList
+  toList (IntSet vs) = Set.toList vs
+  toList _           = panic $ message "toList" "Int"
+  -- filterF xs (IntSet vs) = IntSet $ Set.fromList xs `Set.intersection` vs
+  -- filterF _ _            = panic $ message  "filterF" "Int"
+
+instance FragmentPlus FieldValues Span where
+  fromList = SpanSet . consolidate . Set.fromList
+  toList (SpanSet vs) = Set.toList vs
+  toList _            = panic $ message "toList" "Span"
+  -- filterF xs (SpanSet vs) = SpanSet $ Set.fromList xs `Set.intersection` vs
+  -- filterF _ _             = panic $ message  "filterF" "Span"
+
+message :: Text -> Text -> Text
+message func' type' = "FragmentPlus type mismatch:\n Called "
+             <> type' <> " " <> func' <> " with the wrong input data type."
+
+-- ** FieldCount
+-- |
+-- === Overview
+-- This is a /fullfilled/ 'Model.Request' concept. 'fieldCount'
+-- reports the number of fields a fullfilled request generates
+-- in the matrix. The count does not include derived fields.
+--
+class FieldCount fragment where
+
+  fieldCount  :: fragment -> Int
+
+  -- debugging capacity
+  fieldCountM :: (MonadLogger m, Show fragment)
+              => fragment -> m Int
+
+  fieldCountM fragment = do
+    let mess = ("fieldCount: "::Text) <> show (fieldCount fragment)
+             <> "\nfragment:\n" <> show fragment
+    logDebugN mess
+    pure $ fieldCount fragment
 
 -- |
--- ETL collection -> item
--- Min definition: getValues
 --
--- Provides the @getFragment@ function that processes optional key input and
--- returns @Maybe (key, values)@. A @MaybeT@ implentation of the function is
+instance FieldCount a  => FieldCount (Maybe a) where
+  fieldCount Nothing  = 0
+  fieldCount (Just v) = fieldCount v
+
+-- |
+-- ==== Contribution to the field count
+-- 'Model.ETL.Span' is the only ETL construct that also needs implement this
+-- typeclass.  This location for the implementation is to avoid the
+-- orphan instance error.
+--
+-- Other implementations can be found in the 'Model.Request' module.
+--
+instance FieldCount Span where
+  fieldCount Span { span = span' } = case span' of
+    (Red _)     -> 1
+    (Exp range) -> rangeLength range
+
+-- ** FieldCounts
+-- |
+-- === Overview
+-- When the GQL constucts require item specific information where the @Model@
+-- only represents the data in a @Map@ or other collection, the typeclass
+-- provides access to the multiple meta-data values by way of @[(key, fieldCount)]@.
+-- e.g., 'Model.Request.ReqComponents' implements
+-- 'fieldCounts' @:: [(compName, fieldCount)]@. This may be
+-- the only construct that benefits from implementing the typeclass.
+--
+-- Minimum implementation @fieldCounts@
+--
+class FieldCounts collection where
+  fieldCounts :: collection -> [(Key, Int)]
+  getCount    :: Key -> collection -> Int
+  getCount key vs = maybe 0 snd (find (\ (k, _) -> key == k) (fieldCounts vs))
+
+
+-- ** GetEtlFragment
+-- |
+-- === Overview
+-- This is an ETL concept. Not a Request concept /per se/.
+-- ETL collection -> item
+--
+-- === Benefit
+-- Provides the 'getFragment' function that processes optional key input and
+-- returns @Maybe (key, values)@.  A @MaybeT@ implentation of the function is
 -- also provided.
 --
 class GetEtlFragment collection k values | collection -> k values where
@@ -63,6 +181,7 @@ class GetEtlFragment collection k values | collection -> k values where
 
   -- |
   -- MaybeT version
+  --
   getEtlFragmentT :: (Ord k, RequestKey request, Monad m)
             => collection
             -> (Text -> k)

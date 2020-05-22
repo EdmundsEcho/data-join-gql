@@ -14,6 +14,8 @@ module Api.GQL.Schemas.Request
 ---------------------------------------------------------------------------------
 import           Protolude
 ---------------------------------------------------------------------------------
+import           Data.Aeson             (ToJSON)
+---------------------------------------------------------------------------------
 import           Data.Morpheus.Document (importGQLDocument)
 ---------------------------------------------------------------------------------
 import           Api.GQL.Schemas.Shared
@@ -183,7 +185,7 @@ instance ToSubsetReq ComponentReqInput SubsetCompReq where
 data SubsetQualReq = SubsetQualReq {
       subKey          :: !Text
     , qualValuesInput :: !QualValuesInput
-} deriving (Show)
+} deriving (Show, Generic)
 
 -- |
 -- Subset for a Measurement
@@ -193,7 +195,7 @@ data SubsetQualReq = SubsetQualReq {
 data SubsetCompMixReq = SubsetCompMixReq {
       meaKey       :: !Text
     , compReqInput :: ![ComponentReqInput]
-} deriving (Show)
+} deriving (Show, Generic)
 
 instance RequestKey SubsetCompMixReq where
   requestKey SubsetCompMixReq { meaKey } = Just meaKey
@@ -204,7 +206,7 @@ instance RequestKey SubsetQualReq where
 data SubsetCompReq = SubsetCompReq {
       compKey         :: !Text
     , compValuesInput :: !CompValuesReqInput
-} deriving (Show)
+} deriving (Show, Generic)
 
 instance RequestKey SubsetCompReq where
   requestKey SubsetCompReq { compKey } = Just compKey
@@ -230,13 +232,26 @@ instance RequestKey SubsetCompReq where
 -- """
 newtype FullsetRequest = FullsetRequest {
   key :: Text
-} deriving (Show)
+} deriving (Show, Generic)
 
 instance RequestKey FullsetRequest where
   requestKey FullsetRequest { key } = Just key
 
 
+---------------------------------------------------------------------------------
+-- debugging support
+-- types specified in the schema
+--
+instance ToJSON SubsetQualReq
+instance ToJSON SubsetCompReq
+instance ToJSON SubsetCompMixReq
+instance ToJSON FullsetRequest
 
+instance ToJSON QualityMixInput
+instance ToJSON QualityReqInput
+instance ToJSON ComponentMixInput
+instance ToJSON ComponentReqInput
+instance ToJSON CompValuesReqInput
 
 ---------------------------------------------------------------------------------
   --

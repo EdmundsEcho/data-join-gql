@@ -1,5 +1,12 @@
-module ObsExceptions where
+{-# OPTIONS_HADDOCK prune #-}
 
+-- |
+-- Module     : ObsExceptions
+-- Description: Exceptions for the App
+--
+--
+module ObsExceptions
+  where
 -------------------------------------------------------------------------------
 import           Data.Text (unpack)
 import           Protolude
@@ -7,15 +14,14 @@ import           Protolude
 import           Prelude   (Show (..), String)
 -------------------------------------------------------------------------------
 -- |
--- == Not yet implemented
 --
 data ObsException
   = ObsNotInitialized
   | MalformedConfig
-  | TypeException (Maybe Text)
-  | ValueException (Maybe Text)
+  | TypeException      (Maybe Text)  -- ^ Should never happen
+  | ValueException     (Maybe Text)  -- ^ From request input
   | ObsOtherException
-  | NoValueFound (Maybe Text)
+  | NoValueFound       (Maybe Text)  -- ^ From request input
 
 -- |
 instance Show ObsException where
@@ -26,6 +32,7 @@ instance Show ObsException where
   show (NoValueFound mess)   = "No value found: " <> toStr mess
   show (TypeException mess)  = "Type mismatch: " <> toStr mess
 
+-- Local helper function
 toStr :: Maybe Text -> String
 toStr mess = unpack (fromMaybe (""::Text) mess)
 

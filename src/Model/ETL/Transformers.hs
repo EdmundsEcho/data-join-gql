@@ -7,11 +7,11 @@ module Model.ETL.Transformers
 
 -------------------------------------------------------------------------------
 import           Data.Maybe       (fromJust)
-import           Protolude        hiding (toList)
+import           Protolude
 -------------------------------------------------------------------------------
 import qualified Data.Map.Strict  as Map (foldrWithKey')
 -------------------------------------------------------------------------------
-import           Model.ETL.ObsETL hiding (filter, toList)
+import           Model.ETL.ObsETL
 import           Model.Request    (CompReqValues, ReqComponents (..),
                                    toListReqComponents)
 -------------------------------------------------------------------------------
