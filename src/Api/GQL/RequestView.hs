@@ -1,4 +1,5 @@
 {-# OPTIONS_HADDOCK prune #-}
+
 {-# LANGUAGE DerivingStrategies    #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -9,17 +10,17 @@
 -- Module     : Api.GQL.RequestView
 -- Description: UI view
 --
-module Api.GQL.RequestView where
+module Api.GQL.RequestView
+  where
 ---------------------------------------------------------------------------------
 import           Protolude
 ---------------------------------------------------------------------------------
 import           Control.Monad.Logger
 import qualified Data.Set                as Set
 ---------------------------------------------------------------------------------
-import qualified Model.ETL.FieldValues   as FV (areSpanValues)
 import           Model.ETL.Fragment      (fieldCount, getCount)
 import qualified Model.ETL.ObsETL        as Model (CompKey, MeaKey, QualKey,
-                                                   QualValues, mkCompKey, unKey)
+                                                   QualValues, unKey)
 import qualified Model.Request           as Model (CompReqValues (..),
                                                    ComponentMixes (..),
                                                    QualityMix (..),
@@ -43,6 +44,7 @@ import qualified Api.GQL.Schemas.Request as GqlType
 -- Model -> GraphQL View
 -- Request data types -> Types specified in the schema
 -- Request (Resolver o () AppObs)
+--
 resolverRequest :: GraphQL o => Model.Request 'Success -> Object o GqlType.Request
 resolverRequest req@Model.Request {..} = do
 
@@ -71,9 +73,9 @@ resolverRequest req@Model.Request {..} = do
 resolverQualityMix :: GraphQL o => Model.QualityMix -> Object o GqlType.QualityMix
 resolverQualityMix req@Model.QualityMix {..} =
 
-    let warning' = if isJust qualityMix
-                     then Nothing
-                     else Just "No subject qualifiers included in this request"
+  let warning' = if isJust qualityMix
+                   then Nothing
+                   else Just "No subject qualifiers included in this request"
 
    in pure $
      GqlType.QualityMix
@@ -111,6 +113,7 @@ resolverReqQualities (Just vs) =
         }
         -- qualityName :: GraphQL o =>  Value o Text
         -- values      :: GraphQL o =>  OptionalObject o GqlType.QualityValues
+
 ---------------------------------------------------------------------------------
 -- |
 -- Model -> GraphQL View
@@ -118,8 +121,6 @@ resolverReqQualities (Just vs) =
 resolverComponentMixes :: GraphQL o
                        => Model.ComponentMixes -> ArrayObject o GqlType.ComponentMix
 resolverComponentMixes mixes =
-  -- lift . logDebugN $ ("\nHERE"::Text)
-  -- lift . logDebugN $ ("mixes: "::Text) <> show mixes
   traverse resolverComponentMix (Model.toListComponentMixes mixes)
 
   where
@@ -187,22 +188,13 @@ resolverReqComponents reqComps =
       let reduced' = fromMaybe True maybeReduced
 
       let message' = if reduced'
+
                         then "A single summary field using records matching the "
-                          <> "selected component values"
+                             <> "selected component values"
+
                         else "A series of fields; the number of fields depends "
-                          <> "on the number of values included in the requested "
-                          <> "mix of components"
-
-      -- debugging SpanType
-      if compKey == Model.mkCompKey "SpanType"
-         then do
-            lift . logDebugN $ ("\n"::Text)
-            lift . logDebugN $ ("compKey: "::Text) <> show compKey
-            lift . logDebugN $ ("maybeValues: "::Text) <> show maybeValues
-            lift . logDebugN $ ("areSpanValues: "::Text) <> show (FV.areSpanValues <$> maybeValues)
-         else
-            pure ()
-
+                             <> "on the number of values included in the requested "
+                             <> "mix of components"
 
       pure $
          GqlType.ReqComponent

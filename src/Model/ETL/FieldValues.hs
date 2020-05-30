@@ -7,8 +7,6 @@
 -- Stability   : experimental
 -- Portability : POSIX
 --
---
---
 module Model.ETL.FieldValues
   (
     FieldValues(..)
@@ -16,13 +14,16 @@ module Model.ETL.FieldValues
   , CompValues
   , mkSpan
   , mkSpanM
+  , toQualValues    -- [Int], [Txt] -> QualValues
+  , toCompValues    -- [Int], [Txt], [Span] -> CompValues
   , getSpanValues
   , areSpanValues
-  , ToQualValues(..)
+  , subset
   )
   where
 -------------------------------------------------------------------------------
-import           Protolude
+import           Data.Coerce
+import           Protolude      hiding (toList)
 -------------------------------------------------------------------------------
 import           Data.Aeson     (ToJSON)
 -------------------------------------------------------------------------------
@@ -31,6 +32,7 @@ import qualified Data.Set       as Set
 import qualified Data.Vector    as V
 -------------------------------------------------------------------------------
 import           Model.ETL.Span (Span, mkSpan, mkSpanM)
+import qualified Model.ETL.Span as Span (fromListEtl, subset)
 -------------------------------------------------------------------------------
   --
 -- ** Overview
@@ -58,41 +60,75 @@ import           Model.ETL.Span (Span, mkSpan, mkSpanM)
 data FieldValues
     = TxtSet  (Set Text)
     | IntSet  (Set Int)
-    | SpanSet (Set Span) deriving (Show, Eq, Generic)
+    | SpanSet (Set Span)
+    | Empty   deriving (Show, Eq, Generic)
 
 -- |
 -- Engine that determines a relationship for any pair of sets
 -- of the same type.
 --
 instance Ord FieldValues where
-  TxtSet s1 <= TxtSet s2 = Set.isSubsetOf s1 s2
-  IntSet s1 <= IntSet s2 = Set.isSubsetOf s1 s2
-  SpanSet s1 <= SpanSet s2 = s1 <= s2
+  TxtSet  s1 <= TxtSet  s2 = Set.isSubsetOf s1 s2
+  IntSet  s1 <= IntSet  s2 = Set.isSubsetOf s1 s2
+  SpanSet s1 <= SpanSet s2 = Set.toList s1 `isSubsetOf` Set.toList s2
+    where
+      isSubsetOf :: [Span] -> [Span] -> Bool
+      isSubsetOf get' from' =
+        length get' == length (mapMaybe (`go` from') get')
+
+      -- subroutine for each item in the get' collection
+      -- Does it have a subset in the collection of from'?
+      go :: Span -> [Span] -> Maybe Span
+      go getIt = find (Span.subset getIt)
+
+      --
   _ <= _ = panic "Ord: Tried to compare two sets with different types"
+
+instance Semigroup FieldValues where
+  TxtSet  s1 <> TxtSet  s2 = TxtSet $ s1 <> s2
+  IntSet  s1 <> IntSet  s2 = IntSet $ s1 <> s2
+  SpanSet s1 <> SpanSet s2 = SpanSet . Set.fromList
+                          $ Set.toList s1 <> Set.toList s2
+instance Monoid FieldValues where
+  mempty = Empty
+  mappend = (<>)
+
+-- |
+-- The use of Ord to define a subset relation works where the universe is set by
+-- the ETL data. When working with 'Model.ETL.Span' 'Ord' is insufficient to
+-- capture the subset relation.
+--
+subset :: FieldValues -> FieldValues -> Bool
+subset = (<=)
 
 instance ToJSON FieldValues
 
 -- |
--- Placeholder
---
--- May be better to enforce what types get instantiated
--- for Components and Qualities.
---
--- Use to try and limit the types that can be used to instantiate
--- CompValues.
+-- Instantiation for Quality Values
 --
 class ToQualValues a where
   toQualValues :: a -> QualValues
 
+instance ToQualValues [Text] where
+  toQualValues = TxtSet . Set.fromList
+
+instance ToQualValues [Int] where
+  toQualValues = IntSet . Set.fromList
+
 -- |
--- Placeholder
---
--- Use to restrict types that can be used to instantiate CompValues.
--- For instance, 'Model.ETL.Span' is only a 'Model.ETL.Measurenents' relevant
--- concept.
+-- Instantiation for Component Values
 --
 class ToCompValues a where
   toCompValues :: a -> CompValues
+
+instance ToCompValues [Text] where
+  toCompValues = TxtSet . Set.fromList
+
+instance ToCompValues [Int] where
+  toCompValues = IntSet . Set.fromList
+
+instance ToCompValues [Span] where
+  toCompValues = SpanSet . Span.fromListEtl
 
 -- Private support function
 fromVector :: (Ord a) => V.Vector a -> Set.Set a

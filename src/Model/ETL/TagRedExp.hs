@@ -19,6 +19,9 @@ import           Protolude
 import           Data.Aeson (ToJSON)
 -------------------------------------------------------------------------------
   --
+-- |
+-- The value constructor sequence may impact Ord in a noticeable way.
+--
 data TagRedExp a
   = Red a   -- ^ Reduced, summary computation
   | Exp a   -- ^ Expressed series

@@ -35,7 +35,6 @@ module Model.Request
   -- ** Quality-related
   , QualityMix (..)
   , ReqQualities (..)
-  , mkQualityMix
   , toListReqQualities
   , minQualityMix
   , minSubResult
@@ -52,9 +51,10 @@ module Model.Request
   , CompReqValues (..)
   , mkSpan
   , toTupleCompReqValues
-  , ToQualValues(..)
+  -- , ToQualValues(..)
   , areSpanValues
   , isRed
+  , isExp
 
   ) where
 ---------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ import           Data.Maybe            (fromJust)
 import           Data.Aeson            (ToJSON)
 ---------------------------------------------------------------------------------
 import           Data.Map.Strict       (mapWithKey, union)
-import qualified Data.Map.Strict       as Map (fromList, null, size, toList)
+import qualified Data.Map.Strict       as Map (null, size, toList)
 ---------------------------------------------------------------------------------
 import           Model.ETL.Components  hiding (len, null)
 import           Model.ETL.FieldValues hiding (areSpanValues)
@@ -75,6 +75,8 @@ import           Model.ETL.Fragment
 import           Model.ETL.Key
 import           Model.ETL.TagRedExp   hiding (isRed)
 import qualified Model.ETL.TagRedExp   as Tag (isRed)
+---------------------------------------------------------------------------------
+import           Model.SearchFragment
 import           Model.Status
 ---------------------------------------------------------------------------------
 
@@ -86,6 +88,7 @@ import           Model.Status
 data Request (status::Status) = Request
   { subReq  :: !QualityMix
   , meaReqs :: !ComponentMixes
+  -- , etlContent :: !EtlContent
   -- , status  :: Proxy 'Inprocess
   } deriving (Show, Eq, Generic)
 
@@ -122,6 +125,18 @@ instance ToJSON (Request status)
 validate :: Maybe (Request 'Inprocess) -> Maybe (Request 'Success)
 validate (Just req) = Just $ coerce req
 validate Nothing    = Nothing
+
+-- |
+-- Tag whether the request was delivered as expected; true when the request is a
+-- subset of the ETL data.
+--
+data EtlContent
+  = Subset       -- ^ Returned the full request
+  | Intersection -- ^ Returned a partial request
+  | Unknown      -- ^ Status not yet complete
+  deriving (Show, Eq, Generic)
+
+instance ToJSON EtlContent
 
 ---------------------------------------------------------------------------------
   -- Subject arm
@@ -176,13 +191,6 @@ instance Monoid ReqQualities where
   mempty = ReqQualities mempty
   (ReqQualities a) `mappend` (ReqQualities b) = ReqQualities $ union a b
 
--- |
--- Instantiation
---
-mkQualityMix :: Key -> ReqQualities -> QualityMix
-mkQualityMix key@(SubKey _) vs = QualityMix key (Just vs)
-mkQualityMix _              _  = panic "mkQualityMix: Tried with wrong type."
-{-# DEPRECATED mkQualityMix "Use mkQualityMix in the Search module" #-}
 
 -- |
 -- Utilized by 'Api.GQL.RequestView'
@@ -261,12 +269,6 @@ instance Monoid ReqComponents where
   mappend (ReqComponents a) (ReqComponents b) = ReqComponents $ union a b
 
 -- |
--- Constructor
-fromListReqComponents :: [(CompKey, Maybe CompReqValues)] -> ReqComponents
-fromListReqComponents = ReqComponents . Map.fromList
-{-# DEPRECATED fromListReqComponents "See Search module" #-}
-
--- |
 -- toList
 toListReqComponents :: ReqComponents -> [(CompKey, Maybe CompReqValues)]
 toListReqComponents (ReqComponents vs) = Map.toList vs
@@ -283,16 +285,19 @@ fromComponents :: (CompValues -> TagRedExp CompValues)
 fromComponents redExp o =
   ReqComponents .  fmap (Just . CompReqValues . redExp) $ components o
 
--- | Wrapper to express Reduced vs Expressed request computation
+-- |
+--   Wrapper to express Reduced vs Expressed request computation
 --   of the associated measurement value. So, just the same FieldValues
 --   plus an extra tag.  This fits throughout further down the Request tree.
+--
 newtype CompReqValues = CompReqValues { values :: TagRedExp CompValues }
   deriving (Show, Eq, Ord, Generic)
 
 -- |
 --
-isRed :: CompReqValues -> Bool
+isRed, isExp :: CompReqValues -> Bool
 isRed CompReqValues {values} = Tag.isRed values
+isExp = not . isRed
 
 -- |
 --
@@ -310,6 +315,7 @@ instance Fragment CompReqValues where
 instance ToJSON CompReqValues
 
 -- |
+-- Used to instantiate a request in-process (not data)
 --
 toTupleCompReqValues :: CompReqValues -> (CompValues, Reduced)
 toTupleCompReqValues (CompReqValues (Red vs)) = (vs, True)
@@ -325,6 +331,26 @@ fromCompValues redExp = CompReqValues . redExp
 -- | Synonym used to set TagRedExp value
 type Reduced = Bool
 
+
+---------------------------------------------------------------------------------
+instance Fragment (SearchFragment ReqQualities 'ETL) where
+  null = (null @ReqQualities) . coerce
+  len  = (len  @ReqQualities) . coerce
+instance Fragment (SearchFragment ReqQualities 'ETLSubset) where
+  null = (null @ReqQualities) . coerce
+  len  = (len  @ReqQualities) . coerce
+
+instance Fragment (SearchFragment ReqComponents 'ETLSubset) where
+  null = (null @ReqComponents) . coerce
+  len  = (len  @ReqComponents) . coerce
+-- length . Model.reqComponents . values <$> subsetResults
+--
+instance Fragment (SearchFragment CompReqValues 'Req) where
+  null = (null @CompReqValues) . coerce
+  len  = (len  @CompReqValues) . coerce
+instance Fragment (SearchFragment CompReqValues 'ETLSubset) where
+  null = (null @CompReqValues) . coerce
+  len  = (len  @CompReqValues) . coerce
 
 ---------------------------------------------------------------------------------
 -- ** Request FieldCount

@@ -56,7 +56,6 @@ import           Control.Exception.Safe
 import           Control.Monad.Logger
 import           ObsExceptions
 -------------------------------------------------------------------------------
-import           Model.ETL.ObsETL       (fromList)
 import qualified Model.ETL.ObsETL       as Model hiding (fromList)
 import qualified Model.ETL.Transformers as Trans
 -------------------------------------------------------------------------------
@@ -302,8 +301,8 @@ type Name = Text
 -- >     | SpanSet (Set Span)
 --
 fromInputQualValues :: QualValuesInput -> Model.QualValues
-fromInputQualValues QualValuesInput { txtValues = Just vs } = (fromList @Model.QualValues) vs
-fromInputQualValues QualValuesInput { intValues = Just vs } = (fromList @Model.QualValues) vs
+fromInputQualValues QualValuesInput { txtValues = Just vs } = Model.toQualValues vs
+fromInputQualValues QualValuesInput { intValues = Just vs } = Model.toQualValues vs
 fromInputQualValues QualValuesInput {} = panic "The values type does not match FieldValues"
 
 --------------------------------------------------------------------------------
@@ -373,13 +372,13 @@ fromInputComponents vs =
 --
 --
 fromInputCompValues :: MonadThrow m => CompValuesInput -> m Model.CompValues
-fromInputCompValues CompValuesInput { txtValues  = Just vs } = pure $ (fromList @Model.CompValues) vs
-fromInputCompValues CompValuesInput { intValues  = Just vs } = pure $ (fromList @Model.CompValues) vs
+fromInputCompValues CompValuesInput { txtValues  = Just vs } = pure $ Model.toCompValues vs
+fromInputCompValues CompValuesInput { intValues  = Just vs } = pure $ Model.toCompValues vs
 fromInputCompValues CompValuesInput { spanValues = Just vs } =
-  (fromList @Model.CompValues) <$> traverse spanFromInput vs
+  Model.toCompValues <$> traverse spanFromInput vs
       where
         -- | GraphQL -> Model
-        spanFromInput ::MonadThrow m => SpanInput -> m Model.Span
+        spanFromInput :: MonadThrow m => SpanInput -> m Model.Span
         spanFromInput SpanInput{..}
           | reduced   = Model.mkSpanM Model.Red rangeStart rangeLength
           | otherwise = Model.mkSpanM Model.Exp rangeStart rangeLength

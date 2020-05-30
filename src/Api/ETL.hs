@@ -2,7 +2,6 @@
 
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module     : Api.ETL
@@ -43,9 +42,9 @@ import           Control.Exception.Safe
 import           Control.Monad.Logger
 ---------------------------------------------------------------------------------
 import           Model.ETL.Fragment
-import           Model.Search
+import           Model.Search           hiding (logDivide, logRequest)
 ---------------------------------------------------------------------------------
-import           Model.ETL.ObsETL       hiding (request)
+import           Model.ETL.ObsETL
 import           Model.Request          (CompReqValues (..),
                                          toTupleCompReqValues)
 ---------------------------------------------------------------------------------
@@ -85,35 +84,36 @@ requestCompReqValues search values
   | otherwise   = do
       let (search', reduced) = toTupleCompReqValues search
       result <- request (toFragmentReq search') values
-      logRequest "requestCompReqValues" search values result
+      logRequest "requestCompReqValues 87" search values result
+      logDebugN $ "toFragmentReq:\n" <> show (toFragmentReq search')
       pure $ fromFieldCompReqValues reduced result
 
 -- ** requestValues
 -- |
 -- Unifying filter for FieldValues. The null search returns a null set.
 --
-requestValues, requestQualReqValues :: (MonadLogger m, MonadThrow m)
+requestQualReqValues, requestValues :: (MonadLogger m, MonadThrow m)
   => FieldValues -> SearchFragment FieldValues 'ETL
   -> m (SearchFragment FieldValues 'ETLSubset)
 
-requestValues search values = do
+requestQualReqValues search values = do
   result <- request (toFragmentReq search) values
-  logRequest "requestValues" search values result
+  logRequest "requestQualReqValues" search values result
   pure result
 
 -- |
 -- Unlike 'requestCompReqValues' we do not augment a null search request.
 --
-requestQualReqValues = requestValues
+requestValues = requestQualReqValues
 
 logRequest :: (MonadLogger m, Show a, Show b, Show c)
            => Text -> a -> b -> c -> m ()
 logRequest heading search values result = do
   logDebugN logDivide
   logDebugN $ "ETL - " <> heading
-  logDebugN $ "search: " <> show search
-  logDebugN $ "values: " <> show values
-  logDebugN $ "result: " <> show result
+  logDebugN $ "search:\n" <> show search
+  logDebugN $ "values:\n" <> show values
+  logDebugN $ "result:\n" <> show result
   logDebugN logDivide
 
 logDivide :: Text

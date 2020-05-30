@@ -23,7 +23,9 @@ import           Data.Map.Strict       (keys, union)
 import qualified Data.Map.Strict       as Map (lookup, null, size, toList)
 -------------------------------------------------------------------------------
 import           Model.ETL.FieldValues
+import           Model.ETL.Fragment
 import           Model.ETL.Key
+import           Model.SearchFragment
 -------------------------------------------------------------------------------
 -- *** Qualities
 -- | The @Qualities@ node is a @Map@ with
@@ -38,24 +40,29 @@ newtype Qualities = Qualities
 
 instance ToJSON Qualities
 
+-- |
+-- Shallow, left-bias union
+--
 instance Semigroup Qualities where
   (Qualities a) <> (Qualities b) = Qualities $ union a b
 
--- | Left bias
+-- |
+-- Shallow, left-bias union
+--
 instance Monoid Qualities where
   mempty = Qualities mempty
   (Qualities a) `mappend` (Qualities b) = Qualities $ union a b
+
+-- |
+--
+instance GetEtlFragment Qualities QualKey (SearchFragment QualValues 'ETL) where
+  getValues qualities k = Map.lookup k (coerce qualities)
 
 -- |
 -- Utilized by "Model.Matrix.Expression" to generate field names
 getQualityNames :: Qualities -> [Text]
 getQualityNames = names . qualities
 
--- |
--- Provides typeclass access to 'FieldValues'
---
-getValues :: QualKey -> Qualities -> Maybe QualValues
-getValues k vs = Map.lookup k (coerce vs)
 
 null :: Qualities -> Bool
 null (Qualities vs) = Map.null vs
@@ -63,7 +70,7 @@ null (Qualities vs) = Map.null vs
 len :: Qualities -> Int
 len (Qualities vs) = Map.size vs
 
-toList :: Qualities -> [(QualKey, CompValues)]
+toList :: Qualities -> [(QualKey, QualValues)]
 toList = Map.toList . coerce
 
 -- | GQL documentation support

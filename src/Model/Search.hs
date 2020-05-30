@@ -15,49 +15,43 @@
 -- the source of the data to ensure efficient subsetting of the
 -- 'Model.ETL.ObsETL' hosted data.
 --
+-- = Background
+--
+-- There are three versions of data
+--
+-- 1. ETL - succinct, non-redundant representation of data
+-- 2. Request input - user specified, expects one result (a subset of ETL) for each request
+-- 3. Request for matrix - non-redundant in the context of the matrix it
+-- produces
 --
 module Model.Search
+  ( module Model.Search
+  , module Model.SearchFragment
+  )
   where
 -------------------------------------------------------------------------------
 import           Protolude              hiding (null)
 -------------------------------------------------------------------------------
-import           Data.Aeson             (ToJSON)
--------------------------------------------------------------------------------
 import           Data.Coerce
 import qualified Data.Map.Strict        as Map (fromList)
-import qualified Data.Set               as Set (intersection)
-import           Data.Text              (pack)
+import           Data.Maybe             (fromJust)
 -------------------------------------------------------------------------------
 import           Control.Exception.Safe
-import           ObsExceptions
+import           Control.Monad.Logger
 -------------------------------------------------------------------------------
-import           Model.ETL.Components   hiding (getValues, len, null)
-import qualified Model.ETL.Components   as Comps (getValues)
 import           Model.ETL.FieldValues
 import           Model.ETL.Key
-import           Model.ETL.Qualities    hiding (getValues, len, null)
-import qualified Model.ETL.Qualities    as Quals (getValues)
-import qualified Model.ETL.Span         as Span (request)
+import qualified Model.ETL.Span         as Span (isExp)
 import           Model.ETL.TagRedExp
 -------------------------------------------------------------------------------
-import           Model.Request          hiding (minQualityMix)
+import           Model.Request          hiding (areSpanValues, minQualityMix)
 import qualified Model.Request          as Model (minQualityMix)
 -------------------------------------------------------------------------------
-import           Model.ETL.Fragment
+import           Model.ETL.Fragment     hiding (intersection)
+import qualified Model.ETL.Fragment     as F (intersection)
+import           Model.SearchFragment
 -------------------------------------------------------------------------------
-  --
--- |
--- ** Overview
---
--- A phantom type used to track data fragments used to compute a user request
--- for ETL data.
---
---
-data Source
-     = ETL        -- from Mode.ETL -> FieldValues
-     | Req        -- from GqlInput -> FieldValues
-     | ETLSubset  -- from FieldValues -> FieldValues -> FieldValues
-     deriving (Generic)
+
 
 -- |
 -- Highest level type synonyms for the request
@@ -65,50 +59,6 @@ data Source
 type MeaETLSubset     = SearchFragment ReqComponents 'ETLSubset
 -- type SubjectETLSubset = SearchFragment ReqQualities  'ETLSubset
 
--- |
--- The host for the state required to enforce the subsetting constraints.
---
--- Early design: likely limited to 'Model.ETL.FieldValues'.
---
-newtype SearchFragment a (source :: Source)
-  = SearchFragment { fragment :: a } deriving (Show, Eq, Generic)
-
--- |
--- Permitted when the types (and sources) match.
---
-instance Semigroup a => Semigroup (SearchFragment a b) where
-  SearchFragment a1 <> SearchFragment a2 = SearchFragment $ a1 <> a2
-
-instance ToJSON a => ToJSON (SearchFragment a b)
-
-instance Fragment (SearchFragment FieldValues 'ETL) where
-  null = (null @FieldValues) . coerce
-  len  = (len  @FieldValues) . coerce
-instance Fragment (SearchFragment FieldValues 'Req) where
-  null = (null @FieldValues) . coerce
-  len  = (len  @FieldValues) . coerce
-instance Fragment (SearchFragment FieldValues 'ETLSubset) where
-  null = (null @FieldValues) . coerce
-  len  = (len  @FieldValues) . coerce
-
-instance Fragment (SearchFragment ReqQualities 'ETL) where
-  null = (null @ReqQualities) . coerce
-  len  = (len  @ReqQualities) . coerce
-instance Fragment (SearchFragment ReqQualities 'ETLSubset) where
-  null = (null @ReqQualities) . coerce
-  len  = (len  @ReqQualities) . coerce
-
-instance Fragment (SearchFragment ReqComponents 'ETLSubset) where
-  null = (null @ReqComponents) . coerce
-  len  = (len  @ReqComponents) . coerce
--- length . Model.reqComponents . values <$> subsetResults
---
-instance Fragment (SearchFragment CompReqValues 'Req) where
-  null = (null @CompReqValues) . coerce
-  len  = (len  @CompReqValues) . coerce
-instance Fragment (SearchFragment CompReqValues 'ETLSubset) where
-  null = (null @CompReqValues) . coerce
-  len  = (len  @CompReqValues) . coerce
 
 -- |
 -- Restrict how to extract a Search result
@@ -163,19 +113,6 @@ class ToFragmentETL a where
 instance ToFragmentETL FieldValues where
   toFragmentETL = SearchFragment
 
--- |
--- The return value depends on this Search typeclass module
---
-instance GetEtlFragment Components CompKey (SearchFragment CompValues 'ETL) where
-  getValues components k
-    = coerce <$> Comps.getValues k components
-
--- |
--- The return value depends on this Search typeclass module
---
-instance GetEtlFragment Qualities QualKey (SearchFragment QualValues 'ETL) where
-  getValues qualities k
-    = coerce <$> Quals.getValues k qualities
 
 -- ** Module benefit - structured subset function
 -- |
@@ -196,41 +133,53 @@ instance GetEtlFragment Qualities QualKey (SearchFragment QualValues 'ETL) where
 -- /Note/: SearchFragment cannot implement Ord because the computation
 -- involves two types.
 --
-request :: MonadThrow m
+request :: (MonadThrow m, MonadLogger m)
         => SearchFragment FieldValues 'Req -> SearchFragment FieldValues 'ETL
         -> m (SearchFragment FieldValues 'ETLSubset)
 
 request req etl
-  | isSubsetOf req etl = pure $ coerce req
-  | otherwise          = intersection req etl
+  | isSubsetOf req etl = do
+    let heading = " Search is a subset of Etl"
+    let result = coerce req
+    logRequest heading req etl result
+    pure result
+
+  | otherwise = do
+    let heading = " Search is NOT a subset of Etl"
+    let result = intersection req etl
+    logRequest heading req etl result
+    pure result
 
 isSubsetOf :: SearchFragment FieldValues 'Req
            -> SearchFragment FieldValues 'ETL -> Bool
-isSubsetOf (SearchFragment search) (SearchFragment etl) = search <= etl
+isSubsetOf (SearchFragment search) (SearchFragment etl) = search `subset` etl
 
-intersection :: (MonadThrow m)
-             => SearchFragment FieldValues 'Req -> SearchFragment FieldValues 'ETL
-             -> m (SearchFragment FieldValues 'ETLSubset)
+intersection :: SearchFragment FieldValues 'Req
+             -> SearchFragment FieldValues 'ETL
+             -> SearchFragment FieldValues 'ETLSubset
 
-intersection (SearchFragment (TxtSet s))
-             (SearchFragment (TxtSet vs))  = pure . SearchFragment . TxtSet
-                                           $ Set.intersection s vs
-intersection (SearchFragment (IntSet s))
-             (SearchFragment (IntSet vs))  = pure . SearchFragment . IntSet
-                                           $ Set.intersection s vs
-intersection (SearchFragment (SpanSet s))
-             (SearchFragment (SpanSet vs)) = pure . SearchFragment . SpanSet
-                                           $ Span.request s vs
-
-intersection s _ = throw $ TypeException (Just . pack $ show s)
+intersection (SearchFragment s) (SearchFragment vs) =
+  SearchFragment $ F.intersection s vs
 
 
 -- |
+-- Used to instantiate the fullfilled result of a search (data)
 --
 fromFieldCompReqValues :: Reduced
                        -> SearchFragment CompValues    'ETLSubset
                        -> SearchFragment CompReqValues 'ETLSubset
 fromFieldCompReqValues red vs
+  -- span values = Exp when there is more than one value || Range reduced = false
+  | areSpanValues (coerce vs) =
+       let spans = coerce vs
+           redExp = if len spans == 1 && ( not
+                                       . Span.isExp -- Bool
+                                       . fromJust   -- Span
+                                       . head       -- Maybe Span
+                                       . fromJust   -- [span]
+                                       $ getSpanValues spans )
+                       then Red else Exp
+             in SearchFragment $ CompReqValues { values = redExp (coerce vs) }
   | red       = SearchFragment $ CompReqValues { values = Red (coerce vs) }
   | otherwise = SearchFragment $ CompReqValues { values = Exp (coerce vs) }
 
@@ -308,5 +257,18 @@ minSubResult = minQualityMix
 
 
 
+---------------------------------------------------------------------------------
+logRequest :: (MonadLogger m, Show a, Show b, Show c)
+           => Text -> a -> b -> c -> m ()
+logRequest heading search values result = do
+  logDebugN logDivide
+  logDebugN $ "Search.hs - " <> heading
+  logDebugN $ "search:\n" <> show search
+  logDebugN $ "values:\n" <> show values
+  logDebugN $ "result:\n" <> show result
+  logDebugN logDivide
+
+logDivide :: Text
+logDivide = "-------------------------------------------------------------------"
 ---------------------------------------------------------------------------------
   --

@@ -165,7 +165,7 @@ fetchSubsetComponents :: (MonadLogger m, MonadThrow m)
 fetchSubsetComponents [] _ = pure Nothing
 fetchSubsetComponents requests etl = do
 
-  logDebugN ("Running components subset request"::Text)
+  logDebugN $ ("Running components subset requests\n"::Text) <> show requests
 
   result <- fromListReqComponents . catMaybes
             <$> traverse fetchComponent requests
@@ -178,26 +178,13 @@ fetchSubsetComponents requests etl = do
      else pure $ Just result
 
   where
-    -- debugging SpanType
-    -- isSpanType :: Maybe (Model.CompKey, Model.CompValues) -> Bool
-    isSpanType Nothing        = False
-    isSpanType (Just (key,_)) = key == mkCompKey "SpanKey"
 
     -- :: -> m Maybe (key, Maybe values)
     fetchComponent req = do
        let fullsetFragment = getEtlFragment etl mkCompKey req
-       logDebugN ("fetchComponent etl"::Text)
-
-       -- debugging SpanType
-       if isSpanType fullsetFragment
-          then
-             logDebugN $ ("*** SpanType *** fragment\n"::Text)
-                       <> show (fmap len <$> fullsetFragment)
-                       <> ("\netl: "::Text) <> show fullsetFragment
-                       <> ("\nreq: "::Text) <> show req
-          else
-             logDebugN $ ("*** other *** fragment\n"::Text)
-                       <> show (fmap len <$> fullsetFragment)
+       logDebugN $ ("fetchComponent key: "::Text) <> show (GqlInput.requestKey req)
+       logDebugN $ show (fmap len <$> fullsetFragment)
+       logDebugN $ show req
 
        case fullsetFragment of
           Nothing -> do
@@ -212,16 +199,10 @@ fetchSubsetComponents requests etl = do
                       (fromInputReqCompValues (GqlInput.compValuesInput req))
                       etlValues
 
-            -- debugging SpanType
-            if key == mkCompKey "SpanKey"
-               then logWarnN $ "*** Spantype search result ***\n"
-                             <> show values
-               else pure ()
-
             -- Warn about valid key, but invalid subset
             if null values
                then do
-                  logWarnN "MeaRequests line 207 *** null values ***"
+                  logWarnN "MeaRequests line 208 *** null values ***"
                   logWarnN $ "Component filter failed despite a valid key; no filter applied"
                            <> "\n key: " <> show key
                            <> "\n failed filter: " <> show values
@@ -240,24 +221,25 @@ fetchSubsetComponents requests etl = do
 --
 fromInputReqCompValues :: GqlInput.CompValuesReqInput -> Model.CompReqValues
 fromInputReqCompValues (GqlInput.CompValuesReqInput txt int span red)
-    | red       = Model.CompReqValues . Model.Red $ go (GqlInput.CompValuesInput txt int span)
-    | otherwise = Model.CompReqValues . Model.Exp $ go (GqlInput.CompValuesInput txt int span)
-    where go = fromRequest
+    | red       = Model.CompReqValues . Model.Red $ fromRequest (GqlInput.CompValuesInput txt int span)
+    | otherwise = Model.CompReqValues . Model.Exp $ fromRequest (GqlInput.CompValuesInput txt int span)
 
-fromRequest :: Shared.CompValuesInput -> Model.CompValues
-fromRequest Shared.CompValuesInput { txtValues  = Just vs } = (fromList @Model.CompValues) vs
-fromRequest Shared.CompValuesInput { intValues  = Just vs } = (fromList @Model.CompValues) vs
-fromRequest Shared.CompValuesInput { spanValues = Just vs } =
-  (fromList @Model.CompValues) $ spanFromInput <$> vs
-      where
-        -- | GraphQL -> Model
-        spanFromInput :: Shared.SpanInput -> Model.Span
-        spanFromInput Shared.SpanInput{..}
-          | reduced   = Model.mkSpan Model.Red rangeStart rangeLength
-          | otherwise = Model.mkSpan Model.Exp rangeStart rangeLength
+    where
 
-fromRequest Shared.CompValuesInput {}
-  = panic "The values type does not match that for CompValues"
+      fromRequest :: Shared.CompValuesInput -> Model.CompValues
+      fromRequest Shared.CompValuesInput { txtValues  = Just vs } = (fromList @Model.CompValues) vs
+      fromRequest Shared.CompValuesInput { intValues  = Just vs } = (fromList @Model.CompValues) vs
+      fromRequest Shared.CompValuesInput { spanValues = Just vs } =
+        (fromList @Model.CompValues) $ spanFromInput <$> vs
+            where
+              -- | GraphQL -> Model
+              spanFromInput :: Shared.SpanInput -> Model.Span
+              spanFromInput Shared.SpanInput{..}
+                | reduced   = Model.mkSpan Model.Red rangeStart rangeLength
+                | otherwise = Model.mkSpan Model.Exp rangeStart rangeLength
+
+      fromRequest Shared.CompValuesInput {}
+        = panic "The values type does not match that for CompValues"
 
 
 

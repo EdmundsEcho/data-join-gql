@@ -23,12 +23,12 @@ module Model.Status
 -- * End: some version of an instantiated "Mode.Request"
 --
 data Status
-     = Inprocess  -- promise ~ unresolved; incomplete @gql request input -> Model@
-     | Success    -- Instantiation of a Request
-     | Validated  -- Structurally sound (likely redundant with instantiation)
-     | Optimized  -- Without redundancy
-     | Failure    -- Unused but completes the concept
-     | ETL        -- Not part of the Request (identifies instantiator)
+     = Inprocess  -- ^ promise ~ unresolved; incomplete @gql request input -> Model@
+     | Success    -- ^ Instantiation of a Request
+     | Validated  -- ^ Structurally sound (likely redundant with instantiation)
+     | Optimized  -- ^ Without redundancy
+     | Failure    -- ^ Unused but completes the concept
+     --  ETL        -- Not part of the Request (identifies instantiator)
 
 
 

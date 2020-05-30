@@ -4,13 +4,13 @@ module Main
 import           Protolude
 -------------------------------------------------------------------------------
 import           Test.Tasty
--- import           Test.Tasty.HUnit
+import           Test.Tasty.Ingredients.Rerun
 -------------------------------------------------------------------------------
-import qualified ETL.Span   (tests)
+import qualified ETL.Span                     (tests)
 -------------------------------------------------------------------------------
 
 main :: IO ()
-main = defaultMain tests
+main = defaultMainWithRerun tests
 
 tests :: TestTree
 tests = testGroup "Lucivia ETL API Tests" [ unitTests ]

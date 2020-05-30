@@ -14,10 +14,12 @@ import           Data.Aeson            (ToJSON)
 import           Data.Coerce
 ---------------------------------------------------------------------------------
 import           Data.Map.Strict       (keys, union)
-import qualified Data.Map.Strict       as Map (lookup, null, size)
+import qualified Data.Map.Strict       as Map (lookup, null, size, toList)
 -------------------------------------------------------------------------------
 import           Model.ETL.FieldValues
+import           Model.ETL.Fragment
 import           Model.ETL.Key
+import           Model.SearchFragment
 -------------------------------------------------------------------------------
 
 -- * Components
@@ -32,29 +34,39 @@ newtype Components = Components
 
 instance ToJSON Components
 
+-- |
+-- Shallow, left-bias union
+--
 instance Semigroup Components where
   (Components a) <> (Components b) = Components $ union a b
 
+-- |
+-- Shallow, left-bias union
+--
 instance Monoid Components where
   mempty = Components mempty
   mappend (Components a) (Components b) = Components $ union a b
 
 -- |
--- Used to augment a request that only includes MeaKey
-getComponentNames :: Components -> [Text]
-getComponentNames = names . components
+-- The return value depends on this Search typeclass module
+--
+instance GetEtlFragment Components CompKey (SearchFragment CompValues 'ETL) where
+  getValues components k = Map.lookup k (coerce components)
 
 -- |
--- Utilized by the typeclass that generates SearchFragment 'ETL
+-- Used to augment a request that only includes MeaKey
 --
-getValues :: CompKey -> Components -> Maybe CompValues
-getValues k vs = Map.lookup k (coerce vs)
+getComponentNames :: Components -> [Text]
+getComponentNames = names . components
 
 null :: Components -> Bool
 null (Components cs) = Map.null cs
 
 len :: Components -> Int
 len (Components cs)  = Map.size cs
+
+toList :: Components -> [(CompKey, CompValues)]
+toList = Map.toList . coerce
 
 -- | GQL documentation support
 comsDes :: Text

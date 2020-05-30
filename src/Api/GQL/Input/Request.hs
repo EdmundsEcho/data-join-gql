@@ -5,10 +5,13 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
-
 -- |
 -- Module     : Api.GQL.RequestInput
--- Description: UI access point
+-- Description : Hosts the user input for Request
+-- Copyright   : (c) Lucivia LLC, 2020
+-- Maintainer  : edmund.cape@lucivia.com
+-- Stability   : experimental
+-- Portability : POSIX
 --
 -- == Introduction
 --

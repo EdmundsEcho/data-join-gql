@@ -6,6 +6,6 @@ cradle:
     - path: "./src"
       component: "obsetl:lib"
 
-    - path: "./test/Spec.hs"
+    - path: "./test"
       component: "obsetl:test:obsetl-test"
 

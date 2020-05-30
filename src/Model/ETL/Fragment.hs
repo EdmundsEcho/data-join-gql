@@ -1,4 +1,5 @@
 {-# OPTIONS_HADDOCK prune #-}
+
 {-# LANGUAGE FunctionalDependencies #-}
 
 -- |
@@ -13,14 +14,16 @@
 module Model.ETL.Fragment where
 
 ---------------------------------------------------------------------------------
-import           Protolude                 hiding (null)
+import           Protolude                 hiding (from, get, null)
 ---------------------------------------------------------------------------------
 import           Model.ETL.FieldValues     (FieldValues (..))
 import           Model.ETL.Key             (Key)
-import           Model.ETL.Span
+import           Model.ETL.Span            (Span (Span))
+import qualified Model.ETL.Span            as Span
 import           Model.ETL.TagRedExp
 ---------------------------------------------------------------------------------
-import qualified Data.Set                  as Set
+import qualified Data.Set                  as Set (fromList, intersection, null,
+                                                   size, toList)
 ---------------------------------------------------------------------------------
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Maybe
@@ -36,10 +39,6 @@ class Fragment fragment where
   null     :: fragment -> Bool
   len      :: fragment -> Int
 
-class FragmentPlus fragment item | item -> fragment where
-  fromList :: [item] -> fragment
-  toList   :: fragment -> [item]
-  -- filterF  :: [item] -> fragment -> fragment
 
 instance Fragment a => Fragment (Maybe a) where
   null Nothing   = True
@@ -62,30 +61,49 @@ instance Fragment FieldValues where
   len (IntSet set)  = Set.size set
   len (SpanSet set) = Set.size set
 
-instance FragmentPlus FieldValues Text where
-  fromList = TxtSet . Set.fromList
+-- ** Overview
+--
+-- Means to extract 'Model.ETL.FieldValues'
+--
+class ToList a item | item -> a where
+  toList :: a -> [item]
+
+instance ToList FieldValues Text where
   toList (TxtSet vs) = Set.toList vs
   toList _           = panic $ message "toList" "Text"
-  -- filterF xs (TxtSet vs) = TxtSet $ Set.fromList xs `Set.intersection` vs
-  -- filterF _ _            = panic $ message  "filterF" "Text"
 
-instance FragmentPlus FieldValues Int where
-  fromList = IntSet . Set.fromList
+instance ToList FieldValues Int where
   toList (IntSet vs) = Set.toList vs
   toList _           = panic $ message "toList" "Int"
-  -- filterF xs (IntSet vs) = IntSet $ Set.fromList xs `Set.intersection` vs
-  -- filterF _ _            = panic $ message  "filterF" "Int"
 
-instance FragmentPlus FieldValues Span where
-  fromList = SpanSet . consolidate . Set.fromList
+instance ToList FieldValues Span where
   toList (SpanSet vs) = Set.toList vs
   toList _            = panic $ message "toList" "Span"
-  -- filterF xs (SpanSet vs) = SpanSet $ Set.fromList xs `Set.intersection` vs
-  -- filterF _ _             = panic $ message  "filterF" "Span"
 
 message :: Text -> Text -> Text
-message func' type' = "FragmentPlus type mismatch:\n Called "
+message func' type' = "ToList type mismatch:\n Called "
              <> type' <> " " <> func' <> " with the wrong input data type."
+
+class FromList fragment item | item -> fragment where
+   fromList :: [item] -> fragment
+
+instance FromList FieldValues Text where
+  fromList = TxtSet . Set.fromList
+
+instance FromList FieldValues Int where
+  fromList = IntSet . Set.fromList
+
+instance FromList FieldValues Span where
+  fromList = SpanSet . Span.fromListEtl
+
+class Intersection a where
+  intersection  :: a -> a -> a
+
+instance Intersection FieldValues where
+  intersection (TxtSet get)  (TxtSet from)  = TxtSet  $ Set.intersection  get from
+  intersection (IntSet get)  (IntSet from)  = IntSet  $ Set.intersection  get from
+  intersection (SpanSet get) (SpanSet from) = SpanSet $ Span.intersection get from
+  intersection _ _ = panic "Type mismatch: intersection using different types"
 
 -- ** FieldCount
 -- |
@@ -125,7 +143,7 @@ instance FieldCount a  => FieldCount (Maybe a) where
 instance FieldCount Span where
   fieldCount Span { span = span' } = case span' of
     (Red _)     -> 1
-    (Exp range) -> rangeLength range
+    (Exp range) -> Span.rangeLength range
 
 -- ** FieldCounts
 -- |
@@ -152,8 +170,8 @@ class FieldCounts collection where
 -- ETL collection -> item
 --
 -- === Benefit
--- Provides the 'getFragment' function that processes optional key input and
--- returns @Maybe (key, values)@.  A @MaybeT@ implentation of the function is
+-- Provides the 'getEtlFragment' function that processes optional key input and
+-- returns @Maybe (key, values)@.  A @MaybeT@ implementation of the function is
 -- also provided.
 --
 class GetEtlFragment collection k values | collection -> k values where
@@ -162,8 +180,7 @@ class GetEtlFragment collection k values | collection -> k values where
   -- Minimum implementation: how to use a key from anywhere to pull
   -- a specific fragment (values) from a collection of fragments.
   --
-  getValues :: Ord k
-            => collection -> k -> Maybe values
+  getValues :: Ord k => collection -> k -> Maybe values
 
   -- |
   -- collection of fragments -> fragment using a key from a request object.

@@ -25,12 +25,13 @@ import           Data.Text             (append)
 import           Data.Aeson            (ToJSON)
 ---------------------------------------------------------------------------------
 import           Lib.NodeManager
-import           Model.ETL.Components  hiding (getValues, len, names, null)
+import           Model.ETL.Components  hiding (getValues, len, names, null,
+                                        toList)
 import           Model.ETL.FieldValues
 import           Model.ETL.ID
 import           Model.ETL.Key
 import           Model.ETL.Qualities   hiding (getValues, len, null, toList)
-import           Model.ETL.Span
+import           Model.ETL.Span        hiding (fromList, intersection, subset)
 import           Model.ETL.TagRedExp
 -------------------------------------------------------------------------------
 import           Model.ETL.Fragment
@@ -92,9 +93,15 @@ newtype Measurements = Measurements
 
 instance ToJSON Measurements
 
+-- |
+-- Shallow, left-bias union
+--
 instance Semigroup Measurements where
   (Measurements a) <> (Measurements b) = Measurements $ Map.union a b
 
+-- |
+-- Shallow, left-bias union
+--
 instance Monoid Measurements where
   mempty = Measurements mempty
   Measurements a `mappend` Measurements b = Measurements $ Map.union a b
