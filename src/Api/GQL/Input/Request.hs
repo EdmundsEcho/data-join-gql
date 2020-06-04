@@ -104,17 +104,15 @@ import           Api.GqlHttp               (logger)
 import           Api.GQL.Input.MeaRequests (fetchSubsetComponentMix)
 import           Api.GQL.Input.SubRequest  (fetchQualityMix)
 ---------------------------------------------------------------------------------
-  -- Request
----------------------------------------------------------------------------------
+  --
+-- * Request
+-- |
 --
 -- > Request
 -- >   { subReq  :: !QualityMix
 -- >   , meaReqs :: !ComponentMixes
 -- >   } deriving (Show, Eq)
 --
--- Alternative to encode a default
--- maybeSubReq <|> Model.minQualityMix
--- maybeResult <|> throw NoValueFound Nothing
 --
 fetchRequest :: (MonadIO m, MonadLogger m, MonadThrow m)
              => GqlInput.RequestInput

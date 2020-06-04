@@ -5,15 +5,22 @@
 
 packages:
 - completed:
-    hackage: morpheus-graphql-0.11.0@sha256:9a4afac0720edaeeb9df16986d7ad1641f265f7c09958bc2fdd29d60189aa133,26251
+    hackage: morpheus-graphql-0.12.0@sha256:01e39bf3bcb9315ede629ea379c3cf6d9946c102ed6cc3c6ca777181209d7d8a,26505
     pantry-tree:
-      size: 38453
-      sha256: a4191aca5b0c334d44f4b1f49d2db1c6851cb0484eaabcc828b2a591e29f6c33
+      size: 37705
+      sha256: 1e408ec4673f27ba70db2bf872343ed0456262a07b18ad3728d32b7c6c71d33a
   original:
-    hackage: morpheus-graphql-0.11.0
+    hackage: morpheus-graphql-0.12.0
+- completed:
+    hackage: morpheus-graphql-core-0.12.0@sha256:e7ec1f041cba294ce57a6caee4215b47a291239aef688fb3db71864fdf311539,4959
+    pantry-tree:
+      size: 5874
+      sha256: 780807447f4cf1c3eba6fc91e6efb76f374ed5901c5a17166fc69f8e4206db7b
+  original:
+    hackage: morpheus-graphql-core-0.12.0@sha256:e7ec1f041cba294ce57a6caee4215b47a291239aef688fb3db71864fdf311539,4959
 snapshots:
 - completed:
-    size: 491373
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/15/3.yaml
-    sha256: 29e9ff61b8bf4b4fcff55cde3ac106ebb971f0d21331dccac9eee63374fa6ca8
-  original: lts-15.3
+    size: 496112
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/15/13.yaml
+    sha256: 75a1a0f870e1876898b117b0e443f911b3fa2985bfabb53158c81ab5765beda5
+  original: lts-15.13

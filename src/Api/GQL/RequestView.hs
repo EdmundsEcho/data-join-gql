@@ -1,11 +1,10 @@
 {-# OPTIONS_HADDOCK prune #-}
+{-# OPTIONS_HADDOCK ignore-exports #-}
 
 {-# LANGUAGE DerivingStrategies    #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
-
-{-# OPTIONS_HADDOCK ignore-exports #-}
 -- |
 -- Module     : Api.GQL.RequestView
 -- Description: UI view

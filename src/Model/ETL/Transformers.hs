@@ -13,7 +13,8 @@ import qualified Data.Map.Strict  as Map (foldrWithKey')
 -------------------------------------------------------------------------------
 import           Model.ETL.ObsETL
 import           Model.Request    (CompReqValues, ReqComponents (..),
-                                   toListReqComponents)
+                                   ReqQualities (..), toListReqComponents,
+                                   toListReqQualities)
 -------------------------------------------------------------------------------
 
 -- | Higher-order functions that facilitate the construction of GraphQL types
@@ -25,6 +26,14 @@ import           Model.Request    (CompReqValues, ReqComponents (..),
 -- | Used by GraphQL Subject Type definition
 fromQualities :: (QualKey -> QualValues -> a) -> Qualities -> [a]
 fromQualities f o = fromMap f (qualities o)   -- o :: Qualities is a record type
+
+-- | Used by Matrix
+fromReqQualities :: (QualKey -> QualValues -> a) -> ReqQualities -> [a]
+fromReqQualities f o = fmap (uncurry f) (ppJustValues o)
+  where
+    ppJustValues :: ReqQualities -> [(QualKey, QualValues)]
+    ppJustValues o' =
+      fmap fromJust <$> filter (\(_,b) -> isJust b) (toListReqQualities o')
 
 -- | Used by GraphQL Obs Type definition
 fromMeasurements :: (MeaKey -> Components -> a) -> Measurements -> [a]

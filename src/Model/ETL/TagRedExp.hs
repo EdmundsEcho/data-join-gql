@@ -7,8 +7,8 @@
 -- Expressed will create a series of values, whereas Reduced will create
 -- a single, summary computation.
 --
--- The concept applies to time-periods 'Span' in the hosted ETL data and
--- 'CompReqValues'.
+-- The concept applies to time-periods 'Model.ETL.Span' in the hosted ETL data and
+-- 'Model.Request.CompReqValues'.
 --
 module Model.ETL.TagRedExp
   where

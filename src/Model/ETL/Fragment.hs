@@ -56,16 +56,18 @@ instance Fragment FieldValues where
   null (TxtSet set)  = Set.null set
   null (IntSet set)  = Set.null set
   null (SpanSet set) = Set.null set
+  null Empty         = True
 
   len (TxtSet set)  = Set.size set
   len (IntSet set)  = Set.size set
   len (SpanSet set) = Set.size set
+  len Empty         = 0
 
 -- ** Overview
 --
 -- Means to extract 'Model.ETL.FieldValues'
 --
-class ToList a item | item -> a where
+class ToList a item where -- | item -> a where
   toList :: a -> [item]
 
 instance ToList FieldValues Text where

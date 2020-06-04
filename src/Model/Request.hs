@@ -38,27 +38,30 @@ module Model.Request
   , toListReqQualities
   , minQualityMix
   , minSubResult
+  , getReqQualityNames
 
   -- ** Component-related
   , ComponentMixes (..)
   , toListComponentMixes
   , ReqComponents(..)
   , toListReqComponents
+  , toListCompReqSpans
   , fromComponents
   , fromCompValues
+  , toCompValuesList
 
   -- ** FieldValues-related
   , CompReqValues (..)
   , mkSpan
   , toTupleCompReqValues
-  -- , ToQualValues(..)
+  , Span
   , areSpanValues
   , isRed
   , isExp
 
   ) where
 ---------------------------------------------------------------------------------
-import           Protolude             hiding (null)
+import           Protolude             hiding (null, toList)
 ---------------------------------------------------------------------------------
 import           Data.Coerce
 import           Data.Maybe            (fromJust)
@@ -66,12 +69,15 @@ import           Data.Maybe            (fromJust)
 import           Data.Aeson            (ToJSON)
 ---------------------------------------------------------------------------------
 import           Data.Map.Strict       (mapWithKey, union)
-import qualified Data.Map.Strict       as Map (null, size, toList)
+import qualified Data.Map.Strict       as Map (keys, null, size, toList)
 ---------------------------------------------------------------------------------
-import           Model.ETL.Components  hiding (len, null)
-import           Model.ETL.FieldValues hiding (areSpanValues)
-import qualified Model.ETL.FieldValues as Values (areSpanValues)
-import           Model.ETL.Fragment
+import           Model.ETL.Components  hiding (len, null, toList)
+import           Model.ETL.FieldValues hiding (areSpanValues, toCompValuesList)
+import qualified Model.ETL.FieldValues as Values (areSpanValues,
+                                                  toCompValuesList)
+import           Model.ETL.Fragment    hiding (toList)
+import qualified Model.ETL.Fragment    as Fragment (toList)
+
 import           Model.ETL.Key
 import           Model.ETL.TagRedExp   hiding (isRed)
 import qualified Model.ETL.TagRedExp   as Tag (isRed)
@@ -204,6 +210,8 @@ instance Monoid ReqQualities where
 toListReqQualities :: ReqQualities -> [(QualKey, Maybe QualValues)]
 toListReqQualities (ReqQualities vs) = Map.toList vs
 
+getReqQualityNames :: ReqQualities -> [Text]
+getReqQualityNames = fmap unKey . Map.keys . reqQualities
 
 ---------------------------------------------------------------------------------
   -- Measurement arm
@@ -269,7 +277,12 @@ instance Monoid ReqComponents where
   mappend (ReqComponents a) (ReqComponents b) = ReqComponents $ union a b
 
 -- |
--- toList
+-- /Notes/
+--
+--   * (CompKey, Nothing) may be used to encode all Exp All Values
+--
+--   * However, 'fromReqComponents' eliminates Nothing
+--
 toListReqComponents :: ReqComponents -> [(CompKey, Maybe CompReqValues)]
 toListReqComponents (ReqComponents vs) = Map.toList vs
 
@@ -312,6 +325,20 @@ instance Fragment CompReqValues where
   len  (CompReqValues (Red vs)) = len vs
   len  (CompReqValues (Exp vs)) = len vs
 
+-- instance ToList CompReqValues Text where
+toListCompReqSpans :: CompReqValues -> [Span]
+toListCompReqSpans (CompReqValues tvs) = Fragment.toList $ unTag tvs
+
+
+-- instance ToList CompReqValues Text where
+--   toList (CompReqValues tvs) = Fragment.toList $ unTag tvs
+
+-- instance ToList CompReqValues Int where
+--   toList (CompReqValues tvs) = Fragment.toList $ unTag tvs
+
+-- instance ToList CompReqValues Span where
+--   toList (CompReqValues tvs) = Fragment.toList $ unTag tvs
+
 instance ToJSON CompReqValues
 
 -- |
@@ -321,12 +348,19 @@ toTupleCompReqValues :: CompReqValues -> (CompValues, Reduced)
 toTupleCompReqValues (CompReqValues (Red vs)) = (vs, True)
 toTupleCompReqValues (CompReqValues (Exp vs)) = (vs, False)
 
+toCompValuesList :: CompReqValues -> [CompValues]
+toCompValuesList = Values.toCompValuesList . toCompValues
+
 -- |
 --
 fromCompValues :: (CompValues -> TagRedExp CompValues)
                -> CompValues -> CompReqValues
 fromCompValues redExp = CompReqValues . redExp
 
+-- |
+--
+instance ToCompValues CompReqValues where
+  toCompValues = unTag . coerce
 
 -- | Synonym used to set TagRedExp value
 type Reduced = Bool

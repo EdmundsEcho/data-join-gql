@@ -1,0 +1,92 @@
+# Matrix view of the Model.Request
+"""
+Describes the specification for pulling the Matrix data.
+The specification includes an Expression for Subject and
+a list of Expressions for the Measurements. Note: field names
+can be derived from each of the expressions.
+"""
+type Matrix {
+  subExpression:  Expression!
+  meaExpressions: [Expression!]!
+  header:         [FieldName!]
+  fieldCount:     Int!
+}
+type Expression {
+  source: ETLTable!
+  filter: Filter
+  fields: [FieldName!]
+  reducer: ReducerEnum
+}
+"""
+ETLTable is a source in the ETL warehouse.  Tables in the warehouse are
+organized by `etlUnit`.  These units represent valid functions that
+describe the 'Model.ETL.ObsETL' data. The identifying feature is the
+codomain (output) of the function, thus the name of the source.
+
+  * type Quality
+
+      @ Subject -> Quality @
+
+  * type Measurement
+
+      @ Subject -> zero+ [Component] -> SpanType -> Measurement Value
+
+From EtlUnit -> Matrix
+
+  * Minimum:   ReqQualities -> Empty
+
+  * Generally: ReqQualities -> Filter [QualityName IN Values]
+
+
+"""
+type ETLTable {
+  codomain: String!
+}
+type Filter {
+  relations: [Relation!]!
+}
+type FieldName {
+  value: String!
+}
+enum ReducerEnum {
+  AVG
+  SUM
+}
+"""
+Note: Use _type to learn the type of the RHS union type.
+"""
+type Relation {
+  lhs: LHS!
+  rhs: RHS!
+  relation: RelSymbolEnum!
+}
+type LHS {
+  fieldName: FieldName!
+}
+"""
+RHS type definition.  This is a unifying data type.
+
+It pulls values from ETL:
+* TxtValues
+* IntValues
+* SpanValues
+
+Note: Use _type to learn the type of the output.
+"""
+union RHS
+= TxtValues
+| IntValues
+| SpanFilters
+
+type SpanFilters {
+  spanFilters: [FilterRange!]!
+}
+type FilterRange {
+  filterStart: Int!
+  filterEnd: Int!
+}
+enum RelSymbolEnum {
+  IN
+  EQ
+}
+

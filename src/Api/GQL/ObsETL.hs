@@ -11,6 +11,13 @@
 -- |
 -- Module     : Api.GQL.ObsEtl
 -- Description: ObsEtl UI access point
+-- Copyright   : (c) Lucivia LLC, 2020
+-- Maintainer  : edmund.cape@lucivia.com
+-- Stability   : experimental
+-- Portability : POSIX
+--
+--
+-- ** Overview
 --
 -- There are many GQL resolvers
 --
@@ -38,6 +45,10 @@ module Api.GQL.ObsETL
   , resolverSpanValue
   , resolverSubType
 
+  -- * Api.GQL.Matrix shared types
+  , resolverTxtValues
+  , resolverIntValues
+
   -- * Api.GQL Shared Inputs
   , QualityInput(..)
   , QualValuesInput(..)
@@ -57,6 +68,7 @@ import           Control.Monad.Logger
 import           ObsExceptions
 -------------------------------------------------------------------------------
 import qualified Model.ETL.ObsETL       as Model hiding (fromList)
+import qualified Model.ETL.TagRedExp    as Model
 import qualified Model.ETL.Transformers as Trans
 -------------------------------------------------------------------------------
 import           Api.GqlHttp
@@ -143,6 +155,8 @@ resolverComponent key o' =
 --
 -- Pattern match to delegate to one of the 3 value types
 --
+-- TODO: Complete the use of Empty.  e.g., have it display null in GQL.
+--
 resolverCompValues :: GraphQL o => Model.CompValues -> Object o ComponentValues
 resolverCompValues (Model.TxtSet o') =
   ComponentValuesTxtValues <$> resolverTxtValues (Model.TxtSet o')
@@ -152,6 +166,9 @@ resolverCompValues (Model.IntSet o') =
 
 resolverCompValues (Model.SpanSet o') =
   ComponentValuesSpanValues <$> resolverSpanValues (Model.SpanSet o')
+
+resolverCompValues Model.Empty =
+  ComponentValuesTxtValues <$> resolverTxtValues Model.Empty
 
 --------------------------------------------------------------------------------
 -- ** Qualities Model -> View

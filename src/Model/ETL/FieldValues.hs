@@ -9,29 +9,36 @@
 --
 module Model.ETL.FieldValues
   (
+  -- * Model FieldValues
     FieldValues(..)
   , QualValues
   , CompValues
-  , mkSpan
-  , mkSpanM
-  , toQualValues    -- [Int], [Txt] -> QualValues
-  , toCompValues    -- [Int], [Txt], [Span] -> CompValues
   , getSpanValues
   , areSpanValues
   , subset
+  , toCompValuesList
+  , toQualValues
+  , ToCompValues(..)
+
+  -- * Re-exports of Span-related values
+  , Span
+  , FilterRange
+  , mkSpan
+  , mkSpanM
+  , mkFilterRange
+  , filterStart
+  , filterEnd
   )
   where
 -------------------------------------------------------------------------------
-import           Data.Coerce
 import           Protolude      hiding (toList)
 -------------------------------------------------------------------------------
 import           Data.Aeson     (ToJSON)
 -------------------------------------------------------------------------------
--- import           Data.Set           (Set)
 import qualified Data.Set       as Set
-import qualified Data.Vector    as V
 -------------------------------------------------------------------------------
-import           Model.ETL.Span (Span, mkSpan, mkSpanM)
+import           Model.ETL.Span (FilterRange, Span, filterEnd, filterStart,
+                                 mkFilterRange, mkSpan, mkSpanM)
 import qualified Model.ETL.Span as Span (fromListEtl, subset)
 -------------------------------------------------------------------------------
   --
@@ -87,8 +94,9 @@ instance Ord FieldValues where
 instance Semigroup FieldValues where
   TxtSet  s1 <> TxtSet  s2 = TxtSet $ s1 <> s2
   IntSet  s1 <> IntSet  s2 = IntSet $ s1 <> s2
-  SpanSet s1 <> SpanSet s2 = SpanSet . Set.fromList
-                          $ Set.toList s1 <> Set.toList s2
+  SpanSet s1 <> SpanSet s2 = SpanSet . Set.fromList $ Set.toList s1 <> Set.toList s2
+  _ <> _ = panic "Tried to combine values of different types"
+
 instance Monoid FieldValues where
   mempty = Empty
   mappend = (<>)
@@ -123,23 +131,51 @@ class ToCompValues a where
 
 instance ToCompValues [Text] where
   toCompValues = TxtSet . Set.fromList
+instance ToCompValues Text where
+  toCompValues = TxtSet . Set.singleton
 
 instance ToCompValues [Int] where
   toCompValues = IntSet . Set.fromList
+instance ToCompValues Int where
+  toCompValues = IntSet . Set.singleton
 
 instance ToCompValues [Span] where
   toCompValues = SpanSet . Span.fromListEtl
+instance ToCompValues Span where
+  toCompValues = SpanSet . Set.singleton
 
--- Private support function
-fromVector :: (Ord a) => V.Vector a -> Set.Set a
-fromVector = Set.fromList . V.toList
+instance ToCompValues FieldValue where
+  toCompValues (TxtValue v)  = TxtSet  $ Set.singleton v
+  toCompValues (IntValue v)  = IntSet  $ Set.singleton v
+  toCompValues (SpanValue v) = SpanSet $ Set.singleton v
+  toCompValues EmptyValue    = Empty
+
+-- |
+-- Used to interpret CompReqValues Exp
+--
+toCompValuesList :: CompValues -> [CompValues]
+toCompValuesList = fmap toCompValues . toList
+  where
+     toList :: FieldValues -> [FieldValue]
+     toList (TxtSet vs)  = fmap TxtValue  (Set.toList vs)
+     toList (IntSet vs)  = fmap IntValue  (Set.toList vs)
+     toList (SpanSet vs) = fmap SpanValue (Set.toList vs)
+     toList Empty        = []
+-- |
+-- transition state for CompReqValues Exp
+--
+data FieldValue
+  = TxtValue Text
+  | IntValue Int
+  | SpanValue Span
+  | EmptyValue
 
 -- ** Type synonyms
 -- |
 -- Utilized by filterSpanValues
 -- (not enforced by the compiler)
 --
-type SpanValues = FieldValues
+-- type SpanValues = FieldValues
 
 -- |
 -- QualValues only includes TxtSet and IntSet
@@ -169,58 +205,6 @@ areSpanValues _           = False
 getSpanValues :: FieldValues -> Maybe [Span]
 getSpanValues (SpanSet vs) = Just $ Set.toList vs
 getSpanValues _            = Nothing
-
--- ** Other field values suport functions
--- |
---
-unTxtSet :: FieldValues -> Set Text
-unTxtSet (TxtSet s) = s
-unTxtSet _          = unwrapSetErr
-{-# DEPRECATED unTxtSet "" #-}
-
--- |
---
-unIntSet :: FieldValues -> Set Int
-unIntSet (IntSet s) = s
-unIntSet _          = unwrapSetErr
-{-# DEPRECATED unIntSet "" #-}
-
--- |
---
-unSpanSet :: FieldValues -> Set Span
-unSpanSet (SpanSet s) = s
-unSpanSet _           = unwrapSetErr
-{-# DEPRECATED unSpanSet "" #-}
-
--- local support
-unwrapSetErr :: a
-unwrapSetErr = panic "unTxtSet: wrong type"
-{-# DEPRECATED unwrapSetErr "" #-}
-
--- |
--- Utilized by the "Models.Matrix.Filter"
---
-count :: FieldValues -> Int
-count (TxtSet set)  = Set.size set
-count (IntSet set)  = Set.size set
-count (SpanSet set) = Set.size set
-{-# DEPRECATED count "use 'len' in the Fragment type class" #-}
-
--- |
--- Utilized by Expression (Matrix)
-toSetInt :: FieldValues -> Set Int
-toSetInt = unIntSet
-
--- |
--- GraphQL documentation support
---
-fieldValuesDes :: Text
-fieldValuesDes =
-           "A Set collection of values utilized by both Qualities and Components.\n\
-          \ It is a sum type :: StrSet | IntSet | SpanSet that unifies the range of\n\
-          \ types respresented in the leaves of the Obs object."
-{-# DEPRECATED fieldValuesDes "use the GQL schema" #-}
-
 
 
 ---------------------------------------------------------------------------------

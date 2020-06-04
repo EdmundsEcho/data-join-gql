@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE PolyKinds       #-}
 {-|
 Module      : Api.GqlHttp
 Description : Bridge between Servant, GraphQL and the WebApp types
@@ -13,22 +14,26 @@ import           Protolude
 import           Control.Monad.Trans              (MonadTrans)
 -------------------------------------------------------------------------------
 import           AppTypes
-import           Data.Morpheus.Types              (GQLRequest, GQLResponse,
-                                                   Resolver, WithOperation)
+import           Data.Morpheus.Types              (ComposedResolver, GQLRequest,
+                                                   GQLResponse, Resolver,
+                                                   ResolverO, WithOperation)
 import           Data.Morpheus.Types.Internal.AST (OperationType)
 import           Servant
 -------------------------------------------------------------------------------
--- |
+  --
 -- == > Http -> Gql helper functions
--- | Morpheus helpers
+-- |
+-- Morpheus helpers
+--
 type GQLAPI (name :: Symbol) (version :: Symbol)
   = name     -- endpoint
   :> version -- endpoint
   :> ReqBody '[JSON] GQLRequest :> Post '[JSON] GQLResponse -- Servant Has Handler
 
+-- == Gql endpoint type
 -- |
--- == xx
 -- Usage
+--
 --   > serveGQL ( interpreter rootResolver )
 --   later,
 --   serveObsEtlApi :: ServerT ObsEtlApi AppObs
@@ -43,11 +48,13 @@ serveGQL = identity
 
 
 ---------------------------------------------------------------------------------
+-- == Webserver logging capacity
 -- |
--- <there you can access logger>
--- $ runReaderT (runApp resolver) readerContext
 --
+-- /Note/ To access the AppObs logging capacity
+-- ~ runReaderT (runApp resolver) readerContext
 -- logger :: (ToJSON a, GraphQL o) => a -> Value o ()
+--
 logger :: (ToJSON a, MonadIO m) => a -> m ()
 logger = liftIO . putStrLn . encodePretty
 
@@ -73,6 +80,18 @@ type ArrayObject (o :: OperationType) a
 -- | Resolve [object]
 type OptionalArrayObject (o :: OperationType) a
      = Resolver o () AppObs (Maybe [a (Resolver o () AppObs)])
+
+-- |
+-- Resolve value
+-- Updated, and not yet implemented
+--
+type Value' (o :: OperationType) (a :: k) = ResolverO o () AppObs a
+
+-- |
+-- Resolve (f value)
+-- New and not yet implemented
+--
+type Composed' (o :: OperationType) f (a :: k) = ComposedResolver o () AppObs f a
 
 type GraphQL o
      = ( MonadIO (Resolver o () AppObs)

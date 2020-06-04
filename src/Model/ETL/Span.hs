@@ -1,19 +1,18 @@
 {-# OPTIONS_HADDOCK prune #-}
 
-{-# LANGUAGE DeriveAnyClass  #-}
-{-# LANGUAGE DeriveFunctor   #-}
 {-# LANGUAGE DeriveGeneric   #-}
 {-# LANGUAGE PatternSynonyms #-}
--- {-# LANGUAGE RecordWildCards #-}
 -- |
 -- Module     : Model.ETL.Span
 -- Description: Component for representing Time
 --
--- This module is a separate version of the 'Components'. It relates to
--- 'Components' in that it is a way to slice a 'Measurements' into parts.
+-- This module is a separate version of the 'Model.ETL.Components' module.
+-- It relates to 'Model.ETL.Components' in that it is a way to slice a
+-- 'Model.ObsETL.Measurements' into parts. It is different in that it hosts
+-- the unique qualities of time.
 --
 -- It defines the structure required both for the ETL Observation and
--- the requested version of time ('FilterRange'). In the 'Matrix' it has
+-- the requested version of time ('FilterRange'). In the 'Api.GQL.Matrix' it has
 -- unique processing features:
 --
 -- > Span -> [FilterRange]
@@ -24,7 +23,6 @@ module Model.ETL.Span
   , mkFilterRange            -- smart constructor
   , filterStart              -- record
   , filterEnd                -- record
-  , showFilterRange
   , overlap                  -- typeclass version of intersection
   , filterSize
   , fromListEtl              -- utilized by Fragment
@@ -123,6 +121,7 @@ class (Monoid a, Ord a) => Disjoint a where
   continuous :: a -> a -> Bool
   continuous v1 v2 = overlap v1 v2 /= mempty
 
+  -- |
   -- not commutative b/c Red <> Exp is different than Exp <> Red
   -- this is not a combination of two lists, but rather to build a non-redundant
   -- list of time periods.
@@ -144,12 +143,12 @@ class (Monoid a, Ord a) => Disjoint a where
        -- is new a subset of new + try, if so, keep combo, else keep try
        tryCombine new' item' = new' `subset` ((new' <> item') <> item')
 
-  -- not commutative b/c Exp overlap Red /= Red overlap Exp
+  -- | not commutative b/c Exp overlap Red /= Red overlap Exp
   intersect :: [a] -> [a] -> [a]
   intersect get from = mapMaybe (`getOverlap` sort from) get
     where getOverlap :: a -> [a] -> Maybe a
-          getOverlap get from =
-            let result = mconcat (overlap get <$> from)
+          getOverlap get' from' =
+            let result = mconcat (overlap get' <$> from')
              in if result == mempty then Nothing else Just result
 
 
@@ -385,12 +384,12 @@ instance Disjoint Span where
         -- no overlap between a pair of Red or mixed not already captured...
         _ `intersect` _ = mempty
 
-  combine s1 s2
-    | s1 `juxta` s2 = go s1 s2
-    | s1 `disjoint` s2 = mempty  -- Exp `subset` Red must be screened
-    | s1 == mempty = s2
-    | s2 == mempty = s1
-    | otherwise = go s1 s2
+  combine s1' s2'
+    | s1' `juxta` s2' = go s1' s2'
+    | s1' `disjoint` s2' = mempty  -- Exp `subset` Red must be screened
+    | s1' == mempty = s2'
+    | s2' == mempty = s1'
+    | otherwise = go s1' s2'
       where
          go (Span (Exp s1))
             (Span (Exp s2))             = Span_ . Exp $ s1 <> s2
@@ -460,16 +459,6 @@ delayStart sp =
       Red Range {..} -> mkSpan Red (rangeStart + 1) rangeLength
 
 
-
--- |
-spanDes :: Text
-spanDes = "A describes the time period over which the measurement value is relevant.\n\
-          \ Each Span has a Range object that describes the start and length of the time.\n\
-          \ Length is the number of units of time used to describe the data. Finally,\n\
-          \ a measurement sample can be either a summary over time or taken on regular\n\
-          \ intervals.  Span :: RED summary | EXP repeated measure."
-{-# DEPRECATED spanDes "" #-}
-
 -- |
 -- Support function to access Range values
 -- >>> spanEnd Range { rangeStart = 0, rangeLength = 1 }
@@ -477,12 +466,6 @@ spanDes = "A describes the time period over which the measurement value is relev
 --
 spanEnd :: Range -> Int
 spanEnd (Range s l) = s + l - 1
-
--- |
--- Support function to access Range values
---
-spanStart :: Range -> Int
-spanStart (Range s _) = s
 
 -- |
 -- Support function to derive length
@@ -495,15 +478,19 @@ spanLength :: Start -> End -> Int
 spanLength start end = end - start + 1
 
 -- |
--- Structure that clearly defines the inclusive min and max values of a filter
+-- Structure that expresses the inclusive min and max values of a filter
 -- value.  e.g., FilterRange 0 3 = Where timeSpan BETWEEN 0 AND 3 (inclusive)
--- Span -> FilterRange
--- Red Range 0 6 = [FilterRange 0 5]
--- Red Range 2 3 = [FilterRange 2 4]
--- Exp Range 0 6 = [FilterRange 0 0, FilterRange 1 1, FilterRange 2 2]
+--
+-- > Span -> FilterRange
+--
+-- > Red Range 0 6 = [FilterRange 0 5]
+-- > Red Range 2 3 = [FilterRange 2 4]
+-- > Exp Range 0 6 = [FilterRange 0 0, FilterRange 1 1, FilterRange 2 2]
 --
 data FilterRange = FilterRange_ !Start !End
   deriving (Show, Eq, Ord, Generic)
+
+instance ToJSON FilterRange
 
 -- |
 -- Pattern match for FilterRange
@@ -512,19 +499,17 @@ pattern FilterRange :: Start -> End -> FilterRange
 pattern FilterRange { filterStart, filterEnd } <- FilterRange_ filterStart filterEnd
 {-# COMPLETE FilterRange :: FilterRange #-}
 
--- | FilterRange constructor
+-- |
+-- Utilized by Matrix to interpret the time-span related request.
+--
 mkFilterRange :: Span -> [FilterRange]
 mkFilterRange (Span (Red r)) = [FilterRange_ (rangeStart r) (spanEnd r)]
-mkFilterRange (Span (Exp r)) = expand r
+mkFilterRange (Span (Exp r)) = expand
   where
-    expand r' = go <$> [(rangeStart r')..(spanEnd r')]
-    go s = FilterRange_ s s
+    expand = (\s -> FilterRange_ s s) <$> [(rangeStart r)..(spanEnd r)]
 
--- | Utilized by Models.Expression
-showFilterRange :: FilterRange -> Text
-showFilterRange fr = show (filterStart fr) <> "_" <> show (filterEnd fr)
-
--- | Utilized by Models.Expression
+-- |
+-- Utilized by Models.Expression
 filterSize :: FilterRange -> Size
 filterSize (FilterRange s e) = e - s + 1
 
@@ -534,36 +519,4 @@ type Len   = Int -- useful to validate
 type End   = Int -- inclusive
 type Size  = Len
 
-
 ---------------------------------------------------------------------------------
--- ** EitherM - TODO: Move
-type Message = Text
-
-data EitherM a
-  = RightM a
-  | LeftM  ([Message], Maybe a)
-  deriving (Show, Eq, Functor, Monad)
-
-fromEitherM :: EitherM a -> Maybe a
-fromEitherM (RightM a)           = Just a
-fromEitherM (LeftM (_, Just a))  = Just a
-fromEitherM (LeftM (_, Nothing)) = Nothing
-
--- |
--- Extract intersection result
-toSet :: EitherM Span -> Set Span
-toSet (RightM v)           = Set.fromList [v]
-toSet (LeftM (_, Just v))  = Set.fromList [v]
-toSet (LeftM (_, Nothing)) = Set.fromList []
-
-instance Applicative EitherM where
-  pure = RightM
-  RightM f <*> RightM a = RightM $ f a
-  LeftM (mss, Just f)  <*> RightM a = LeftM (mss, Just $ f a)
-  LeftM (mss, Nothing) <*> RightM _ = LeftM (mss, Nothing)
-  RightM f <*> LeftM (mss, Just a) = LeftM (mss, Just $ f a)
-  RightM _ <*> LeftM (mss, Nothing) = LeftM (mss, Nothing)
-  LeftM (mss1, Just f) <*> LeftM (mss2, Just a) = LeftM (mss1 <> mss2, Just $ f a)
-  LeftM (mss1, Just _) <*> LeftM (mss2, Nothing) = LeftM (mss1 <> mss2, Nothing)
-  LeftM (mss1, Nothing) <*> LeftM (mss2, Just _) = LeftM (mss1 <> mss2, Nothing)
-  LeftM (mss1, Nothing) <*> LeftM (mss2, Nothing) = LeftM (mss1 <> mss2, Nothing)

@@ -17,7 +17,7 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver: lts-15.3
+resolver: lts-15.13
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -33,9 +33,10 @@ packages:
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
-#
 extra-deps:
-  - morpheus-graphql-0.11.0
+  - morpheus-graphql-0.12.0
+  - morpheus-graphql-core-0.12.0@sha256:e7ec1f041cba294ce57a6caee4215b47a291239aef688fb3db71864fdf311539,4959
+
 #  - git: https://github.com/morpheusgraphql/morpheus-graphql.git
 #    commit: e6b73088ceb5b29e25f130615210eff0bf3b20eb
 #

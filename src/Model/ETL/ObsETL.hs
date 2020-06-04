@@ -1,7 +1,18 @@
-{-|
-   Top-level ETL Model (where GQL is a view).  This object is instantiated
-   using "Schemas.ETL.Types.ObsETLInput".
--}
+{-# OPTIONS_HADDOCK prune #-}
+
+-- |
+-- Module     : Api.GQL.RequestInput
+-- Description : ETL source of truth
+-- Copyright   : (c) Lucivia LLC, 2020
+-- Maintainer  : edmund.cape@lucivia.com
+-- Stability   : experimental
+-- Portability : POSIX
+--
+-- ** Overview
+--
+-- Top-level ETL Model (where GQL is a view).  This object is instantiated
+-- using "Schemas.ETL.Types.ObsETLInput".
+--
 module Model.ETL.ObsETL
   ( module Model.ETL.ObsETL
   -- * Re-exported types
@@ -12,7 +23,6 @@ module Model.ETL.ObsETL
   , module Model.ETL.FieldValues
   , module Model.ETL.Fragment  -- type class
   , module Model.ETL.Span
-  , module Model.ETL.TagRedExp
   )
   where
 -------------------------------------------------------------------------------
@@ -25,14 +35,12 @@ import           Data.Text             (append)
 import           Data.Aeson            (ToJSON)
 ---------------------------------------------------------------------------------
 import           Lib.NodeManager
-import           Model.ETL.Components  hiding (getValues, len, names, null,
-                                        toList)
+import           Model.ETL.Components  hiding (len, names, null, toList)
 import           Model.ETL.FieldValues
 import           Model.ETL.ID
 import           Model.ETL.Key
-import           Model.ETL.Qualities   hiding (getValues, len, null, toList)
-import           Model.ETL.Span        hiding (fromList, intersection, subset)
-import           Model.ETL.TagRedExp
+import           Model.ETL.Qualities   hiding (len, null, toList)
+import           Model.ETL.Span        hiding (intersection, subset)
 -------------------------------------------------------------------------------
 import           Model.ETL.Fragment
 -------------------------------------------------------------------------------
@@ -45,12 +53,6 @@ data ObsETL = ObsETL
         } deriving (Show, Eq, Ord, Generic)
 
 instance ToJSON ObsETL
-
--- |  documentation
-obsDes :: Text
-obsDes = "Describes the data available to construct\
-        \ the matrix required for the analysis."
-
 
 -- | Private smart constructor that utilizes an ID generator.
 -- /Note/: The ID generator is implemented, but not exploited by the app.

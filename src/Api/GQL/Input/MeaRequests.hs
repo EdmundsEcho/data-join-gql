@@ -24,8 +24,8 @@ import qualified Api.GQL.ObsETL          as Shared
 ---------------------------------------------------------------------------------
 import           Model.ETL.ObsETL        (mkCompKey, mkMeaKey)
 import qualified Model.ETL.ObsETL        as Model (CompValues, Components,
-                                                   MeaKey, Measurements, Span,
-                                                   TagRedExp (..))
+                                                   MeaKey, Measurements, Span)
+import qualified Model.ETL.TagRedExp     as Model
 import qualified Model.Request           as Model (CompReqValues (..),
                                                    ReqComponents (..), mkSpan)
 ---------------------------------------------------------------------------------
