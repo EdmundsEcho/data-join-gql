@@ -1,11 +1,25 @@
+{-# OPTIONS_HADDOCK prune #-}
+
 -- |
 -- Module     : Model.ETL.Components
 -- Description: Components of a Measurement
+-- Copyright   : (c) Lucivia LLC, 2020
+-- Maintainer  : edmund.cape@lucivia.com
+-- Stability   : experimental
+-- Portability : POSIX
 --
 -- Components describe the slices of a Measurement in the
 -- 'Measurements' collection.
 --
 module Model.ETL.Components
+
+  ( module Model.ETL.Components
+
+  -- * re-exports
+  , CompKey
+  , CompValues
+  , mkCompKey
+  )
   where
 -------------------------------------------------------------------------------
 import           Protolude
@@ -17,9 +31,7 @@ import           Data.Map.Strict       (keys, union)
 import qualified Data.Map.Strict       as Map (lookup, null, size, toList)
 -------------------------------------------------------------------------------
 import           Model.ETL.FieldValues
-import           Model.ETL.Fragment
 import           Model.ETL.Key
-import           Model.SearchFragment
 -------------------------------------------------------------------------------
 
 -- * Components
@@ -48,12 +60,6 @@ instance Monoid Components where
   mappend (Components a) (Components b) = Components $ union a b
 
 -- |
--- The return value depends on this Search typeclass module
---
-instance GetEtlFragment Components CompKey (SearchFragment CompValues 'ETL) where
-  getValues components k = Map.lookup k (coerce components)
-
--- |
 -- Used to augment a request that only includes MeaKey
 --
 getComponentNames :: Components -> [Text]
@@ -62,8 +68,11 @@ getComponentNames = names . components
 null :: Components -> Bool
 null (Components cs) = Map.null cs
 
-len :: Components -> Int
-len (Components cs)  = Map.size cs
+size :: Components -> Int
+size (Components cs)  = Map.size cs
+
+lookup :: Components -> CompKey -> Maybe CompValues
+lookup o = flip Map.lookup (components o)
 
 toList :: Components -> [(CompKey, CompValues)]
 toList = Map.toList . coerce

@@ -1,0 +1,51 @@
+{
+  "input01": {
+    "subReq": {
+      "subjectType": "HCP",
+      "qualityMix": [{
+        "qualityNames": [
+          "Specialty", "CalledOn"
+        ],
+        "qualityName": "Specialty",
+        "qualityValues": {
+          "txtValues": [
+            "OBGYN",
+            "SURG"
+          ]
+        }
+      }]
+    },
+    "meaReqs": [{
+      "measurementType": "Rx",
+      "componentMix": [{
+          "componentName": "RxType",
+          "componentValues": {
+            "reduced": false,
+            "txtValues": [
+              "NRx",
+              "Refills",
+              "Walk"
+            ]
+          }
+        },
+        {
+          "componentName": "SpanKey",
+          "componentValues": {
+            "reduced": false,
+            "spanValues": [{
+                "rangeStart": 0,
+                "rangeLength": 6,
+                "reduced": true
+              },
+              {
+                "rangeStart": 8,
+                "rangeLength": 4,
+                "reduced": true
+              }
+            ]
+          }
+        }
+      ]
+    }]
+  }
+}

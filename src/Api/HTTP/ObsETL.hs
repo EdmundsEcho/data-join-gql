@@ -8,6 +8,7 @@ module Api.HTTP.ObsETL (ObsEtlApi , serveObsEtlApi)
 --------------------------------------------------------------------------------
 import           Data.Morpheus       (Interpreter (..))
 import           Data.Morpheus.Types
+--------------------------------------------------------------------------------
 import           Servant
 --------------------------------------------------------------------------------
 import           Api.GQL.Root        (gqlRoot)

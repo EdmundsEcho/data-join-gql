@@ -1,15 +1,32 @@
-# Matrix view of the Model.Request
+# MatrixSpec is a view of the Model.Request
 """
 Describes the specification for pulling the Matrix data.
 The specification includes an Expression for Subject and
 a list of Expressions for the Measurements. Note: field names
 can be derived from each of the expressions.
 """
-type Matrix {
-  subExpression:  Expression!
+type MatrixSpec {
+  subExpression: Expression!
   meaExpressions: [Expression!]!
-  header:         [FieldName!]
-  fieldCount:     Int!
+  """
+  header is a collection of `FieldNames` sourced as follows:
+
+    * `LHS` of a `Relation` for Qualities (1 per `Relation`)
+
+    * Composition of `Filters` that make-up the `Filter`
+      for Components (1 per `Filter`)
+
+    * The implied `Measurement` value (1 per `Measurement`)
+
+    * The implied `Subject` id (1 per `Matrix`)
+  """
+  header: [FieldName!]
+  """
+  Total fieldCount =
+
+  1 Subject + N Measurements + N Filters + N Relations for Suject Qualities
+  """
+  fieldCount: Int!
 }
 type Expression {
   source: ETLTable!
@@ -36,14 +53,20 @@ From EtlUnit -> Matrix
   * Minimum:   ReqQualities -> Empty
 
   * Generally: ReqQualities -> Filter [QualityName IN Values]
-
-
 """
 type ETLTable {
   codomain: String!
 }
+"""
+Here, `fieldName` describes a field in the matrix.
+
+The value is set by the mix of components used to generate a `Filter`.
+
+This concept for `Qualities` is true for `Relation`
+"""
 type Filter {
   relations: [Relation!]!
+  fieldName: FieldName
 }
 type FieldName {
   value: String!
@@ -60,6 +83,11 @@ type Relation {
   rhs: RHS!
   relation: RelSymbolEnum!
 }
+"""
+`fieldName` represents the component or quality set.
+
+This concept extends to a fieldName in the matrix for qualities.
+"""
 type LHS {
   fieldName: FieldName!
 }
@@ -71,15 +99,12 @@ It pulls values from ETL:
 * IntValues
 * SpanValues
 
-Note: Use _type to learn the type of the output.
+Note: Use `__typename` to learn the type of the output.
 """
-union RHS
-= TxtValues
-| IntValues
-| SpanFilters
+union RHS = TxtValues | IntValues | SpanFilter
 
-type SpanFilters {
-  spanFilters: [FilterRange!]!
+type SpanFilter {
+  range: FilterRange!
 }
 type FilterRange {
   filterStart: Int!
@@ -88,5 +113,5 @@ type FilterRange {
 enum RelSymbolEnum {
   IN
   EQ
+  BETWEEN
 }
-

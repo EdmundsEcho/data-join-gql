@@ -1,0 +1,86 @@
+{
+  "data": {
+    "newObsEtl": {
+      "subject": {
+        "qualities": [{
+            "qualityName": "CalledOn"
+          },
+          {
+            "qualityName": "Specialty"
+          }
+        ],
+        "subjectType": "HCP"
+      },
+      "measurements": [{
+          "measurementType": "Distance",
+          "components": [{
+              "componentName": "Motion",
+              "componentValues": {
+                "__typename": "TxtValues",
+                "txtValues": [
+                  "Crawl",
+                  "Run",
+                  "Walk"
+                ]
+              }
+            },
+            {
+              "componentName": "SpanKey",
+              "componentValues": {
+                "__typename": "SpanValues",
+                "spanValues": [{
+                  "rangeStart": 0,
+                  "rangeLength": 12,
+                  "reduced": false
+                }]
+              }
+            }
+          ]
+        },
+        {
+          "measurementType": "Rx",
+          "components": [{
+              "componentName": "Payer",
+              "componentValues": {
+                "__typename": "TxtValues",
+                "txtValues": [
+                  "Cash",
+                  "Medicaid",
+                  "Medicare",
+                  "Private"
+                ]
+              }
+            },
+            {
+              "componentName": "RxType",
+              "componentValues": {
+                "__typename": "TxtValues",
+                "txtValues": [
+                  "NRx",
+                  "Refills"
+                ]
+              }
+            },
+            {
+              "componentName": "SpanKey",
+              "componentValues": {
+                "__typename": "SpanValues",
+                "spanValues": [{
+                    "rangeStart": 0,
+                    "rangeLength": 6,
+                    "reduced": false
+                  },
+                  {
+                    "rangeStart": 8,
+                    "rangeLength": 4,
+                    "reduced": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

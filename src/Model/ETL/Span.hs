@@ -166,6 +166,15 @@ isExp :: Span -> Bool
 isExp (Span tag) = not (isRed tag)
 
 -- |
+-- Pattern match capacity for otherwise private constructor
+--
+-- /Note/ Unidirectional.
+--
+pattern Span :: TagRedExp Range -> Span
+pattern Span { span } <- Span_ { span_ = span }
+{-# COMPLETE Span :: Span  #-}
+
+-- |
 -- Construct to host start and length the measurement value.
 -- /Note/: Range only has meaning inside a Span construct.  Use FilterRange
 -- to host information outside of the Span context.
@@ -237,10 +246,12 @@ instance Disjoint Range where
     | otherwise = False
 
   -- commutative
+  -- Note: Empty bias towards juxta AND subset. If want to be consistent
+  -- may want to have Empty be (not juxta).
   juxta ra1 ra2
-    | ra1 == ra2 = False
     | rangeLength ra1 == 0 = True  -- empty, bias to consume mempty
     | rangeLength ra2 == 0 = True
+    | ra1 == ra2 = False          -- 3rd in line so empty == empty = True
     | otherwise =
         rangeEnd ra1 + 1 == rangeStart ra2 ||
         rangeEnd ra2 + 1 == rangeStart ra1
@@ -430,14 +441,6 @@ instance Monoid Span where
   mempty = Span_ $ Exp mempty
   mappend = (<>)
 
--- |
--- Pattern match capacity for otherwise private constructor
---
--- /Note/ Unidirectional.
---
-pattern Span :: TagRedExp Range -> Span
-pattern Span { span } <- Span_ { span_ = span }
-{-# COMPLETE Span :: Span  #-}
 
 
 -- |

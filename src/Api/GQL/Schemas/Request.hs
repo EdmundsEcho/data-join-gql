@@ -12,7 +12,7 @@ module Api.GQL.Schemas.Request
   ) where
 
 ---------------------------------------------------------------------------------
-import           Protolude
+import           Protolude              hiding (Meta)
 ---------------------------------------------------------------------------------
 import           Data.Aeson             (ToJSON)
 ---------------------------------------------------------------------------------
@@ -227,7 +227,7 @@ instance RequestKey SubsetCompReq where
 --
 -- Component   -> display a series of fields (so Exp); Red is encoded by absence
 --             -> Etl action: pull the EtlFragment required to generate the
---                series
+--                Exp series
 --
 -- """
 newtype FullsetRequest = FullsetRequest {

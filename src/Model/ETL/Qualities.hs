@@ -1,16 +1,24 @@
+{-# OPTIONS_HADDOCK prune #-}
+
 -- |
--- Module     : Model.ETL.Qualities
--- Description: Qualities of a 'Subject'
+-- Module      : Model.ETL.Qualities
+-- Description : Qualities of a 'Subject'
+-- Copyright   : (c) Lucivia LLC, 2020
+-- Maintainer  : edmund.cape@lucivia.com
+-- Stability   : experimental
+-- Portability : POSIX
+-- |
 --
 -- 'Qualities' describe the properties of a 'Subject'.  A 'Subject' can have
 -- several 'Qualities'.  A 'Subject' is a __product__ made up of 'Qualities'.
 --
 module Model.ETL.Qualities
   ( module Model.ETL.Qualities
-  -- * Functions
-  -- Utilized by 'Model.Matrix.Expression'
-  -- , toList        -- Set a -> [a]
-  -- , map           -- Set a -> Set b (note: not strictly a Functor)
+
+  -- * re-exports
+  , QualKey
+  , QualValues
+  , mkQualKey
   )
   where
 ---------------------------------------------------------------------------------
@@ -23,9 +31,7 @@ import           Data.Map.Strict       (keys, union)
 import qualified Data.Map.Strict       as Map (lookup, null, size, toList)
 -------------------------------------------------------------------------------
 import           Model.ETL.FieldValues
-import           Model.ETL.Fragment
 import           Model.ETL.Key
-import           Model.SearchFragment
 -------------------------------------------------------------------------------
 -- *** Qualities
 -- | The @Qualities@ node is a @Map@ with
@@ -53,22 +59,20 @@ instance Monoid Qualities where
   mempty = Qualities mempty
   (Qualities a) `mappend` (Qualities b) = Qualities $ union a b
 
--- |
---
-instance GetEtlFragment Qualities QualKey (SearchFragment QualValues 'ETL) where
-  getValues qualities k = Map.lookup k (coerce qualities)
 
 -- |
 -- Utilized by "Model.Matrix.Expression" to generate field names
 getQualityNames :: Qualities -> [Text]
 getQualityNames = names . qualities
 
-
 null :: Qualities -> Bool
 null (Qualities vs) = Map.null vs
 
-len :: Qualities -> Int
-len (Qualities vs) = Map.size vs
+size :: Qualities -> Int
+size (Qualities vs) = Map.size vs
+
+lookup :: Qualities -> QualKey -> Maybe QualValues
+lookup o = flip Map.lookup (qualities o)
 
 toList :: Qualities -> [(QualKey, QualValues)]
 toList = Map.toList . coerce

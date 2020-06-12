@@ -1,0 +1,64 @@
+{
+  "data": {
+    "validate": {
+      "fieldCount": 7,
+      "subReq": {
+        "fieldCount": 3,
+        "subjectType": "HCP",
+        "qualityMix": [{
+            "qualityName": "CalledOn",
+            "values": null,
+            "message": "Field included; fullset request."
+          },
+          {
+            "qualityName": "Specialty",
+            "values": {
+              "__typename": "TxtValues",
+              "txtValues": [
+                "OBGYN",
+                "SURG"
+              ]
+            },
+            "message": "Field included with a *subset* of levels selected."
+          }
+        ],
+        "warning": null
+      },
+      "meaReqs": [{
+        "fieldCount": 4,
+        "measurementType": "Rx",
+        "componentMix": [{
+            "message": "A series of fields; the number of fields depends on the number of values included in the requested mix of components",
+            "componentName": "RxType",
+            "reduced": false,
+            "values": {
+              "txtValues": [
+                "NRx",
+                "Refills"
+              ]
+            }
+          },
+          {
+            "message": "A series of fields; the number of fields depends on the number of values included in the requested mix of components",
+            "componentName": "SpanKey",
+            "reduced": false,
+            "values": {
+              "spanValues": [{
+                  "rangeStart": 0,
+                  "rangeLength": 6,
+                  "reduced": true
+                },
+                {
+                  "rangeStart": 8,
+                  "rangeLength": 4,
+                  "reduced": true
+                }
+              ]
+            }
+          }
+        ],
+        "message": null
+      }]
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "obsVar": {
+    "subject": {
+      "subjectType": "HCP",
+      "qualities": [{
+          "qualityName": "CalledOn",
+          "qualityValues": {
+            "intValues": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "qualityName": "Specialty",
+          "qualityValues": {
+            "txtValues": [
+              "IM",
+              "OBGYN",
+              "ONC",
+              "PC",
+              "SURG"
+            ]
+          }
+        }
+      ]
+    },
+    "measurements": [{
+        "components": [{
+            "componentValues": {
+              "txtValues": [
+                "Crawl",
+                "Run",
+                "Walk"
+              ]
+            },
+            "componentName": "Motion"
+          },
+          {
+            "componentValues": {
+              "spanValues": [{
+                "reduced": false,
+                "rangeStart": 0,
+                "rangeLength": 12
+              }]
+            },
+            "componentName": "SpanKey"
+          }
+        ],
+        "measurementType": "Distance"
+      },
+      {
+        "components": [{
+            "componentValues": {
+              "txtValues": [
+                "Cash",
+                "Medicaid",
+                "Medicare",
+                "Private"
+              ]
+            },
+            "componentName": "Payer"
+          },
+          {
+            "componentValues": {
+              "txtValues": [
+                "NRx",
+                "Refills"
+              ]
+            },
+            "componentName": "RxType"
+          },
+          {
+            "componentValues": {
+              "spanValues": [{
+                  "reduced": false,
+                  "rangeStart": 0,
+                  "rangeLength": 6
+                },
+                {
+                  "reduced": true,
+                  "rangeStart": 8,
+                  "rangeLength": 4
+                }
+              ]
+            },
+            "componentName": "SpanKey"
+          }
+        ],
+        "measurementType": "Rx"
+      }
+    ]
+  }
+}

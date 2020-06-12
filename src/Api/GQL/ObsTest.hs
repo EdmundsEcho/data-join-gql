@@ -22,16 +22,14 @@ module Api.GQL.ObsTest
 where
 -------------------------------------------------------------------------------
 import           Protolude
-
+-------------------------------------------------------------------------------
 import           Data.Morpheus.Document           (importGQLDocument)
 import           Data.Morpheus.Types
 import           Data.Morpheus.Types.Internal.AST (OperationType)
-
+-------------------------------------------------------------------------------
 import           AppTypes
-import           Control.Concurrent.STM
 import           Control.Monad.Trans              (MonadTrans)
 import qualified Model.ObsTest                    as Model
-
 -------------------------------------------------------------------------------
 importGQLDocument "src/Api/GQL/Schemas/schema.test.graphql"
 -------------------------------------------------------------------------------

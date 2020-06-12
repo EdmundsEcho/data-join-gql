@@ -1,15 +1,17 @@
 module Main where
 
+--------------------------------------------------------------------------------
+import           Prelude
+--------------------------------------------------------------------------------
 import           Control.Exception.Safe
 import           Data.Maybe             (fromMaybe)
 import           Options.Applicative    as Opt
-import           Prelude
 import           System.Exit
 import           System.IO.Error        (ioeGetFileName, isDoesNotExistError)
-
+--------------------------------------------------------------------------------
 import qualified App
 import           AppTypes
-
+--------------------------------------------------------------------------------
 
 mkConfig :: Opt.Parser AppConfig
 mkConfig = AppConfig
@@ -48,3 +50,8 @@ main =
 
     printOtherErrors :: SomeException -> IO ()
     printOtherErrors = print
+
+
+
+
+--------------------------------------------------------------------------------

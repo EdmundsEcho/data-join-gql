@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 -- |
--- Module     : Api.GQL.RequestInput
+-- Module      : Api.GQL.RequestInput
 -- Description : Hosts the user input for Request
 -- Copyright   : (c) Lucivia LLC, 2020
 -- Maintainer  : edmund.cape@lucivia.com
@@ -45,7 +45,7 @@
 --
 -- Notwithstanding, a request is a series of search terms. The
 -- @schemas.request.graphql@ define the __input__ object specifications
--- accordingly. However, a 'Request' is not data unto themselves. This line
+-- accordingly. However, a 'Request' is not data unto itself. This line
 -- is blurred by the fact that 'Model.Request' is instantiated using
 -- 'Model.ObsETL' data and viewed using the data __types__ described
 -- in @schemas.request.graphql@.
@@ -79,30 +79,44 @@
 --     * nothing specified -> a single summary field
 --     * all levels specified -> a series of fields
 --
-module Api.GQL.Input.Request where
+module Api.GQL.Input.Request
+  where
 ---------------------------------------------------------------------------------
 import           Protolude                 hiding (null)
 ---------------------------------------------------------------------------------
 import           Data.Maybe                (fromJust)
 ---------------------------------------------------------------------------------
-import           Control.Exception.Safe
-import           Control.Monad.Logger
----------------------------------------------------------------------------------
 import           Api.ETL
 import           Model.ETL.Fragment
 import           Model.Search
 ---------------------------------------------------------------------------------
-import           Model.ETL.ObsETL          (mkMeaKey)
 import qualified Model.ETL.ObsETL          as Model (ObsETL (..))
 import qualified Model.Request             as Model (ComponentMixes,
                                                      Request (..))
 import           Model.Status
 ---------------------------------------------------------------------------------
 import qualified Api.GQL.Schemas.Request   as GqlInput
-import           Api.GqlHttp               (logger)
+import           WithAppContext
 ---------------------------------------------------------------------------------
 import           Api.GQL.Input.MeaRequests (fetchSubsetComponentMix)
 import           Api.GQL.Input.SubRequest  (fetchQualityMix)
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+reqIsSubset :: WithAppContext m => GqlInput.RequestInput -> Model.ObsETL -> m Bool
+reqIsSubset GqlInput.RequestInput {subReq, meaReqs} etl
+  = pure $ isSub && areMeas
+
+    where
+      isSub = case subReq of
+                   Nothing -> True
+                   Just x  -> isSubset x (Model.obsSubject etl)
+
+      areMeas = case meaReqs of
+                   Nothing -> True
+                   Just xs -> all (== True)
+                              $ flip isSubset (Model.obsMeasurements etl) <$> xs
+
 ---------------------------------------------------------------------------------
   --
 -- * Request
@@ -114,7 +128,7 @@ import           Api.GQL.Input.SubRequest  (fetchQualityMix)
 -- >   } deriving (Show, Eq)
 --
 --
-fetchRequest :: (MonadIO m, MonadLogger m, MonadThrow m)
+fetchRequest :: WithAppContext m
              => GqlInput.RequestInput
              -> Model.ObsETL
              -> m (Maybe (Model.Request 'Inprocess))
@@ -130,29 +144,30 @@ fetchRequest req etl =
       ---------------------------------------------------------------------------
       -- augment the subReq result if required
       subResult <- fetchQualityMix maybeSubReq (Model.obsSubject etl)
+
       let key     = fst <$> subResult
       let mValues = snd =<< subResult
       let subResult' =   fromJust
                      $   mkQualityMix <$> key <*> mValues
                     <|> (Just . minSubResult $ getSubjectType etl)
 
+
       -- Measurements arm
       -- Utilizes fromListComponentMixes from the Search module to "unlock"
       ---------------------------------------------------------------------------
       meas <- Api.ETL.lookupMeasurements etl  -- (~ EtlFragment)
-      let subsetReqs  = concat $ GqlInput.subsets <$> meaReqs
+
+      let subsetReqs  = concat $ GqlInput.subsets  <$> meaReqs
       let fullsetReqs = concat $ GqlInput.fullsets <$> meaReqs
 
       logDebugN $ "Measurements subset requests:  " <> show (length subsetReqs)
       logDebugN $ "Measurements fullset requests: " <> show (length fullsetReqs)
 
-      logDebugN ("--------------\n"::Text)
-      logger maybeSubReq
-
-      logDebugN ("--------------\n"::Text)
-      logger meaReqs
-
-      logDebugN ("--------------\n"::Text)
+      -- logDebugN ("--------------\n"::Text)
+      -- logDebugF maybeSubReq
+      -- logDebugN ("--------------\n"::Text)
+      -- logDebugF meaReqs
+      -- logDebugN ("--------------\n"::Text)
 
 
       -- subset
@@ -160,19 +175,16 @@ fetchRequest req etl =
       subsetResults <- catMaybes
                        <$> traverse (`fetchSubsetComponentMix` meas) subsetReqs
 
-      logDebugN ("--- Subset requests   -----------\n"::Text)
-      logDebugN ("--- Where is SpanType -----------\n"::Text)
-      logger subsetReqs
-
-      logDebugN ("--- Search result     -----------\n"::Text)
-      logger subsetResults
-
-      logDebugN ("---------------------------------\n"::Text)
+      -- logDebugN ("--- Subset requests   -----------\n"::Text)
+      -- logDebugF subsetReqs
+      -- logDebugN ("--- Search result     -----------\n"::Text)
+      -- logDebugF subsetResults
+      -- logDebugN ("---------------------------------\n"::Text)
 
 
       -- fullset
       ---------------------------------------------------------------------------
-      let results     = catMaybes $ getEtlFragment meas mkMeaKey
+      let results     = catMaybes $ getEtlFragment meas
                       <$> fullsetReqs  -- lift over a list of requests
 
       let fullsetResults = (\(meaKey, _) -> (meaKey, Nothing)) <$> results
@@ -194,10 +206,12 @@ fetchRequest req etl =
                 pure Nothing
          else
 
-            pure . Just $ Model.Request
+            (\m -> Just $ Model.Request
                    { subReq  = subResult'
                    , meaReqs = meaResults :: Model.ComponentMixes
-                   }
+                   , meta    = m
+                   }) <$> meta' req etl
+
 
     -- I can't think of a min return value when nothing is specified
     -- in the measurements arm of the request.
@@ -205,6 +219,18 @@ fetchRequest req etl =
       logWarnN "No measurements specified in the request; request cancelled."
       pure Nothing
 
+-- |
+-- Partial implementation of reporting on whether the request
+-- was a subset of the ETL data.
+--
+meta' :: WithAppContext m
+      => GqlInput.RequestInput -> Model.ObsETL
+      -> m [(Text, Text)]
+
+meta' req etl = do
+          subset <- reqIsSubset req etl
+          logDebugN $ "Request input subset of etl? " <> show subset
+          pure [("subset"::Text, show subset)]
 
 
 ---------------------------------------------------------------------------------

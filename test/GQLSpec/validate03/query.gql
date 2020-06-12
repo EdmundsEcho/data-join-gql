@@ -1,0 +1,48 @@
+query input($input: RequestInput!) {
+  validate(request: $input) {
+    fieldCount
+    subReq {
+      fieldCount
+      subjectType
+      qualityMix {
+        qualityName
+        values {
+          __typename
+          ... on TxtValues {
+            txtValues
+          }
+          ... on IntValues {
+            intValues
+          }
+        }
+        message
+      }
+      warning
+    }
+    meaReqs {
+      fieldCount
+      measurementType
+      componentMix {
+        message
+        componentName
+        reduced
+        values {
+          ... on TxtValues {
+            txtValues
+          }
+          ... on IntValues {
+            intValues
+          }
+          ... on SpanValues {
+            spanValues {
+              rangeStart
+              rangeLength
+              reduced
+            }
+          }
+        }
+      }
+      message
+    }
+  }
+}

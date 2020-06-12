@@ -23,6 +23,7 @@ ghc-options: -Wall -fno-warn-redundant-constraints
 default-extensions:
   - DataKinds
   - DeriveGeneric
+  - DuplicateRecordFields
   - FlexibleContexts
   - FlexibleInstances
   - KindSignatures

@@ -1,0 +1,29 @@
+{
+  "input": {
+    "subReq": {
+      "subjectType": "HCP",
+      "qualityMix": [{
+        "qualityNames": [
+          "Specialty", "CalledOn"
+        ],
+        "qualityName": "Specialty",
+        "qualityValues": {
+          "txtValues": [
+            "OBGYN",
+            "SURG"
+          ]
+        }
+      }]
+    },
+    "meaReqs": [{
+      "measurementType": "Rx",
+      "componentMix": [{
+          "componentName": "RxType"
+        },
+        {
+          "componentName": "SpanKey"
+        }
+      ]
+    }]
+  }
+}

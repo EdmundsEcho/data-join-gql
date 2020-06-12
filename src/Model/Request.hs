@@ -6,12 +6,18 @@
 {-# LANGUAGE PatternSynonyms       #-}
 
 -- |
--- Module     : Model.Request
--- Description: Specified by the user in the "workbench"
+-- Module      : Model.Request
+-- Description : User specified in the UI "workbench"
+-- Copyright   : (c) Lucivia LLC, 2020
+-- Maintainer  : edmund.cape@lucivia.com
+-- Stability   : experimental
+-- Portability : POSIX
+--
 --
 -- = Overview
 --
---   The @Request@ is instantiated from @ObsETL@, user input and a validation function.
+--   The @Request@ is instantiated from @ObsETL@, user input and a
+--   validation function.
 --
 --   @ ObsETL -> Request -> Matrix @
 --
@@ -39,6 +45,7 @@ module Model.Request
   , minQualityMix
   , minSubResult
   , getReqQualityNames
+  , getReqQualityNames'
 
   -- ** Component-related
   , ComponentMixes (..)
@@ -71,7 +78,7 @@ import           Data.Aeson            (ToJSON)
 import           Data.Map.Strict       (mapWithKey, union)
 import qualified Data.Map.Strict       as Map (keys, null, size, toList)
 ---------------------------------------------------------------------------------
-import           Model.ETL.Components  hiding (len, null, toList)
+import           Model.ETL.Components  hiding (null, toList)
 import           Model.ETL.FieldValues hiding (areSpanValues, toCompValuesList)
 import qualified Model.ETL.FieldValues as Values (areSpanValues,
                                                   toCompValuesList)
@@ -94,9 +101,11 @@ import           Model.Status
 data Request (status::Status) = Request
   { subReq  :: !QualityMix
   , meaReqs :: !ComponentMixes
-  -- , etlContent :: !EtlContent
-  -- , status  :: Proxy 'Inprocess
+  , meta    :: ![(Property, Value)]
   } deriving (Show, Eq, Generic)
+
+type Property = Text
+type Value    = Text
 
 instance ToJSON (Request status)
 
@@ -213,6 +222,9 @@ toListReqQualities (ReqQualities vs) = Map.toList vs
 getReqQualityNames :: ReqQualities -> [Text]
 getReqQualityNames = fmap unKey . Map.keys . reqQualities
 
+getReqQualityNames' :: SearchFragment ReqQualities 'ETLSubset -> [Text]
+getReqQualityNames' = getReqQualityNames . coerce
+
 ---------------------------------------------------------------------------------
   -- Measurement arm
 ---------------------------------------------------------------------------------
@@ -325,10 +337,8 @@ instance Fragment CompReqValues where
   len  (CompReqValues (Red vs)) = len vs
   len  (CompReqValues (Exp vs)) = len vs
 
--- instance ToList CompReqValues Text where
 toListCompReqSpans :: CompReqValues -> [Span]
 toListCompReqSpans (CompReqValues tvs) = Fragment.toList $ unTag tvs
-
 
 -- instance ToList CompReqValues Text where
 --   toList (CompReqValues tvs) = Fragment.toList $ unTag tvs
@@ -336,8 +346,8 @@ toListCompReqSpans (CompReqValues tvs) = Fragment.toList $ unTag tvs
 -- instance ToList CompReqValues Int where
 --   toList (CompReqValues tvs) = Fragment.toList $ unTag tvs
 
--- instance ToList CompReqValues Span where
---   toList (CompReqValues tvs) = Fragment.toList $ unTag tvs
+instance ToList CompReqValues Span where
+  toList (CompReqValues tvs) = Fragment.toList $ unTag tvs
 
 instance ToJSON CompReqValues
 
@@ -348,6 +358,9 @@ toTupleCompReqValues :: CompReqValues -> (CompValues, Reduced)
 toTupleCompReqValues (CompReqValues (Red vs)) = (vs, True)
 toTupleCompReqValues (CompReqValues (Exp vs)) = (vs, False)
 
+-- |
+-- Creates a list of singletons (list of list n = 1)
+--
 toCompValuesList :: CompReqValues -> [CompValues]
 toCompValuesList = Values.toCompValuesList . toCompValues
 
@@ -411,32 +424,45 @@ instance FieldCount QualityMix where
 -- |
 -- ==== Contribution to the field count
 --
--- Combination of
---
 -- * Sum of the collection of field series specified in each of the ReqComponents
--- * The number of measurements requested
 --
 instance FieldCount ComponentMixes where
-  fieldCount mix@(ComponentMixes vs)
+  fieldCount (ComponentMixes vs)
     = sum (foldr (:) [] (fieldCount <$> vs))
-    + len mix
 
 -- |
+-- Recall, that a CompMix represents the measurement itself.  The "cuts"
+-- are captured in the field name, not a field /per se/.
+-- Thus, field count = number of mixes.
 --
 instance FieldCounts ComponentMixes where
   fieldCounts (ComponentMixes coll)
     = foldr (:) [] (mapWithKey tup coll)
-      where tup k v = (k, fieldCount v + 1)
+      where tup k v = (k, fieldCount v)
 
--- **** ReqComponents
 -- |
--- ==== Contribution to the field count
+-- Nothing means we display a single summary measurement field
+--
+instance FieldCount (Maybe ReqComponents) where
+  fieldCount Nothing  = 1
+  fieldCount (Just v) = fieldCount v
+
+-- |
+-- Nothing means generate a series with all values in the Component
+--
+instance FieldCount (Maybe CompReqValues) where
+  fieldCount Nothing  = 0
+  fieldCount (Just v) = fieldCount v
+
+-- *** ReqComponents
+-- |
+-- === Contribution to the field count
 --
 -- For a given series is the combination of values from each component in the
 -- collection of components. The number of combinations is the product of
 -- the number of values in each component.
 --
--- ===== Adjustments
+-- ==== Adjustments
 --
 -- * Component of len zero does not impact the field count.
 --

@@ -1,0 +1,655 @@
+{
+  "data": {
+    "reqMatrixSpec": {
+      "fieldCount": 17,
+      "subExpression": {
+        "source": {
+          "codomain": "HCP"
+        },
+        "fields": [{
+            "value": "CalledOn"
+          },
+          {
+            "value": "Specialty"
+          }
+        ],
+        "filter": {
+          "fieldName": null,
+          "relations": [{
+            "lhs": {
+              "fieldName": {
+                "value": "Specialty"
+              }
+            },
+            "relation": "IN",
+            "rhs": {
+              "__typename": "TxtValues",
+              "txtValues": [
+                "OBGYN",
+                "SURG"
+              ]
+            }
+          }]
+        }
+      },
+      "meaExpressions": [{
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::NRx.SpanKey::0"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "NRx"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 0,
+                    "filterEnd": 0
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::NRx.SpanKey::1"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "NRx"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 1,
+                    "filterEnd": 1
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::NRx.SpanKey::2"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "NRx"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 2,
+                    "filterEnd": 2
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::NRx.SpanKey::3"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "NRx"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 3,
+                    "filterEnd": 3
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::NRx.SpanKey::4"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "NRx"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 4,
+                    "filterEnd": 4
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::NRx.SpanKey::5"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "NRx"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 5,
+                    "filterEnd": 5
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::NRx.SpanKey::8_11"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "NRx"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "BETWEEN",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 8,
+                    "filterEnd": 11
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::Refills.SpanKey::0"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "Refills"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 0,
+                    "filterEnd": 0
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::Refills.SpanKey::1"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "Refills"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 1,
+                    "filterEnd": 1
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::Refills.SpanKey::2"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "Refills"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 2,
+                    "filterEnd": 2
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::Refills.SpanKey::3"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "Refills"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 3,
+                    "filterEnd": 3
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::Refills.SpanKey::4"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "Refills"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 4,
+                    "filterEnd": 4
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::Refills.SpanKey::5"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "Refills"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 5,
+                    "filterEnd": 5
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::Refills.SpanKey::8_11"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "EQ",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": [
+                    "Refills"
+                  ]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "BETWEEN",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 8,
+                    "filterEnd": 11
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        }
+      ],
+      "header": null
+    }
+  }
+}

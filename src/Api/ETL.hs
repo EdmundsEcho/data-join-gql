@@ -44,7 +44,7 @@ import           Control.Monad.Logger
 import           Model.ETL.Fragment
 import           Model.Search           hiding (logDivide, logRequest)
 ---------------------------------------------------------------------------------
-import           Model.ETL.ObsETL
+import           Model.ETL.ObsETL       hiding (null)
 import           Model.Request          (CompReqValues (..),
                                          toTupleCompReqValues)
 ---------------------------------------------------------------------------------
@@ -61,8 +61,9 @@ lookupMeasurements :: MonadLogger m
                    => ObsETL -> m Measurements
 lookupMeasurements o = do
   let result = obsMeasurements o
-  logDebugN $ "lookupMeasurements: "
-            <> " count: " <> show (len result)
+  logDebugN   "ETL data"
+  logDebugN $ "lookupMeasurements found measurements: "
+            <> show (meaTypes result)
   pure result
 
 -- ** Request
@@ -76,7 +77,9 @@ requestCompReqValues :: (MonadLogger m, MonadThrow m)
                     -> m (SearchFragment CompReqValues 'ETLSubset)
 requestCompReqValues search values
 
+
   | null search = do
+      logDebugN "ETL data"
       logWarnN "Ran a search with a null value search => series with all values"
       requestCompReqValues (coerce (fromFieldCompReqValues False (coerce values))) values
       -- expressed = False -- this is confusing; False encodes Expressed
@@ -84,8 +87,8 @@ requestCompReqValues search values
   | otherwise   = do
       let (search', reduced) = toTupleCompReqValues search
       result <- request (toFragmentReq search') values
-      logRequest "requestCompReqValues 87" search values result
-      logDebugN $ "toFragmentReq:\n" <> show (toFragmentReq search')
+      logDebugN  "ETL data"
+      logRequest "requestCompReqValues" search values result
       pure $ fromFieldCompReqValues reduced result
 
 -- ** requestValues
@@ -97,6 +100,7 @@ requestQualReqValues, requestValues :: (MonadLogger m, MonadThrow m)
   -> m (SearchFragment FieldValues 'ETLSubset)
 
 requestQualReqValues search values = do
+  logDebugN "ETL data"
   result <- request (toFragmentReq search) values
   logRequest "requestQualReqValues" search values result
   pure result
@@ -111,9 +115,10 @@ logRequest :: (MonadLogger m, Show a, Show b, Show c)
 logRequest heading search values result = do
   logDebugN logDivide
   logDebugN $ "ETL - " <> heading
-  logDebugN $ "search:\n" <> show search
-  logDebugN $ "values:\n" <> show values
-  logDebugN $ "result:\n" <> show result
+  logDebugN $ "Search: " <> show search
+  logDebugN $ "Values: " <> show values
+  logDebugN $ "Result: " <> show result
+  logDebugN logDivide
   logDebugN logDivide
 
 logDivide :: Text

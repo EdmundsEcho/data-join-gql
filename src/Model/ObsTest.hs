@@ -6,12 +6,12 @@ import           Protolude
 data ObsTest = ObsTest {
   subject :: !Text,
   quality :: !Quality
-}
+} deriving (Show)
 
 data Quality = Quality {
   name   :: !Text,
   values :: ![Text]
-}
+} deriving (Show)
 
 testInstance :: ObsTest
 testInstance = ObsTest

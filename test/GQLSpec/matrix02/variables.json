@@ -1,0 +1,37 @@
+{
+  "input": {
+    "subReq": {
+      "subjectType": "HCP"
+    },
+    "meaReqs": [{
+      "measurementType": "Rx",
+      "componentMix": [{
+          "componentName": "RxType",
+          "componentValues": {
+            "reduced": false,
+            "txtValues": [
+              "NRx"
+            ]
+          }
+        },
+        {
+          "componentName": "SpanKey",
+          "componentValues": {
+            "reduced": false,
+            "spanValues": [{
+                "rangeStart": 0,
+                "rangeLength": 6,
+                "reduced": true
+              },
+              {
+                "rangeStart": 8,
+                "rangeLength": 4,
+                "reduced": true
+              }
+            ]
+          }
+        }
+      ]
+    }]
+  }
+}

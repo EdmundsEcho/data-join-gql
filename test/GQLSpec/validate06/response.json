@@ -1,0 +1,26 @@
+{
+  "data": {
+    "validate": {
+      "fieldCount": 3,
+      "subReq": {
+        "fieldCount": 1,
+        "subjectType": "HCP",
+        "qualityMix": null,
+        "warning": "No subject qualifiers included in this request"
+      },
+      "meaReqs": [{
+          "fieldCount": 1,
+          "measurementType": "Distance",
+          "componentMix": null,
+          "message": "A single summary computation for the measurement"
+        },
+        {
+          "fieldCount": 1,
+          "measurementType": "Rx",
+          "componentMix": null,
+          "message": "A single summary computation for the measurement"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "data": {
+    "validate": {
+      "fieldCount": 5,
+      "subReq": {
+        "fieldCount": 1,
+        "subjectType": "HCP",
+        "qualityMix": null,
+        "warning": "No subject qualifiers included in this request"
+      },
+      "meaReqs": [{
+        "fieldCount": 4,
+        "measurementType": "Rx",
+        "componentMix": [{
+            "message": "A single summary field using records matching the selected component values",
+            "componentName": "Payer",
+            "reduced": true,
+            "values": {
+              "txtValues": [
+                "Cash",
+                "Medicare"
+              ]
+            }
+          },
+          {
+            "message": "A series of fields; the number of fields depends on the number of values included in the requested mix of components",
+            "componentName": "RxType",
+            "reduced": false,
+            "values": {
+              "txtValues": [
+                "NRx",
+                "Refills"
+              ]
+            }
+          },
+          {
+            "message": "A series of fields; the number of fields depends on the number of values included in the requested mix of components",
+            "componentName": "SpanKey",
+            "reduced": false,
+            "values": {
+              "spanValues": [{
+                  "rangeStart": 0,
+                  "rangeLength": 3,
+                  "reduced": true
+                },
+                {
+                  "rangeStart": 3,
+                  "rangeLength": 3,
+                  "reduced": true
+                }
+              ]
+            }
+          }
+        ],
+        "message": null
+      }]
+    }
+  }
+}

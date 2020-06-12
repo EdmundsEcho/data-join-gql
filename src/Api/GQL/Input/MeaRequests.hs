@@ -22,7 +22,6 @@ import           Control.Monad.Logger
 import           Api.ETL                 (requestCompReqValues)
 import qualified Api.GQL.ObsETL          as Shared
 ---------------------------------------------------------------------------------
-import           Model.ETL.ObsETL        (mkCompKey, mkMeaKey)
 import qualified Model.ETL.ObsETL        as Model (CompValues, Components,
                                                    MeaKey, Measurements, Span)
 import qualified Model.ETL.TagRedExp     as Model
@@ -55,12 +54,11 @@ import qualified Api.GQL.Schemas.Shared  as GqlInput
 -- === Maybe encoding
 --
 -- * Overall success: determined by the measurement key
+--
 -- * Subset success: determined by the components requested
 --
--- === Issue?
--- If we want a series, we have to create aliases for the request
--- because we are using the same meaType and compName over and over for
--- each output.  Recall, an output is a field in the matrix data table.
+-- === No Alias Required
+-- The struct returns Arrays avoiding the need to name repeated requests.
 --
 fetchSubsetComponentMix :: (MonadLogger m, MonadThrow m)
                         => GqlInput.SubsetCompMixReq -> Model.Measurements
@@ -68,9 +66,13 @@ fetchSubsetComponentMix :: (MonadLogger m, MonadThrow m)
 
 fetchSubsetComponentMix req etl = do
 
-  let result = getEtlFragment etl mkMeaKey req
+  let result = getEtlFragment etl req
+  logDebugN $ ("fetch MEAKEY: "::Text)
+              <> show (fromJust $ GqlInput.requestKey req)
 
   case result of
+  -- Maybe (MeaKey, Components)
+
     -- 1. did the key return a collection?
     -- No, return Nothing.
     Nothing -> do
@@ -83,25 +85,30 @@ fetchSubsetComponentMix req etl = do
     Just keyValues -> do
     -- (MeaKey, Components)
 
-       logDebugN "COMPMIX"
+       logDebugN "fetch COMPMIX"
 
        let nextRequest = GqlInput.compReqInput req
-       logDebugN $ "nextRequest from parent: " <> show (len nextRequest)
-
+       logDebugN $ "children: " <> show (len nextRequest)
+       logDebugN $ ("component searches: "::Text) <> show (sum $
+          (\GqlInput.ComponentReqInput {..} ->
+               maybe 0 length componentNames +
+               maybe 0 (const 1) componentName) <$> nextRequest)
 
        -- Subset requests
+       -- utilizes MixedRequest type class version of request
        --------------------------------------------------------------------------
        let subsetReqs = concat $ GqlInput.subsets <$> nextRequest
        subsetResults <- fetchSubsetComponents subsetReqs (snd keyValues)
 
 
        -- Fullset requests
+       -- utilizes MixedRequest type class version of request
        --------------------------------------------------------------------------
        let fullsetReqs = concat $ GqlInput.fullsets <$> nextRequest
 
        let results = fromListExpComponents
                    . catMaybes
-                   $ getEtlFragment (snd keyValues) mkCompKey
+                   $ getEtlFragment (snd keyValues)
                    <$> fullsetReqs  -- lift over a list of requests
 
        fullsetResults <-
@@ -114,7 +121,9 @@ fetchSubsetComponentMix req etl = do
                 logWarnN $ show fullsetReqs
                 pure Nothing
 
-             else pure $ Just results
+             else do
+               logDebugN "=> fullset success"
+               pure $ Just results
 
        logDebugN "Measurement request"
        logDebugN $ "...subset requests: " <> show (len subsetReqs)
@@ -165,7 +174,8 @@ fetchSubsetComponents :: (MonadLogger m, MonadThrow m)
 fetchSubsetComponents [] _ = pure Nothing
 fetchSubsetComponents requests etl = do
 
-  logDebugN $ ("Running components subset requests\n"::Text) <> show requests
+  logDebugN "Running components subset requests"
+  logDebugN $ show (GqlInput.compKey <$> requests)
 
   result <- fromListReqComponents . catMaybes
             <$> traverse fetchComponent requests
@@ -181,9 +191,10 @@ fetchSubsetComponents requests etl = do
 
     -- :: -> m Maybe (key, Maybe values)
     fetchComponent req = do
-       let fullsetFragment = getEtlFragment etl mkCompKey req
+       let fullsetFragment = getEtlFragment etl req
+       logDebugN "ETL data"
        logDebugN $ ("fetchComponent key: "::Text) <> show (GqlInput.requestKey req)
-       logDebugN $ show (fmap len <$> fullsetFragment)
+       logDebugN $ show (fmap showLen <$> fullsetFragment)
        logDebugN $ show req
 
        case fullsetFragment of

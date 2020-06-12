@@ -15,13 +15,12 @@
 --
 module Model.ETL.ObsETL
   ( module Model.ETL.ObsETL
-  -- * Re-exported types
+  -- * Types re-exported
   , module Model.ETL.ID       -- beginnings of a Node UID generator; now for root only.
   , module Model.ETL.Qualities
   , module Model.ETL.Key
   , module Model.ETL.Components
   , module Model.ETL.FieldValues
-  , module Model.ETL.Fragment  -- type class
   , module Model.ETL.Span
   )
   where
@@ -35,14 +34,13 @@ import           Data.Text             (append)
 import           Data.Aeson            (ToJSON)
 ---------------------------------------------------------------------------------
 import           Lib.NodeManager
-import           Model.ETL.Components  hiding (len, names, null, toList)
+import           Model.ETL.Components  hiding (lookup, names, null, size,
+                                        toList)
 import           Model.ETL.FieldValues
 import           Model.ETL.ID
 import           Model.ETL.Key
-import           Model.ETL.Qualities   hiding (len, null, toList)
+import           Model.ETL.Qualities   hiding (lookup, null, size, toList)
 import           Model.ETL.Span        hiding (intersection, subset)
--------------------------------------------------------------------------------
-import           Model.ETL.Fragment
 -------------------------------------------------------------------------------
 -- = Observation model
 -- |
@@ -77,9 +75,6 @@ data Subject = Subject
 
 instance ToJSON Subject
 
-instance GetEtlFragment Subject SubKey Qualities where
-  getValues Subject { subQualities } _ = Just subQualities
-
 -- | documentation
 subDes :: Text
 subDes = "Subject branch for which there is only one. The requested subset\
@@ -108,13 +103,14 @@ instance Monoid Measurements where
   mempty = Measurements mempty
   Measurements a `mappend` Measurements b = Measurements $ Map.union a b
 
-instance GetEtlFragment Measurements MeaKey Components where
-  getValues Measurements { measurements } k
-    = Map.lookup k measurements
+null :: Measurements -> Bool
+null = Map.null . measurements
 
-instance Fragment Measurements where
-  null (Measurements vs) = Map.null vs
-  len  (Measurements vs) = Map.size vs
+size :: Measurements -> Int
+size = Map.size . measurements
+
+lookup :: Measurements -> MeaKey -> Maybe Components
+lookup vs = flip Map.lookup (measurements vs)
 
 -- | As of yet, unused support function (perhaps for @Matrix@)
 meaTypes :: Measurements -> [Text]

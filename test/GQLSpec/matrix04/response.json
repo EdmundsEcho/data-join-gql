@@ -1,0 +1,25 @@
+{
+  "data": {
+    "reqMatrixSpec": {
+      "fieldCount": 2,
+      "subExpression": {
+        "source": {
+          "codomain": "HCP"
+        },
+        "fields": null,
+        "filter": null
+      },
+      "meaExpressions": [{
+        "source": {
+          "codomain": "Rx"
+        },
+        "fields": [{
+          "value": "MeaType::Rx"
+        }],
+        "filter": null,
+        "reducer": "SUM"
+      }],
+      "header": null
+    }
+  }
+}

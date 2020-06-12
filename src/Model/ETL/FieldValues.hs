@@ -22,7 +22,7 @@ module Model.ETL.FieldValues
 
   -- * Re-exports of Span-related values
   , Span
-  , FilterRange
+  , FilterRange(..)
   , mkSpan
   , mkSpanM
   , mkFilterRange
@@ -37,7 +37,7 @@ import           Data.Aeson     (ToJSON)
 -------------------------------------------------------------------------------
 import qualified Data.Set       as Set
 -------------------------------------------------------------------------------
-import           Model.ETL.Span (FilterRange, Span, filterEnd, filterStart,
+import           Model.ETL.Span (FilterRange (..), Span, filterEnd, filterStart,
                                  mkFilterRange, mkSpan, mkSpanM)
 import qualified Model.ETL.Span as Span (fromListEtl, subset)
 -------------------------------------------------------------------------------

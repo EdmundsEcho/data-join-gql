@@ -1,0 +1,36 @@
+{
+  "data": {
+    "reqMatrixSpec": {
+      "fieldCount": 3,
+      "subExpression": {
+        "source": {
+          "codomain": "HCP"
+        },
+        "fields": null,
+        "filter": null
+      },
+      "meaExpressions": [{
+          "source": {
+            "codomain": "Distance"
+          },
+          "fields": [{
+            "value": "MeaType::Distance"
+          }],
+          "filter": null,
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": null,
+          "reducer": "SUM"
+        }
+      ],
+      "header": null
+    }
+  }
+}

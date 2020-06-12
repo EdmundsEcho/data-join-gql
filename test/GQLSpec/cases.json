@@ -1,0 +1,69 @@
+[{
+    "path": "newObs",
+    "description": "Instantiate a new ObsETL"
+  },
+  {
+    "path": "validate",
+    "description": "Validate a request"
+  },
+  {
+    "path": "matrix",
+    "description": "New matrix spec request"
+  },
+  {
+    "path": "validate02",
+    "description": "Ignores external Span TagExpRed"
+  },
+  {
+    "path": "matrix02",
+    "description": "Request Exp when only Red exists"
+  },
+  {
+    "path": "validate03",
+    "description": "Expands CompKey requests with missing values"
+  },
+  {
+    "path": "matrix03",
+    "description": "Expands CompKey requests with missing values"
+  },
+  {
+    "path": "validate04",
+    "description": "MeaType only: Creates a single summary field."
+  },
+  {
+    "path": "matrix04",
+    "description": "MeaType only: Creates a single summary field."
+  },
+  {
+    "path": "validate05",
+    "description": "MeaType only with others."
+  },
+  {
+    "path": "matrix05",
+    "description": "MeaType only with others."
+  },
+  {
+    "path": "validate06",
+    "description": "MeaTypes."
+  },
+  {
+    "path": "matrix06",
+    "description": "MeaTypes."
+  },
+  {
+    "path": "validate07",
+    "description": "Subject and MeaTypes."
+  },
+  {
+    "path": "matrix07",
+    "description": "Subject and MeaTypes."
+  },
+  {
+    "path": "validate08",
+    "description": "Series of time reductions"
+  },
+  {
+    "path": "matrix08",
+    "description": "Series of time reductions"
+  }
+]

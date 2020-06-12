@@ -53,11 +53,16 @@ import           Model.SearchFragment
 -------------------------------------------------------------------------------
 
 
+-- ** Highest level type synonyms for the request
 -- |
--- Highest level type synonyms for the request
+-- fetchSubsetComponentMix return type
 --
 type MeaETLSubset     = SearchFragment ReqComponents 'ETLSubset
--- type SubjectETLSubset = SearchFragment ReqQualities  'ETLSubset
+
+-- |
+-- fetchQualityMix return type
+--
+type SubjectETLSubset = (SubKey, Maybe (SearchFragment ReqQualities  'ETLSubset))
 
 
 -- |
@@ -69,27 +74,27 @@ class ToSearchResult a b where
   toSearchResultM :: Maybe (SearchFragment a b) -> Maybe a
 
 instance ToSearchResult ReqQualities 'ETL where
-  toSearchResult = coerce
+  toSearchResult  = coerce
   toSearchResultM = coerce
 
 instance ToSearchResult ReqQualities 'ETLSubset where
-  toSearchResult = coerce
+  toSearchResult  = coerce
   toSearchResultM = coerce
 
 instance ToSearchResult CompReqValues 'ETLSubset where
-  toSearchResult = coerce
+  toSearchResult  = coerce
   toSearchResultM = coerce
 
 instance ToSearchResult CompValues 'ETL where
-  toSearchResult = coerce
+  toSearchResult  = coerce
   toSearchResultM = coerce
 
 instance ToSearchResult CompValues 'ETLSubset where
-  toSearchResult = coerce
+  toSearchResult  = coerce
   toSearchResultM = coerce
 
 instance ToSearchResult ReqComponents 'ETLSubset where
-  toSearchResult = coerce
+  toSearchResult  = coerce
   toSearchResultM = coerce
 
 -- |
@@ -263,9 +268,10 @@ logRequest :: (MonadLogger m, Show a, Show b, Show c)
 logRequest heading search values result = do
   logDebugN logDivide
   logDebugN $ "Search.hs - " <> heading
-  logDebugN $ "search:\n" <> show search
-  logDebugN $ "values:\n" <> show values
-  logDebugN $ "result:\n" <> show result
+  logDebugN $ "Search: " <> show search
+  logDebugN $ "Values: " <> show values
+  logDebugN $ "Result: " <> show result
+  logDebugN logDivide
   logDebugN logDivide
 
 logDivide :: Text

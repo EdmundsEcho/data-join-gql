@@ -1,0 +1,36 @@
+{
+  "data": {
+    "validate": {
+      "fieldCount": 5,
+      "subReq": {
+        "fieldCount": 3,
+        "subjectType": "HCP",
+        "qualityMix": [{
+            "qualityName": "CalledOn",
+            "values": null,
+            "message": "Field included; fullset request."
+          },
+          {
+            "qualityName": "Specialty",
+            "values": null,
+            "message": "Field included; fullset request."
+          }
+        ],
+        "warning": null
+      },
+      "meaReqs": [{
+          "fieldCount": 1,
+          "measurementType": "Distance",
+          "componentMix": null,
+          "message": "A single summary computation for the measurement"
+        },
+        {
+          "fieldCount": 1,
+          "measurementType": "Rx",
+          "componentMix": null,
+          "message": "A single summary computation for the measurement"
+        }
+      ]
+    }
+  }
+}

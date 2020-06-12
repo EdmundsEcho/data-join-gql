@@ -1,0 +1,13 @@
+{
+  "input": {
+    "subReq": {
+      "subjectType": "HCP",
+      "qualityMix": [{
+        "qualityNames": ["CalledOn", "Specialty"]
+      }]
+    },
+    "meaReqs": [{
+      "measurementTypes": ["Rx", "Distance"]
+    }]
+  }
+}

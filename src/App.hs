@@ -37,15 +37,22 @@ import           AppTypes                             (AppConfig (..), AppObs,
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- | Servant min cors policy
+-- ** Cors
+-- |
+-- Servant min cors policy
 corsPolicy :: CorsResourcePolicy
 corsPolicy = simpleCorsResourcePolicy
          { corsRequestHeaders = [ "content-type" ] }
+
 --------------------------------------------------------------------------------
--- | Servant has ServerT instance
+-- ** Servant API
+-- |
+-- Servant "has ServerT instance"
+--
 type Api = ObsTest :<|> ObsEtlApi :<|> GraphiQL
 
--- | Proxy @Api
+-- |
+-- Proxy @Api
 apiType :: Proxy Api
 apiType = Proxy
 
@@ -56,15 +63,18 @@ apiType = Proxy
 appM :: ServerT Api AppObs
 appM  = serveObsTest :<|> serveObsEtlApi :<|> serveGraphiQL
 
---------------------------------------------------------------------------------
 -- import Network.Wai.Middleware.RequestLogger
+--------------------------------------------------------------------------------
+-- ** Application defined in wai
+-- |
 --
--- | Application from wai
 -- > Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 --
 -- serve from Servant.Server
+--
 -- > serve :: HasServer api '[] => Proxy api -> Server api -> Application
 -- > Server api :: ServerT api Handler
+--
 -- hoistServer :: HasServer api '[]
 --             => Proxy api -> (forall x. m x -> n x)
 --             -> ServerT api m -> ServerT api n
@@ -74,18 +84,13 @@ app :: Env -> Application
 app env = cors ( const $ Just corsPolicy )
         . serve apiType $ hoistServer apiType (nat env) appM
 
--- | Single point of access to the module
+-- |
+-- Single point of access to the module
 exec :: AppConfig -> IO ()
 exec config = do
   let p = port config
   db <- newTVarIO dbInit
-  Warp.run p $ app (Env db Nothing config)
-
--- nat env :: Env -> AppObs a -> Handler a
--- appM :: ServerT Api AppObs
--- hoistServer :: Proxy api
---             -> (forall x. m x -> n x) -> ServerT api m -> ServerT api n
--- serve :: Server api -> Application
+  Warp.run p $ app (Env db (Just config))
 
 
   --

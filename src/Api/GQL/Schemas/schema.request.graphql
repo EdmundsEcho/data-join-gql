@@ -10,7 +10,6 @@ have no influence on the length of the table, i.e., on the number of records.
 
 The request can include any number of requests from the same 'Measurement'
 can be defined with different mixes of components.
-
 """
 input RequestInput {
   """
@@ -49,7 +48,6 @@ input QualityMixInput {
 
   - QualKey Nothing => display the quality field, select all levels
   - QualKey Just vs => display the quality field, select levels
-
 """
 input QualityReqInput {
   """
@@ -135,7 +133,6 @@ input ComponentReqInput {
   'Measurement'. If not specified, the request generates a series of fields
   using all values (levels). Components that are not speficied will default
   to a summary computation.
-
   """
   componentValues: CompValuesReqInput
 }
@@ -153,15 +150,17 @@ input CompValuesReqInput {
 
 # View of the Model
 """
-Minimum viable is a Subject and Measurement type request.  This can be implied
-from any request input.
-
-Displays warning.
+Minimum viable is a Subject and Measurement type request.
 """
 type Request implements FieldCount {
   subReq: QualityMix!
   meaReqs: [ComponentMix!]!
   fieldCount: Int!
+  meta: [Meta!]!
+}
+type Meta {
+  field: String!
+  value: String!
 }
 type QualityMix implements Warning & FieldCount {
   """
@@ -206,7 +205,6 @@ type ComponentMix implements Message & FieldCount {
   Produces a series of fields consisting of the combinations of measurement
   components described here. If none are included, a single summary field will be
   included in the request (i.e., a series of length one).
-
   """
   componentMix: [ReqComponent!]
   """

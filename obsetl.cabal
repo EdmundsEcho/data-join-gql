@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d34387e4a078da4a92a88f3b8fc1dd0e1a1547ae15eb2d0565119b8165763290
+-- hash: 6456d3f88ae63695a04b5b1836eede87310a58d9f261e51f2e4122f9c7003e80
 
 name:           obsetl
 version:        0.1.2.0
@@ -31,15 +31,17 @@ library
       Api.GQL.Input.MeaRequests
       Api.GQL.Input.Request
       Api.GQL.Input.SubRequest
-      Api.GQL.Matrix
+      Api.GQL.MatrixSpec
       Api.GQL.ObsETL
       Api.GQL.ObsTest
       Api.GQL.RequestView
       Api.GQL.Root
-      Api.GQL.Schemas.Matrix
+      Api.GQL.RootResolvers
+      Api.GQL.Schemas.MatrixSpec
       Api.GQL.Schemas.ObsETL
       Api.GQL.Schemas.Request
       Api.GQL.Schemas.Shared
+      Api.GQL.Types
       Api.GqlHttp
       Api.HTTP.GraphiQL
       Api.HTTP.ObsETL
@@ -58,21 +60,18 @@ library
       Model.ETL.Span
       Model.ETL.TagRedExp
       Model.ETL.Transformers
-      Model.Matrix.Expression
-      Model.Matrix.Expression.FieldName
-      Model.Matrix.Filter
-      Model.Matrix.Filter.FieldName
       Model.ObsTest
       Model.Request
       Model.Search
       Model.SearchFragment
       Model.Status
       ObsExceptions
+      WithAppContext
   other-modules:
       Paths_obsetl
   hs-source-dirs:
       src
-  default-extensions: DataKinds DeriveGeneric FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings PatternSynonyms QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
+  default-extensions: DataKinds DeriveGeneric DuplicateRecordFields FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings PatternSynonyms QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
   ghc-options: -Wall -fno-warn-redundant-constraints
   build-depends:
       aeson >=1.4.6.0 && <1.5
@@ -106,7 +105,7 @@ executable obsetl-exe
       Paths_obsetl
   hs-source-dirs:
       app
-  default-extensions: DataKinds DeriveGeneric FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings PatternSynonyms QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
+  default-extensions: DataKinds DeriveGeneric DuplicateRecordFields FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings PatternSynonyms QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
   ghc-options: -Wall -fno-warn-redundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson >=1.4.6.0 && <1.5
@@ -140,10 +139,16 @@ test-suite obsetl-test
   main-is: Spec.hs
   other-modules:
       ETL.Span
+      Lib
+      Seed.Seed
+      TestFeature
+      TestRoot
+      TestTypes
+      Types
       Paths_obsetl
   hs-source-dirs:
       test
-  default-extensions: DataKinds DeriveGeneric FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings PatternSynonyms QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
+  default-extensions: DataKinds DeriveGeneric DuplicateRecordFields FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings PatternSynonyms QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
   ghc-options: -Wall -fno-warn-redundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson >=1.4.6.0 && <1.5

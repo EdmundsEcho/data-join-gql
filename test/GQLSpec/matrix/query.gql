@@ -1,0 +1,78 @@
+query matrix($input01: RequestInput!) {
+  reqMatrixSpec(requestSpec: $input01) {
+    fieldCount
+    subExpression {
+      source {
+        codomain
+      }
+      fields {
+        value
+      }
+      filter {
+        fieldName {
+          value
+        }
+        relations {
+          lhs {
+            fieldName {
+              value
+            }
+          }
+          relation
+          rhs {
+            __typename
+            ... on TxtValues {
+              txtValues
+            }
+            ... on IntValues {
+              intValues
+            }
+          }
+        }
+      }
+    }
+    meaExpressions {
+      source {
+        codomain
+      }
+      fields {
+        value
+      }
+      filter {
+        fieldName {
+          value
+        }
+        relations {
+          lhs {
+            fieldName {
+              value
+            }
+          }
+          relation
+          rhs {
+            __typename
+            ... on TxtValues {
+              txtValues
+            }
+            ... on IntValues {
+              intValues
+            }
+            ... on SpanFilter {
+              range {
+                filterStart
+                filterEnd
+              }
+            }
+          }
+        }
+      }
+      fields {
+        value
+      }
+      reducer
+    }
+    header {
+      value
+    }
+  }
+}

@@ -12,14 +12,9 @@
 module Model.SearchFragment where
 
 -------------------------------------------------------------------------------
-import           Protolude             hiding (null)
+import           Protolude  hiding (null)
 -------------------------------------------------------------------------------
-import           Data.Coerce
--------------------------------------------------------------------------------
-import           Data.Aeson            (ToJSON)
--------------------------------------------------------------------------------
-import           Model.ETL.FieldValues
-import           Model.ETL.Fragment
+import           Data.Aeson (ToJSON)
 -------------------------------------------------------------------------------
   --
 -- |
@@ -47,13 +42,3 @@ instance Semigroup a => Semigroup (SearchFragment a b) where
   SearchFragment a1 <> SearchFragment a2 = SearchFragment $ a1 <> a2
 
 instance ToJSON a => ToJSON (SearchFragment a b)
-
-instance Fragment (SearchFragment FieldValues 'ETL) where
-  null = (null @FieldValues) . coerce
-  len  = (len  @FieldValues) . coerce
-instance Fragment (SearchFragment FieldValues 'Req) where
-  null = (null @FieldValues) . coerce
-  len  = (len  @FieldValues) . coerce
-instance Fragment (SearchFragment FieldValues 'ETLSubset) where
-  null = (null @FieldValues) . coerce
-  len  = (len  @FieldValues) . coerce

@@ -22,10 +22,11 @@ import           Control.Monad.Logger
 import           Api.ETL
 import qualified Api.GQL.ObsETL          as Shared
 ---------------------------------------------------------------------------------
-import           Model.ETL.ObsETL        (mkQualKey, mkSubKey, unKey)
+import           Model.ETL.ObsETL        (mkSubKey, unKey)
 import qualified Model.ETL.ObsETL        as Model (QualValues, Qualities (..),
-                                                   SubKey, Subject, subType)
-import qualified Model.Request           as Model (ReqQualities)
+                                                   Subject, subType)
+import qualified Model.Request           as Model (ReqQualities,
+                                                   getReqQualityNames')
 ---------------------------------------------------------------------------------
 import           Model.ETL.Fragment
 import           Model.Search
@@ -60,7 +61,7 @@ ppRequest req etl =
 --
 fetchQualityMix :: (MonadLogger m, MonadThrow m)
                 => Maybe GqlInput.QualityMixInput -> Model.Subject
-                -> m (Maybe (Model.SubKey, Maybe(SearchFragment Model.ReqQualities 'ETLSubset)))
+                -> m (Maybe SubjectETLSubset)
 
 fetchQualityMix maybeRequest etl = do
 
@@ -68,7 +69,16 @@ fetchQualityMix maybeRequest etl = do
       reqKey   = (\GqlInput.QualityMixInput {subjectType}  -- avoid namespace collision
                  -> mkSubKey $ fromJust subjectType) request'
 
-  let result = getEtlFragment etl mkSubKey request'
+  let GqlInput.QualityMixInput {qualityMix = mix} = request'
+
+  if isJust mix
+     then logDebugN $ ("quality searches: "::Text) <> show (sum $
+          (\GqlInput.QualityReqInput {..} ->
+                  maybe 0 length qualityNames +
+                  maybe 0 (const 1) qualityName) <$> fromJust mix)
+     else logDebugN "No QualityMix"
+
+  let result = getEtlFragment etl request'
 
   case result of
     -- 1. did the key return qualities?
@@ -87,7 +97,7 @@ fetchQualityMix maybeRequest etl = do
         -- 2. does a qualityMix request exist?
         -- No, return minimum viable response.
         Nothing -> do
-          logDebugN $ "Subject type only request: " <> show (fst etlQuals)
+          logDebugN $ "Running request without QUALMIX: " <> show (fst etlQuals)
           pure . Just $ (fst etlQuals, Nothing)
 
         -- Yes,
@@ -96,7 +106,7 @@ fetchQualityMix maybeRequest etl = do
 
           -- propogate the request to child requests
 
-          logDebugN "SUBJECT"
+          logDebugN "QUALMIX"
 
           -- Subset requests
           let subsetReqs = concat $ GqlInput.subsets <$> qualMixReq
@@ -107,7 +117,7 @@ fetchQualityMix maybeRequest etl = do
           -- Fullset requests
           let fullsetReqs = concat $ GqlInput.fullsets <$> qualMixReq
           logDebugN $ "subject fullset requests: " <> show (length fullsetReqs)
-          let results       = catMaybes $ getEtlFragment (snd etlQuals) mkQualKey
+          let results       = catMaybes $ getEtlFragment (snd etlQuals)
                             <$> fullsetReqs  -- lift over a list of requests
           let normalizedRes = fromListReqQualities
                             $ (\(key, _) -> (key, Nothing)) <$> results
@@ -123,9 +133,11 @@ fetchQualityMix maybeRequest etl = do
 
                    else pure . Just $ normalizedRes
 
-          logDebugN $ "Subject Results"
-                    <> "\nsubsets: " <> show (length subsetResults)
-                    <> "\nfullSets: " <> show (length fullsetResults)
+          logDebugN   "Subject Results"
+          logDebugN $ "Subsets: "
+                    <> show (Model.getReqQualityNames' <$> subsetResults)
+          logDebugN $ "FullSets: "
+                    <> show (Model.getReqQualityNames' <$> fullsetResults)
 
           -- instantiate the Model.Request
           pure . Just $ ((subsetResults <> fullsetResults) <$ etlQuals)
@@ -165,7 +177,7 @@ fetchSubsetQualities requests etl = do
   where
     -- :: -> m Maybe (key, Maybe SearchFragment QualValues 'ETLSubset)
     fetchQuality req = do
-       let fullsetResult = getEtlFragment etl mkQualKey req
+       let fullsetResult = getEtlFragment etl req
        case fullsetResult of
           Nothing -> pure Nothing               -- invalid key
           Just (key, etlValues) -> do

@@ -1,0 +1,134 @@
+{
+  "data": {
+    "reqMatrixSpec": {
+      "fieldCount": 4,
+      "subExpression": {
+        "source": {
+          "codomain": "HCP"
+        },
+        "fields": null,
+        "filter": null
+      },
+      "meaExpressions": [{
+          "source": {
+            "codomain": "Distance"
+          },
+          "fields": [{
+            "value": "MeaType::Distance"
+          }],
+          "filter": null,
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.Payer::[Cash,Medicare].RxType::[NRx,Refills].SpanKey::0_5"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "Payer"
+                  }
+                },
+                "relation": "IN",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": ["Cash", "Medicare"]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "IN",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": ["NRx", "Refills"]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "BETWEEN",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 0,
+                    "filterEnd": 5
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        },
+        {
+          "source": {
+            "codomain": "Rx"
+          },
+          "fields": [{
+            "value": "MeaType::Rx"
+          }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.Payer::[Cash,Medicare].RxType::[NRx,Refills].SpanKey::8_11"
+            },
+            "relations": [{
+                "lhs": {
+                  "fieldName": {
+                    "value": "Payer"
+                  }
+                },
+                "relation": "IN",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": ["Cash", "Medicare"]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "RxType"
+                  }
+                },
+                "relation": "IN",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": ["NRx", "Refills"]
+                }
+              },
+              {
+                "lhs": {
+                  "fieldName": {
+                    "value": "SpanKey"
+                  }
+                },
+                "relation": "BETWEEN",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": {
+                    "filterStart": 8,
+                    "filterEnd": 11
+                  }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        }
+      ],
+      "header": null
+    }
+  }
+}

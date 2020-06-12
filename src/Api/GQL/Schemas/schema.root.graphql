@@ -2,10 +2,9 @@
 """
 The App Queries
 
-* View: getObsEtl
-* Validate: validate request
-* Matrix: go request
-
+* View ETL data: getObsEtl
+* Validate a data pull: validate request
+* Matrix specification: reqMatrix request
 """
 type Query {
   """
@@ -21,8 +20,14 @@ type Query {
   A valid request is used to generate a data table (`Matrix`).
   """
   validate(request: RequestInput!): Request
-  # getMatrix(request: RequestInput!): Matix
-  # go: Matrix
+
+  """
+  Intantiates `Model.Request` and tries to return a `Api.GQL.Matrix` view
+  of the request. This json view is then used to pull data from the
+  `ETLWharehouse`.
+  """
+  reqMatrixSpec(requestSpec: RequestInput!): MatrixSpec
+
   getStatus: Text!
 }
 

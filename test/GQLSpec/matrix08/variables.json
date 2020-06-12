@@ -1,0 +1,48 @@
+{
+  "input": {
+    "subReq": {
+      "subjectType": "HCP"
+    },
+    "meaReqs": [{
+      "measurementType": "Rx",
+      "componentMix": [{
+          "componentNames": ["RxType", "Payer", "SpanKey"],
+          "componentName": "RxType",
+          "componentValues": {
+            "reduced": false,
+            "txtValues": ["Refills", "NRx"]
+          }
+        },
+        {
+          "componentName": "Payer",
+          "componentValues": {
+            "reduced": true,
+            "txtValues": ["Cash", "Medicare"]
+          }
+        },
+        {
+          "componentName": "SpanKey",
+          "componentValues": {
+            "reduced": true,
+            "spanValues": [{
+                "rangeStart": 0,
+                "rangeLength": 3,
+                "reduced": true
+              },
+              {
+                "rangeStart": 3,
+                "rangeLength": 3,
+                "reduced": true
+              },
+              {
+                "rangeStart": 6,
+                "rangeLength": 3,
+                "reduced": true
+              }
+            ]
+          }
+        }
+      ]
+    }]
+  }
+}

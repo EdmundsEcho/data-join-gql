@@ -67,21 +67,22 @@ import           Control.Exception.Safe
 import           Control.Monad.Logger
 import           ObsExceptions
 -------------------------------------------------------------------------------
+import qualified Model.ETL.Fragment     as Model (toList)
 import qualified Model.ETL.ObsETL       as Model hiding (fromList)
 import qualified Model.ETL.TagRedExp    as Model
 import qualified Model.ETL.Transformers as Trans
 -------------------------------------------------------------------------------
-import           Api.GqlHttp
--------------------------------------------------------------------------------
 import           Api.GQL.Schemas.ObsETL
 import           Api.GQL.Schemas.Shared
+import           Api.GQL.Types
+import           WithAppContext
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 -- * ObsETL Model -> View
 -- |
 --
-resolverObsEtl :: GraphQL o => Model.ObsETL -> Object o ObsETL
+resolverObsEtl :: GraphQL o m => Model.ObsETL -> Object o m ObsETL
 resolverObsEtl Model.ObsETL {..} =
   pure $
     ObsETL
@@ -89,21 +90,21 @@ resolverObsEtl Model.ObsETL {..} =
       (resolverSubject obsSubject)            -- :: Model.Subject -> Subject
       (resolverMeasurements obsMeasurements)  -- :: Model.Measurements -> [Measurement]
 
-resolverID :: GraphQL o => Model.ID -> Value o Text
+resolverID :: GraphQL o m => Model.ID -> Value o m Text
 resolverID = pure . Model.unID
 
 -------------------------------------------------------------------------------
 -- ** Subject Model -> View
 -- |
 --
-resolverSubject :: GraphQL o => Model.Subject -> Object o Subject
+resolverSubject :: GraphQL o m => Model.Subject -> Object o m Subject
 resolverSubject Model.Subject {..} =
   pure $
     Subject
       (resolverSubType subType)        -- :: Model.Key       -> String!
       (resolverQualities subQualities) -- :: Model.Qualities -> [Quality!]!
 
-resolverSubType :: GraphQL o => Model.SubKey -> Value o Text
+resolverSubType :: GraphQL o m => Model.SubKey -> Value o m Text
 resolverSubType = pure . Model.unKey
 
 --------------------------------------------------------------------------------
@@ -111,13 +112,14 @@ resolverSubType = pure . Model.unKey
 -- |
 -- /Note/: The model does not host Measurement
 --
-resolverMeasurements :: GraphQL o
-                     => Model.Measurements -> ArrayObject o Measurement
+resolverMeasurements :: GraphQL o m
+                     => Model.Measurements -> ArrayObject o m Measurement
 resolverMeasurements o'
   = traverse identity $ Trans.fromMeasurements resolverMeasurement o'
   where
-    resolverMeasurement :: GraphQL o
-                        => Model.MeaKey -> Model.Components -> Object o Measurement
+    resolverMeasurement :: GraphQL o m
+                        => Model.MeaKey -> Model.Components
+                        -> Object o m Measurement
     resolverMeasurement key o'' =
       pure $
         Measurement
@@ -136,8 +138,8 @@ resolverMeasurements o'
 -- >   componentValues: ComponentValues!
 -- > }
 --
-resolverComponent :: GraphQL o
-                  => Model.CompKey -> Model.CompValues -> Object o Component
+resolverComponent :: GraphQL o m
+                  => Model.CompKey -> Model.CompValues -> Object o m Component
 resolverComponent key o' =
   pure $
     Component
@@ -157,7 +159,7 @@ resolverComponent key o' =
 --
 -- TODO: Complete the use of Empty.  e.g., have it display null in GQL.
 --
-resolverCompValues :: GraphQL o => Model.CompValues -> Object o ComponentValues
+resolverCompValues :: GraphQL o m => Model.CompValues -> Object o m ComponentValues
 resolverCompValues (Model.TxtSet o') =
   ComponentValuesTxtValues <$> resolverTxtValues (Model.TxtSet o')
 
@@ -181,12 +183,12 @@ resolverCompValues Model.Empty =
 --     qualityName :: Text
 --     qualityValues :: Union QualityValuesTxtValues ...
 --
-resolverQualities :: GraphQL o => Model.Qualities -> ArrayObject o Quality
+resolverQualities :: GraphQL o m => Model.Qualities -> ArrayObject o m Quality
 resolverQualities o'
   = traverse identity $ Trans.fromQualities resolverQuality o'
 
-resolverQuality :: GraphQL o
-                => Model.QualKey -> Model.QualValues -> Object o Quality
+resolverQuality :: GraphQL o m
+                => Model.QualKey -> Model.QualValues -> Object o m Quality
 resolverQuality key o' =
   pure $
     Quality
@@ -204,7 +206,7 @@ resolverQuality key o' =
 --
 -- Pattern match to delegate to one of the 3 value types
 --
-resolverQualValues :: GraphQL o => Model.QualValues -> Object o QualityValues
+resolverQualValues :: GraphQL o m => Model.QualValues -> Object o m QualityValues
 resolverQualValues (Model.TxtSet o') =
   QualityValuesTxtValues <$> resolverTxtValues (Model.TxtSet o')
 
@@ -218,17 +220,17 @@ resolverQualValues  _ = panic "QualValues resolver: tried with the wrong type."
 -- |
 -- FieldValues :: TxtValues | IntValues | SpanValues
 --
-resolverTxtValues :: GraphQL o => Model.FieldValues -> Object o TxtValues
+resolverTxtValues :: GraphQL o m => Model.FieldValues -> Object o m TxtValues
 resolverTxtValues vs@(Model.TxtSet _) = pure $
   TxtValues { txtValues = pure $ Model.toList vs }
 resolverTxtValues  _ = panic "Values resolver: tried with the wrong type."
 
-resolverIntValues :: GraphQL o => Model.FieldValues -> Object o IntValues
+resolverIntValues :: GraphQL o m => Model.FieldValues -> Object o m IntValues
 resolverIntValues vs@(Model.IntSet _) = pure $
   IntValues { intValues = pure $ Model.toList vs }
 resolverIntValues  _ = panic "Values resolver: tried with the wrong type."
 
-resolverSpanValues :: GraphQL o => Model.FieldValues -> Object o SpanValues
+resolverSpanValues :: GraphQL o m => Model.FieldValues -> Object o m SpanValues
 resolverSpanValues vs@(Model.SpanSet _) = pure $
   SpanValues { spanValues = traverse resolverSpanValue (Model.toList vs) }
 resolverSpanValues  _ = panic "Values resolver: tried with the wrong type."
@@ -237,7 +239,7 @@ resolverSpanValues  _ = panic "Values resolver: tried with the wrong type."
 -- ***** SpanValue Model -> View
 -- |
 --
-resolverSpanValue :: GraphQL o => Model.Span -> Object o Span
+resolverSpanValue :: GraphQL o m => Model.Span -> Object o m Span
 resolverSpanValue = \case
   (Model.Span (Model.Red Model.Range{..})) ->
     pure $ Span { rangeStart = pure rangeStart
@@ -252,12 +254,11 @@ resolverSpanValue = \case
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
---------------------------------------------------------------------------------
 -- * GQL Input
 -- |
 -- (GQL -> Model)
 --
-fromInputObsEtl :: (MonadLogger m, MonadCatch m, MonadThrow m)
+fromInputObsEtl :: WithAppContext m
                 => ObsEtlInput -> m (Either ObsException Model.ObsETL)
 fromInputObsEtl ObsEtlInput {..}
   = catch
