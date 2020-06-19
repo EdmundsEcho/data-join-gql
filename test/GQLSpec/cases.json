@@ -3,6 +3,10 @@
     "description": "Instantiate a new ObsETL"
   },
   {
+    "path": "view01",
+    "description": "View the ObsEtl instance"
+  },
+  {
     "path": "validate",
     "description": "Validate a request"
   },
@@ -64,6 +68,6 @@
   },
   {
     "path": "matrix08",
-    "description": "Series of time reductions"
+    "description": "Series of time reductions (field names only)"
   }
 ]

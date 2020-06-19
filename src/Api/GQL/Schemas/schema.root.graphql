@@ -34,7 +34,7 @@ type Query {
 # Root Mutation
 type Mutation {
   """
-  Load the ObsETL data.
+  Load and set the App's state using the ObsETL data.
   """
   newObsEtl(value: ObsEtlInput!): ObsETL!
 }

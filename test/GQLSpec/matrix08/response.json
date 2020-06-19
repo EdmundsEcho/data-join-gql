@@ -1,252 +1,40 @@
 {
   "data": {
     "reqMatrixSpec": {
-      "fieldCount": 5,
       "subExpression": {
         "source": {
           "codomain": "HCP"
-        },
-        "fields": null,
-        "filter": null
+        }
       },
       "meaExpressions": [{
-          "source": {
-            "codomain": "Rx"
-          },
-          "fields": [{
-            "value": "MeaType::Rx"
-          }],
           "filter": {
             "fieldName": {
-              "value": "MeaType::Rx.Payer::[Cash,Medicare].RxType::NRx.SpanKey::0_2"
-            },
-            "relations": [{
-                "lhs": {
-                  "fieldName": {
-                    "value": "Payer"
-                  }
-                },
-                "relation": "IN",
-                "rhs": {
-                  "__typename": "TxtValues",
-                  "txtValues": [
-                    "Cash",
-                    "Medicare"
-                  ]
-                }
-              },
-              {
-                "lhs": {
-                  "fieldName": {
-                    "value": "RxType"
-                  }
-                },
-                "relation": "EQ",
-                "rhs": {
-                  "__typename": "TxtValues",
-                  "txtValues": [
-                    "NRx"
-                  ]
-                }
-              },
-              {
-                "lhs": {
-                  "fieldName": {
-                    "value": "SpanKey"
-                  }
-                },
-                "relation": "BETWEEN",
-                "rhs": {
-                  "__typename": "SpanFilter",
-                  "range": {
-                    "filterStart": 0,
-                    "filterEnd": 2
-                  }
-                }
-              }
-            ]
-          },
-          "reducer": "SUM"
+              "value": "MeaType::Rx.Payer::$Cash,Medicare$.RxType::NRx.SpanKey::0_2"
+            }
+          }
         },
         {
-          "source": {
-            "codomain": "Rx"
-          },
-          "fields": [{
-            "value": "MeaType::Rx"
-          }],
           "filter": {
             "fieldName": {
-              "value": "MeaType::Rx.Payer::[Cash,Medicare].RxType::NRx.SpanKey::3_5"
-            },
-            "relations": [{
-                "lhs": {
-                  "fieldName": {
-                    "value": "Payer"
-                  }
-                },
-                "relation": "IN",
-                "rhs": {
-                  "__typename": "TxtValues",
-                  "txtValues": [
-                    "Cash",
-                    "Medicare"
-                  ]
-                }
-              },
-              {
-                "lhs": {
-                  "fieldName": {
-                    "value": "RxType"
-                  }
-                },
-                "relation": "EQ",
-                "rhs": {
-                  "__typename": "TxtValues",
-                  "txtValues": [
-                    "NRx"
-                  ]
-                }
-              },
-              {
-                "lhs": {
-                  "fieldName": {
-                    "value": "SpanKey"
-                  }
-                },
-                "relation": "BETWEEN",
-                "rhs": {
-                  "__typename": "SpanFilter",
-                  "range": {
-                    "filterStart": 3,
-                    "filterEnd": 5
-                  }
-                }
-              }
-            ]
-          },
-          "reducer": "SUM"
+              "value": "MeaType::Rx.Payer::$Cash,Medicare$.RxType::NRx.SpanKey::3_5"
+            }
+          }
         },
         {
-          "source": {
-            "codomain": "Rx"
-          },
-          "fields": [{
-            "value": "MeaType::Rx"
-          }],
           "filter": {
             "fieldName": {
-              "value": "MeaType::Rx.Payer::[Cash,Medicare].RxType::Refills.SpanKey::0_2"
-            },
-            "relations": [{
-                "lhs": {
-                  "fieldName": {
-                    "value": "Payer"
-                  }
-                },
-                "relation": "IN",
-                "rhs": {
-                  "__typename": "TxtValues",
-                  "txtValues": [
-                    "Cash",
-                    "Medicare"
-                  ]
-                }
-              },
-              {
-                "lhs": {
-                  "fieldName": {
-                    "value": "RxType"
-                  }
-                },
-                "relation": "EQ",
-                "rhs": {
-                  "__typename": "TxtValues",
-                  "txtValues": [
-                    "Refills"
-                  ]
-                }
-              },
-              {
-                "lhs": {
-                  "fieldName": {
-                    "value": "SpanKey"
-                  }
-                },
-                "relation": "BETWEEN",
-                "rhs": {
-                  "__typename": "SpanFilter",
-                  "range": {
-                    "filterStart": 0,
-                    "filterEnd": 2
-                  }
-                }
-              }
-            ]
-          },
-          "reducer": "SUM"
+              "value": "MeaType::Rx.Payer::$Cash,Medicare$.RxType::Refills.SpanKey::0_2"
+            }
+          }
         },
         {
-          "source": {
-            "codomain": "Rx"
-          },
-          "fields": [{
-            "value": "MeaType::Rx"
-          }],
           "filter": {
             "fieldName": {
-              "value": "MeaType::Rx.Payer::[Cash,Medicare].RxType::Refills.SpanKey::3_5"
-            },
-            "relations": [{
-                "lhs": {
-                  "fieldName": {
-                    "value": "Payer"
-                  }
-                },
-                "relation": "IN",
-                "rhs": {
-                  "__typename": "TxtValues",
-                  "txtValues": [
-                    "Cash",
-                    "Medicare"
-                  ]
-                }
-              },
-              {
-                "lhs": {
-                  "fieldName": {
-                    "value": "RxType"
-                  }
-                },
-                "relation": "EQ",
-                "rhs": {
-                  "__typename": "TxtValues",
-                  "txtValues": [
-                    "Refills"
-                  ]
-                }
-              },
-              {
-                "lhs": {
-                  "fieldName": {
-                    "value": "SpanKey"
-                  }
-                },
-                "relation": "BETWEEN",
-                "rhs": {
-                  "__typename": "SpanFilter",
-                  "range": {
-                    "filterStart": 3,
-                    "filterEnd": 5
-                  }
-                }
-              }
-            ]
-          },
-          "reducer": "SUM"
+              "value": "MeaType::Rx.Payer::$Cash,Medicare$.RxType::Refills.SpanKey::3_5"
+            }
+          }
         }
-      ],
-      "header": null
+      ]
     }
   }
 }

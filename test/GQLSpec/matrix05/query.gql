@@ -39,9 +39,6 @@ query matrix($input: RequestInput!) {
         value
       }
       filter {
-        fieldName {
-          value
-        }
         relations {
           lhs {
             fieldName {

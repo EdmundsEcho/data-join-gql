@@ -1,12 +1,22 @@
 # MatrixSpec is a view of the Model.Request
 """
 Describes the specification for pulling the Matrix data.
-The specification includes an Expression for Subject and
-a list of Expressions for the Measurements. Note: field names
-can be derived from each of the expressions.
+Matrix simply means a table of data where each row describes a single `Subject`.
+The specification includes an Expression for Subject and a list of Expressions
+for the Measurements.
 """
 type MatrixSpec {
+  """
+  Expression that describe the requested `Subject`s. Each `Filter` in the
+  `Expression` are used to determine the qualities of the subjects to be
+  included in the matrix data request.
+  """
   subExpression: Expression!
+  """
+  Fields that describe the measurement(s) for a given `Subject`.
+  Each `Expression` captures a field in the matrix generated
+  using `GROUP BY SUBJECT ID`.
+  """
   meaExpressions: [Expression!]!
   """
   header is a collection of `FieldNames` sourced as follows:

@@ -27,9 +27,6 @@
             "value": "MeaType::Rx"
           }],
           "filter": {
-            "fieldName": {
-              "value": "MeaType::Rx.Payer::[Cash,Medicare].RxType::[NRx,Refills].SpanKey::0_5"
-            },
             "relations": [{
                 "lhs": {
                   "fieldName": {
@@ -81,9 +78,6 @@
             "value": "MeaType::Rx"
           }],
           "filter": {
-            "fieldName": {
-              "value": "MeaType::Rx.Payer::[Cash,Medicare].RxType::[NRx,Refills].SpanKey::8_11"
-            },
             "relations": [{
                 "lhs": {
                   "fieldName": {

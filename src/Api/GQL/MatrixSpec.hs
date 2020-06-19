@@ -63,6 +63,8 @@ resolverMatrixSpec :: (GraphQL o m, WithAppContext m)
 
 resolverMatrixSpec req@Model.Request {..} = do
 
+  lift $ logInfoN ("Processing Input Request for MatrixSpec"::Text)
+
   lift $ logDebugN ("\n------ TOP --------\n"::Text)
   lift $ logDebugF req
   lift $ logDebugN ("\n------- BOTTOM -------\n"::Text)
@@ -182,11 +184,12 @@ resolverComponentMix :: (GraphQL o m, MonadLogger m)
 resolverComponentMix mix =
   case snd mix of
      Just vs -> mkExps (fst mix) (mkFilters vs)
-     Nothing -> [pure $ GqlType.Expression { source = resolverSource (fst mix)
-                                    , filter = pure Nothing
-                                    , fields = pure field
-                                    , reducer = resolverReducer
-                                    }]
+     Nothing -> [pure $ GqlType.Expression
+        { source = resolverSource (fst mix)
+        , filter = pure Nothing
+        , fields = pure field
+        , reducer = resolverReducer
+        }]
 
       -- temporary hack until I can figure out the types
       where

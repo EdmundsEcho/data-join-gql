@@ -13,6 +13,7 @@ module WithAppContext
 
   -- re-exports
   , module ObsExceptions
+  , ToJSON
 
   -- Exception handling
   , MonadThrow
@@ -39,6 +40,7 @@ module WithAppContext
   )
   where
 ---------------------------------------------------------------------------------
+import qualified Data.ByteString.Lazy     as B
 import           Protolude
 ---------------------------------------------------------------------------------
 import           Data.Aeson               (FromJSON, ToJSON, defaultOptions,
@@ -110,12 +112,26 @@ newtype AppConfig = AppConfig { port :: Int }
 -- == Logging capacity
 -- |
 --
--- /Note/ To access the AppObs logging capacity
+-- TODO: The function converts Lazy -> Strict.  This is an expensive computation
+-- that should be avoided.  Does encodePretty have a strict version?
+--
+-- /Note from David@morpheus/ To access the AppObs logging capacity
 -- ~ runReaderT (runApp resolver) readerContext
 --
 logDebugF :: (ToJSON a, MonadLogger m) => a -> m ()
-logDebugF = logDebugN . show . toLogStr . encodePretty
+logDebugF = $(logDebug) . decodeUtf8 . B.toStrict . encodePretty
 
+-------------------------------------------------------------------------------
+-- |
+-- TODO
+-- Why the approach for filtering log messages is not made explicitely clear in
+-- the docs is annoying.
+--
+filterNoDebug :: LoggingT m a -> LoggingT m a
+filterNoDebug = filterLogger noDebug
+  where
+    noDebug :: LogSource -> LogLevel -> Bool
+    noDebug = undefined
 -------------------------------------------------------------------------------
 data LogMessage = LogMessage {
   message        :: !Text

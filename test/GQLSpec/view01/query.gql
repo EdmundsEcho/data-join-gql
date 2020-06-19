@@ -1,0 +1,32 @@
+query {
+  getObsEtl {
+    subject {
+      qualities {
+        qualityName
+      }
+      subjectType
+    }
+    measurements {
+      measurementType
+      components {
+        componentName
+        componentValues {
+          __typename
+          ... on TxtValues {
+            txtValues
+          }
+          ... on IntValues {
+            intValues
+          }
+          ... on SpanValues {
+            spanValues {
+              rangeStart
+              rangeLength
+              reduced
+            }
+          }
+        }
+      }
+    }
+  }
+}

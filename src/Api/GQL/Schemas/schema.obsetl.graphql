@@ -1,6 +1,7 @@
 # Obs - input
 # (state from which all else follows)
 input ObsEtlInput {
+  id: String
   subject: SubjectInput!
   measurements: [MeasurementInput!]!
 }
@@ -92,11 +93,7 @@ type Component {
 """
 Union of Keys to encode the key's type. Each is an object.
 """
-union Key
-  = TypeKey
-  | QualKey
-  | CompKey
-  | SpanKey
+union Key = TypeKey | QualKey | CompKey | SpanKey
 
 """
 Part of Enum Key. Object is required to encode the Key's value.

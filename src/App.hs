@@ -80,9 +80,9 @@ appM  = serveObsTest :<|> serveObsEtlApi :<|> serveGraphiQL
 --             -> ServerT api m -> ServerT api n
 --
 app :: Env -> Application
--- app env = logStdout . cors ( const $ Just corsPolicy )
-app env = cors ( const $ Just corsPolicy )
+app env = logStdoutDev . cors ( const $ Just corsPolicy )
         . serve apiType $ hoistServer apiType (nat env) appM
+          -- cors ( const $ Just corsPolicy )
 
 -- |
 -- Single point of access to the module

@@ -16,9 +16,6 @@ import           Protolude               hiding (null)
 ---------------------------------------------------------------------------------
 import           Data.Maybe              (fromJust)
 ---------------------------------------------------------------------------------
-import           Control.Exception.Safe
-import           Control.Monad.Logger
----------------------------------------------------------------------------------
 import           Api.ETL                 (requestCompReqValues)
 import qualified Api.GQL.ObsETL          as Shared
 ---------------------------------------------------------------------------------
@@ -33,6 +30,8 @@ import           Model.Search
 ---------------------------------------------------------------------------------
 import qualified Api.GQL.Schemas.Request as GqlInput
 import qualified Api.GQL.Schemas.Shared  as GqlInput
+---------------------------------------------------------------------------------
+import           WithAppContext
 ---------------------------------------------------------------------------------
   -- Measurements arm
 ---------------------------------------------------------------------------------
@@ -195,7 +194,7 @@ fetchSubsetComponents requests etl = do
        logDebugN "ETL data"
        logDebugN $ ("fetchComponent key: "::Text) <> show (GqlInput.requestKey req)
        logDebugN $ show (fmap showLen <$> fullsetFragment)
-       logDebugN $ show req
+       logDebugF req
 
        case fullsetFragment of
           Nothing -> do

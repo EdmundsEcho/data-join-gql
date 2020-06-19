@@ -226,7 +226,7 @@ instance NameTagC FieldValues where
 go_ :: (ToList a b, Fragment a) => (b -> Text) -> a -> Text
 go_ tagFn vs
   | len vs == 1 = intercalate "," (tagFn <$> toList vs)
-  | otherwise ="[" <> intercalate "," (tagFn <$> toList vs) <> "]"
+  | otherwise ="$" <> intercalate "," (tagFn <$> toList vs) <> "$"
 
 -- | RHS
 instance NameTagC Text where

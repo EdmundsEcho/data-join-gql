@@ -34,19 +34,17 @@
 module Api.ETL
   where
 ---------------------------------------------------------------------------------
-import           Protolude              hiding (Type, null)
+import           Protolude          hiding (Type, null)
 ---------------------------------------------------------------------------------
 import           Data.Coerce
 ---------------------------------------------------------------------------------
-import           Control.Exception.Safe
-import           Control.Monad.Logger
----------------------------------------------------------------------------------
 import           Model.ETL.Fragment
-import           Model.Search           hiding (logDivide, logRequest)
+import           Model.Search       hiding (logDivide, logRequest)
 ---------------------------------------------------------------------------------
-import           Model.ETL.ObsETL       hiding (null)
-import           Model.Request          (CompReqValues (..),
-                                         toTupleCompReqValues)
+import           Model.ETL.ObsETL   hiding (null)
+import           Model.Request      (CompReqValues (..), toTupleCompReqValues)
+---------------------------------------------------------------------------------
+import           WithAppContext
 ---------------------------------------------------------------------------------
 -- |
 --
@@ -110,14 +108,17 @@ requestQualReqValues search values = do
 --
 requestValues = requestQualReqValues
 
-logRequest :: (MonadLogger m, Show a, Show b, Show c)
+logRequest :: (MonadLogger m, ToJSON a, ToJSON b, ToJSON c)
            => Text -> a -> b -> c -> m ()
 logRequest heading search values result = do
   logDebugN logDivide
-  logDebugN $ "ETL - " <> heading
-  logDebugN $ "Search: " <> show search
-  logDebugN $ "Values: " <> show values
-  logDebugN $ "Result: " <> show result
+  logDebugN $ ("ETL - "::Text) <> heading
+  logDebugN ("Search: "::Text)
+  logDebugF search
+  logDebugN ("Values: "::Text)
+  logDebugF  values
+  logDebugN ("Result: "::Text)
+  logDebugF result
   logDebugN logDivide
   logDebugN logDivide
 

@@ -30,26 +30,25 @@ module Model.Search
   )
   where
 -------------------------------------------------------------------------------
-import           Protolude              hiding (null)
+import           Protolude             hiding (null)
 -------------------------------------------------------------------------------
 import           Data.Coerce
-import qualified Data.Map.Strict        as Map (fromList)
-import           Data.Maybe             (fromJust)
--------------------------------------------------------------------------------
-import           Control.Exception.Safe
-import           Control.Monad.Logger
+import qualified Data.Map.Strict       as Map (fromList)
+import           Data.Maybe            (fromJust)
 -------------------------------------------------------------------------------
 import           Model.ETL.FieldValues
 import           Model.ETL.Key
-import qualified Model.ETL.Span         as Span (isExp)
+import qualified Model.ETL.Span        as Span (isExp)
 import           Model.ETL.TagRedExp
 -------------------------------------------------------------------------------
-import           Model.Request          hiding (areSpanValues, minQualityMix)
-import qualified Model.Request          as Model (minQualityMix)
+import           Model.Request         hiding (areSpanValues, minQualityMix)
+import qualified Model.Request         as Model (minQualityMix)
 -------------------------------------------------------------------------------
-import           Model.ETL.Fragment     hiding (intersection)
-import qualified Model.ETL.Fragment     as F (intersection)
+import           Model.ETL.Fragment    hiding (intersection)
+import qualified Model.ETL.Fragment    as F (intersection)
 import           Model.SearchFragment
+-------------------------------------------------------------------------------
+import           WithAppContext
 -------------------------------------------------------------------------------
 
 
@@ -263,14 +262,17 @@ minSubResult = minQualityMix
 
 
 ---------------------------------------------------------------------------------
-logRequest :: (MonadLogger m, Show a, Show b, Show c)
+logRequest :: (MonadLogger m, ToJSON a, ToJSON b, ToJSON c)
            => Text -> a -> b -> c -> m ()
 logRequest heading search values result = do
   logDebugN logDivide
   logDebugN $ "Search.hs - " <> heading
-  logDebugN $ "Search: " <> show search
-  logDebugN $ "Values: " <> show values
-  logDebugN $ "Result: " <> show result
+  logDebugN ("Search: "::Text)
+  logDebugF search
+  logDebugN ("Values: "::Text)
+  logDebugF  values
+  logDebugN ("Result: "::Text)
+  logDebugF result
   logDebugN logDivide
   logDebugN logDivide
 

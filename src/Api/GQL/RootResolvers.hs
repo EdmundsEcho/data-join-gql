@@ -100,7 +100,6 @@ resolverNewObsETL :: WithAppContext m
 resolverNewObsETL NewObsEtlArgs {value = newObs} = do
   newObs' <- lift $ fromInputObsEtl newObs          -- parse input, returns Either
   store   <- getDb
-  -- lift . App.logDebugN $ "newObs: " <> show newObs'
   newDb   <- case newObs' of
                 Left  e        -> do lift . App.logErrorN $ show e; pure store
                 Right newObs'' -> pure $ store { App.db = App.DataObsETL newObs'' }

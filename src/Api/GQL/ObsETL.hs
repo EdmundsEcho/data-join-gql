@@ -10,7 +10,7 @@
 {-# OPTIONS_HADDOCK ignore-exports #-}
 -- |
 -- Module     : Api.GQL.ObsEtl
--- Description: ObsEtl UI access point
+-- Description: ObsEtl GQL Input and GQL View
 -- Copyright   : (c) Lucivia LLC, 2020
 -- Maintainer  : edmund.cape@lucivia.com
 -- Stability   : experimental
@@ -68,7 +68,7 @@ import           Control.Monad.Logger
 import           ObsExceptions
 -------------------------------------------------------------------------------
 import qualified Model.ETL.Fragment     as Model (toList)
-import qualified Model.ETL.ObsETL       as Model hiding (fromList)
+import qualified Model.ETL.ObsETL       as Model
 import qualified Model.ETL.TagRedExp    as Model
 import qualified Model.ETL.Transformers as Trans
 -------------------------------------------------------------------------------
@@ -265,7 +265,12 @@ fromInputObsEtl ObsEtlInput {..}
     (do result <-
           Model.ObsETL Model.mkID (fromInputSubject subject)  -- :: Input -> Model.Subject
           <$> fromInputMeasurements measurements                -- :: Input -> m Model.Measurements
+
+        logInfoN  "Processing Input ObsETL"
+        logDebugF result
+
         pure $ pure result
+
     ) handler
 
     where

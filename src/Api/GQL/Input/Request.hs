@@ -133,7 +133,9 @@ fetchRequest :: WithAppContext m
              -> Model.ObsETL
              -> m (Maybe (Model.Request 'Inprocess))
 
-fetchRequest req etl =
+fetchRequest req etl = do
+
+  logInfoN  "Processing Input Request"
 
   case req of
 

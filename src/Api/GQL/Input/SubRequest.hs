@@ -39,10 +39,20 @@ import qualified Api.GQL.Schemas.Shared  as GqlInput
 ppRequest :: Maybe GqlInput.QualityMixInput -> Model.Subject
           -> GqlInput.QualityMixInput
 ppRequest req etl =
-  fromJust $ req <|> (Just . GqlInput.minQualityMixInput
-                           . unKey
-                           . Model.subType
-                           $ etl)
+  let mix = fromJust $ req <|> (Just . GqlInput.minQualityMixInput
+                                     . unKey
+                                     . Model.subType
+                                     $ etl)
+
+      key = (ty =<< req) <|> Just (unKey $ Model.subType etl)
+
+   in GqlInput.QualityMixInput { subjectType = key
+                               , qualityMix  = qm mix
+                               }
+
+   where
+     ty GqlInput.QualityMixInput {subjectType} = subjectType
+     qm GqlInput.QualityMixInput {qualityMix}  = qualityMix
 
 -- |
 --
