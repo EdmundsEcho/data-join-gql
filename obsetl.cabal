@@ -1,19 +1,19 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2ad3a9a8a172eca2f0933b45f0a9dd2bdb6b6f5c93daacd958021c7cf7b2636a
+-- hash: e275c5ab4726268d65a08f751863753545517e4ef105c266dfa59d8387968168
 
 name:           obsetl
-version:        0.1.2.0
+version:        0.1.3.0
 description:    Please see the README on GitHub at <https://github.com/lucivia/obsetl#readme>
 homepage:       https://github.com/lucivia/obsetl#readme
 bug-reports:    https://github.com/lucivia/obsetl/issues
 author:         Edmund Cape
 maintainer:     edmund.cape@lucivia.com
-copyright:      Lucivia LLC 2020
+copyright:      Lucivia LLC 2021
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -31,16 +31,20 @@ library
       Api.GQL.Input.MeaRequests
       Api.GQL.Input.Request
       Api.GQL.Input.SubRequest
+      Api.GQL.LevelsResolver
       Api.GQL.MatrixSpec
       Api.GQL.ObsETL
       Api.GQL.ObsTest
       Api.GQL.RequestView
       Api.GQL.Root
       Api.GQL.RootResolvers
+      Api.GQL.Schemas.Levels
       Api.GQL.Schemas.MatrixSpec
       Api.GQL.Schemas.ObsETL
       Api.GQL.Schemas.Request
+      Api.GQL.Schemas.Root
       Api.GQL.Schemas.Shared
+      Api.GQL.SelectValuesResolver
       Api.GQL.Types
       Api.GqlHttp
       Api.HTTP.GraphiQL
@@ -71,18 +75,39 @@ library
       Paths_obsetl
   hs-source-dirs:
       src
-  default-extensions: DataKinds DeriveGeneric DuplicateRecordFields FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings PatternSynonyms QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StrictData StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      DuplicateRecordFields
+      FlexibleContexts
+      FlexibleInstances
+      KindSignatures
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      PatternSynonyms
+      QuasiQuotes
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      StrictData
+      StandaloneDeriving
+      TemplateHaskell
+      TypeApplications
+      TypeOperators
   ghc-options: -Wall -fno-warn-redundant-constraints
   build-depends:
       aeson >=1.4.6.0 && <1.5
     , aeson-pretty
     , base >=4.7 && <5
+    , base64 >=0.4.2.3
     , bytestring >=0.10.10.0 && <0.20
     , containers >=0.6.2.1 && <0.7
     , hslogger >=1.3.1.0 && <1.4
     , monad-logger >=0.3.32 && <0.4
-    , morpheus-graphql >=0.12
-    , morpheus-graphql-core
+    , morpheus-graphql >=0.17.0
+    , morpheus-graphql-core >=0.17.0
     , mtl >=2.2.2 && <3
     , optparse-applicative >=0.15.1.0 && <0.20
     , protolude
@@ -91,6 +116,7 @@ library
     , stm >=2.5.0.0 && <2.6
     , template-haskell >=2.14.0.0 && <2.20
     , text >=1.2.4.0 && <1.3
+    , text-conversions
     , transformers >=0.5.6 && <0.6
     , vector >=0.12.1.2 && <0.13
     , wai >=3.2.2.1 && <3.3
@@ -105,18 +131,39 @@ executable obsetl-exe
       Paths_obsetl
   hs-source-dirs:
       app
-  default-extensions: DataKinds DeriveGeneric DuplicateRecordFields FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings PatternSynonyms QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StrictData StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      DuplicateRecordFields
+      FlexibleContexts
+      FlexibleInstances
+      KindSignatures
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      PatternSynonyms
+      QuasiQuotes
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      StrictData
+      StandaloneDeriving
+      TemplateHaskell
+      TypeApplications
+      TypeOperators
   ghc-options: -Wall -fno-warn-redundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson >=1.4.6.0 && <1.5
     , aeson-pretty
     , base >=4.7 && <5
+    , base64 >=0.4.2.3
     , bytestring >=0.10.10.0 && <0.20
     , containers >=0.6.2.1 && <0.7
     , hslogger >=1.3.1.0 && <1.4
     , monad-logger >=0.3.32 && <0.4
-    , morpheus-graphql >=0.12
-    , morpheus-graphql-core
+    , morpheus-graphql >=0.17.0
+    , morpheus-graphql-core >=0.17.0
     , mtl >=2.2.2 && <3
     , obsetl
     , optparse-applicative >=0.15.1.0 && <0.20
@@ -126,6 +173,7 @@ executable obsetl-exe
     , stm >=2.5.0.0 && <2.6
     , template-haskell >=2.14.0.0 && <2.20
     , text >=1.2.4.0 && <1.3
+    , text-conversions
     , transformers >=0.5.6 && <0.6
     , vector >=0.12.1.2 && <0.13
     , wai >=3.2.2.1 && <3.3
@@ -148,18 +196,39 @@ test-suite obsetl-test
       Paths_obsetl
   hs-source-dirs:
       test
-  default-extensions: DataKinds DeriveGeneric DuplicateRecordFields FlexibleContexts FlexibleInstances KindSignatures MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings PatternSynonyms QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StrictData StandaloneDeriving TemplateHaskell TypeApplications TypeOperators
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      DuplicateRecordFields
+      FlexibleContexts
+      FlexibleInstances
+      KindSignatures
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      PatternSynonyms
+      QuasiQuotes
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      StrictData
+      StandaloneDeriving
+      TemplateHaskell
+      TypeApplications
+      TypeOperators
   ghc-options: -Wall -fno-warn-redundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson >=1.4.6.0 && <1.5
     , aeson-pretty
     , base >=4.7 && <5
+    , base64 >=0.4.2.3
     , bytestring >=0.10.10.0 && <0.20
     , containers >=0.6.2.1 && <0.7
     , hslogger >=1.3.1.0 && <1.4
     , monad-logger >=0.3.32 && <0.4
-    , morpheus-graphql >=0.12
-    , morpheus-graphql-core
+    , morpheus-graphql >=0.17.0
+    , morpheus-graphql-core >=0.17.0
     , mtl >=2.2.2 && <3
     , obsetl
     , optparse-applicative >=0.15.1.0 && <0.20
@@ -174,6 +243,7 @@ test-suite obsetl-test
     , tasty-rerun >=1.1.17
     , template-haskell >=2.14.0.0 && <2.20
     , text >=1.2.4.0 && <1.3
+    , text-conversions
     , transformers >=0.5.6 && <0.6
     , vector >=0.12.1.2 && <0.13
     , wai >=3.2.2.1 && <3.3

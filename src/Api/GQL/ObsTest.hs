@@ -36,16 +36,16 @@ importGQLDocument "src/Api/GQL/Schemas/schema.test.graphql"
 -- |
 -- == Root Resolver
 -- Maries Queries and Mutations
-gqlRoot :: GQLRootResolver AppObs () Query Mutation Undefined
+gqlRoot :: RootResolver AppObs () Query Mutation Undefined
 gqlRoot = rootResolver
 
--- GQLRootResolver
+-- RootResolver
 --     queryResolver :: query (Resolver QUERY event m)
 --     mutationResolver :: mut (Resolver MUTATION event m)
 --     subscriptionResolver :: sub (Resolver SUBSCRIPTION event m)
-rootResolver :: GQLRootResolver AppObs () Query Mutation Undefined
+rootResolver :: RootResolver AppObs () Query Mutation Undefined
 rootResolver =
-    GQLRootResolver
+    RootResolver
         { queryResolver =
               Query
                   { getObsTest = resolverGetObsTest

@@ -35,7 +35,7 @@ import           Model.ETL.TagRedExp
 import           Model.SearchFragment
 ---------------------------------------------------------------------------------
 import qualified Data.Set                  as Set (fromList, intersection, null,
-                                                   size, toList)
+                                                   size, toList, filter)
 ---------------------------------------------------------------------------------
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Maybe
@@ -70,31 +70,6 @@ instance Fragment [a] where
   null _  = False
   len [] = 0
   len xs = length xs
-
-
--- |
-instance GetEtlFragment Measurements MeaKey Components where
-  getValues measurements k
-    = let key = mkMeaKey k
-       in (key,) <$> Measurements.lookup measurements key
-
--- |
-instance GetEtlFragment Subject SubKey Qualities where
-  -- getValues :: Ord k => collection -> Text -> Maybe (k,values)
-  getValues Subject {..} _ = Just (subType, subQualities)
-
--- |
-instance GetEtlFragment Qualities QualKey (SearchFragment QualValues 'ETL) where
-  getValues qualities k
-    = let key = mkQualKey k
-       in coerce . (key,) <$> Qualities.lookup qualities key
-
--- |
---
-instance GetEtlFragment Components CompKey (SearchFragment CompValues 'ETL) where
-  getValues components k
-    = let key = mkCompKey k
-       in coerce . (key,) <$> Components.lookup components key
 
 
 -- |
@@ -188,6 +163,27 @@ instance Intersection FieldValues where
   intersection (IntSet get)  (IntSet from)  = IntSet  $ Set.intersection  get from
   intersection (SpanSet get) (SpanSet from) = SpanSet $ Span.intersection get from
   intersection _ _ = panic "Type mismatch: intersection using different types"
+
+---------------------------------------------------------------------------------
+-- |
+class HasFilterSearch i c where
+  filterSearch  :: (i -> Bool) -> c -> c
+
+-- |
+instance HasFilterSearch Text FieldValues where
+  filterSearch p (TxtSet values)  = TxtSet $ Set.filter p values
+  filterSearch _ _ = panic "Type mismatch:  using a Text filter on the wrong FieldValues"
+
+-- |
+instance HasFilterSearch Int FieldValues where
+  filterSearch p (IntSet values)  = IntSet $ Set.filter p values
+  filterSearch _ _ = panic "Type mismatch:  using an Int filter on the wrong FieldValues"
+
+-- |
+instance HasFilterSearch Span FieldValues where
+  filterSearch p (SpanSet values)  = SpanSet $ Set.filter p values
+  filterSearch _ _ = panic "Type mismatch:  using a Span filter on the wrong FieldValues"
+
 
 ---------------------------------------------------------------------------------
 -- ** NameTag
@@ -362,6 +358,33 @@ class (RequestKey request, GetEtlFragment etl k fragment)
   isSubset req collection = case requestKey req of
      Nothing -> True
      Just _  -> member req collection
+
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+-- |
+instance GetEtlFragment Measurements MeaKey Components where
+  getValues measurements k
+    = let key = mkMeaKey k
+       in (key,) <$> Measurements.lookup measurements key
+
+-- |
+instance GetEtlFragment Subject SubKey Qualities where
+  -- getValues :: Ord k => collection -> Text -> Maybe (k,values)
+  getValues Subject {..} _ = Just (subType, subQualities)
+
+-- |
+instance GetEtlFragment Qualities QualKey (SearchFragment QualValues 'ETL) where
+  getValues qualities k
+    = let key = mkQualKey k
+       in coerce . (key,) <$> Qualities.lookup qualities key
+
+-- |
+--
+instance GetEtlFragment Components CompKey (SearchFragment CompValues 'ETL) where
+  getValues components k
+    = let key = mkCompKey k
+       in coerce . (key,) <$> Components.lookup components key
+
 
 instance IsSubset SubsetCompMixReq  Measurements MeaKey  Components
 instance IsSubset ComponentMixInput Measurements MeaKey  Components

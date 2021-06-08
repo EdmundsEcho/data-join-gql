@@ -31,11 +31,14 @@ module Model.Search
   where
 -------------------------------------------------------------------------------
 import           Protolude             hiding (null)
+import           Data.Text             (count)
 -------------------------------------------------------------------------------
 import           Data.Coerce
 import qualified Data.Map.Strict       as Map (fromList)
 import           Data.Maybe            (fromJust)
+import qualified Data.Set              as Set (filter)
 -------------------------------------------------------------------------------
+import           Model.ETL.Components
 import           Model.ETL.FieldValues
 import           Model.ETL.Key
 import qualified Model.ETL.Span        as Span (isExp)
@@ -114,9 +117,29 @@ instance ToFragmentReq CompReqValues where
 class ToFragmentETL a where
   toFragmentETL :: a -> SearchFragment a 'ETL
 
+instance ToFragmentETL Components where
+  toFragmentETL = SearchFragment
+
 instance ToFragmentETL FieldValues where
   toFragmentETL = SearchFragment
 
+-- |
+-- Host for Fieldvalues 'ETLSubset
+--
+class ToFragmentETLSubset a where
+  toFragmentETLSubset :: a -> SearchFragment a 'ETLSubset
+
+instance ToFragmentETLSubset FieldValues where
+  toFragmentETLSubset = SearchFragment
+
+
+class ToEtlFromFragment a where
+  toEtlFromFragment :: SearchFragment a 'ETLSubset -> a
+  toEtl :: SearchFragment a 'ETL -> a
+
+instance ToEtlFromFragment FieldValues where
+  toEtlFromFragment = coerce
+  toEtl = coerce
 
 -- ** Module benefit - structured subset function
 -- |
@@ -164,6 +187,39 @@ intersection :: SearchFragment FieldValues 'Req
 
 intersection (SearchFragment s) (SearchFragment vs) =
   SearchFragment $ F.intersection s vs
+
+-- |
+-- selectWithTerm
+--
+selectWithTerm :: (MonadThrow m, MonadLogger m)
+        => Text -> SearchFragment FieldValues 'ETL
+        -> m (SearchFragment FieldValues 'ETLSubset)
+
+selectWithTerm searchTerm etl
+  | searchTerm == "" = do
+    let heading = " The search term is empty; return all values"
+    let result = toSearchResult etl
+    logRequest heading searchTerm etl result
+    pure $ toFragmentETLSubset result
+
+  | otherwise = case toSearchResult etl of
+    TxtSet xs -> do
+      let heading = " The search term is: " <> searchTerm
+      let result :: FieldValues = TxtSet $ Set.filter (isSubstring searchTerm) xs
+      logRequest heading searchTerm etl result
+      pure $ toFragmentETLSubset result
+
+    _ -> do
+      let heading = " Not yet supported"
+      let result = toSearchResult etl
+      logRequest heading searchTerm etl result
+      pure $ toFragmentETLSubset result
+
+isSubstring :: Text -> Text -> Bool
+isSubstring "" _ = True
+isSubstring filterTxt tryThis = case count filterTxt tryThis of
+  0 -> False;
+  _ -> True;
 
 
 -- |

@@ -77,13 +77,6 @@ lookup o = flip Map.lookup (qualities o)
 toList :: Qualities -> [(QualKey, QualValues)]
 toList = Map.toList . coerce
 
--- | GQL documentation support
-qualsDes :: Text
-qualsDes = "A Map collection of the Qualities for the Subject.\n\
-          \ Key :: QualKey - Quality name (generally, FieldName)\n\
-          \ Value :: A Set collection of the values (Field Values or Levels)"
-{-# DEPRECATED qualsDes "Use the gql schema instead" #-}
-
 -- | Private support
 names :: Map Key vs -> [Text]
 names mp = unKey <$> keys mp

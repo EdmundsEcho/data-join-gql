@@ -63,11 +63,23 @@
     "description": "Subject and MeaTypes."
   },
   {
-    "path": "validate08",
-    "description": "Series of time reductions"
-  },
-  {
     "path": "matrix08",
     "description": "Series of time reductions (field names only)"
+  },
+  {
+    "path": "matrix09",
+    "description": "CompMixes in separate objects"
+  },
+  {
+    "path": "matrix10",
+    "description": "...same as CompMixes in the same object (when possible)"
+  },
+  {
+    "path": "matrix11",
+    "description": "Combines CompMix object requests as expected?"
+  },
+  {
+    "path": "validate08",
+    "description": "Series of time reductions"
   }
 ]

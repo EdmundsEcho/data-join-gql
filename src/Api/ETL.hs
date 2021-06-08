@@ -34,14 +34,18 @@
 module Api.ETL
   where
 ---------------------------------------------------------------------------------
-import           Protolude          hiding (Type, null)
+import           Protolude          hiding (Type, null, isPrefixOf )
 ---------------------------------------------------------------------------------
 import           Data.Coerce
+import           Data.Text          (count, isPrefixOf, isSuffixOf)
+import qualified Data.Set           as Set (filter)
 ---------------------------------------------------------------------------------
 import           Model.ETL.Fragment
-import           Model.Search       hiding (logDivide, logRequest)
+import           Model.Search       hiding (logDivide, logRequest, isSubstring)
 ---------------------------------------------------------------------------------
 import           Model.ETL.ObsETL   hiding (null)
+import qualified Model.ETL.Components as Components (lookup)
+import qualified Model.ETL.Qualities  as Qualities (lookup)
 import           Model.Request      (CompReqValues (..), toTupleCompReqValues)
 ---------------------------------------------------------------------------------
 import           WithAppContext
@@ -107,6 +111,59 @@ requestQualReqValues search values = do
 -- Unlike 'requestCompReqValues' we do not augment a null search request.
 --
 requestValues = requestQualReqValues
+
+-- ** searchValues
+-- |
+-- Return values that contain a search term. Return all values when search
+-- term is an empty string.
+--
+searchValues :: (MonadLogger m, MonadThrow m)
+  => Text -> SearchFragment FieldValues 'ETL
+  -> m (SearchFragment FieldValues 'ETLSubset)
+
+searchValues search values = do
+  logDebugN "ETL data"
+  result <- selectWithTerm search values
+  logRequest "searchValues" search values result
+  return result
+
+-- ** getQualityValues
+-- |
+--
+getQualityValues :: Text -> ObsETL -> Maybe FieldValues
+getQualityValues qualityName etl = do
+  let subject :: Subject = obsSubject etl
+  fieldValues :: QualValues <- Qualities.lookup (subQualities subject) (mkQualKey qualityName)
+  return fieldValues
+
+-- ** getComponentValues
+-- |
+--
+getComponentValues :: Text -> Text -> ObsETL -> Maybe FieldValues
+getComponentValues measurementType componentName etl = do
+  let measurements :: Measurements = obsMeasurements etl
+  (_, components) :: (MeaKey, Components) <- getValues measurements measurementType
+  fieldValues :: CompValues <- Components.lookup components (mkCompKey componentName)
+  return fieldValues
+
+filterValues :: (Text -> Text -> Bool) -> Text -> FieldValues -> FieldValues
+filterValues p searchTerm (TxtSet xs) = TxtSet $ Set.filter (p searchTerm) xs
+filterValues _ _ _ = panic "Filter values does not work with non-text values"
+
+isSubstringP :: Text -> Text -> Bool
+isSubstringP "" _ = True
+isSubstringP filterTxt tryThis = case count filterTxt tryThis of
+  0 -> False;
+  _ -> True;
+
+startsWithP :: Text -> Text -> Bool
+startsWithP "" _ = True
+startsWithP startsWith tryThis = isPrefixOf startsWith tryThis
+
+endsWithP :: Text -> Text -> Bool
+endsWithP "" _ = True
+endsWithP endsWith tryThis = isSuffixOf endsWith tryThis
+
 
 logRequest :: (MonadLogger m, ToJSON a, ToJSON b, ToJSON c)
            => Text -> a -> b -> c -> m ()

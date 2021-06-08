@@ -27,6 +27,8 @@ input ComponentInput {
 Describes the ETL Observation. The query used to generate this view
 does not include the capacity to subselect values within the structure.
 Each observation has a Subject and a collection of Measurements.
+
+Note: see the obsEtlLeanView and obsEtlView fragments.
 """
 type ObsETL {
   """
@@ -36,6 +38,14 @@ type ObsETL {
   subject: Subject!
   measurements: [Measurement!]!
 }
+
+"""
+Interface to signal the count property
+"""
+interface Count {
+  count: Int!
+}
+
 """
 An observation has a single subject. Each subject has a collection
 of qualities.
@@ -51,7 +61,7 @@ type Subject {
 A subject has many Qualities. Each Quality has a Key:: QualKey
 and values :: FieldValues.
 """
-type Quality {
+type Quality implements Count {
   """
   A unique identifier.
   """
@@ -60,6 +70,10 @@ type Quality {
   Quality values is a `union` of `TxtValues` and `IntValues`.
   """
   qualityValues: QualityValues!
+  """
+  Number of values.
+  """
+  count: Int!
 }
 """
 Each measurement has a collection of Components.
@@ -77,7 +91,7 @@ of a measurement. For instance, if measuring light, I could have a field
 called color. The subsets of light might be blue, green, red and other.
 Combined, the colors represent all of the light measured.
 """
-type Component {
+type Component implements Count {
   """
   A unique identifier. E.g., Color
   """
@@ -88,6 +102,10 @@ type Component {
   `Object` with the txt, int or spanValues prop.
   """
   componentValues: ComponentValues!
+  """
+  Number of values.
+  """
+  count: Int!
 }
 
 """
@@ -110,4 +128,53 @@ type CompKey {
 }
 type SpanKey {
   spanKey: String!
+}
+
+"""
+Select values from a Component
+"""
+input FromComponent {
+  measurementType: String!
+  componentName: String!
+  contains: String
+  startsWith: String
+  endsWith: String
+}
+
+"""
+Select values from a Quality
+"""
+input FromQuality {
+  subjectType: String
+  qualityName: String!
+  contains: String
+  startsWith: String
+  endsWith: String
+}
+
+"""
+Output type
+Perhaps support Span; how different from request?
+
+@likely deprecate; use levels instead
+"""
+union SelectedValues = TxtValues | IntValues | SpanValues | Empty
+
+type Empty {
+  value: EmptySingleton!
+}
+
+enum EmptySingleton {
+  EMPTY
+}
+
+input IntPredicateInput {
+  threshold: Int!
+  relation: FilterRelationInput!
+}
+
+enum FilterRelationInput {
+  GT
+  LT
+  EQ
 }

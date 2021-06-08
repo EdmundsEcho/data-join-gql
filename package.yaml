@@ -1,9 +1,9 @@
 name:                obsetl
-version:             0.1.2.0
+version:             0.1.3.0
 github:              "lucivia/obsetl"
 author:              "Edmund Cape"
 maintainer:          "edmund.cape@lucivia.com"
-copyright:           "Lucivia LLC 2020"
+copyright:           "Lucivia LLC 2021"
 
 extra-source-files:
 - README.md
@@ -43,16 +43,16 @@ default-extensions:
   - TypeOperators
 
 dependencies:
-  #- raw-strings-qq >= 1.1 && < 1.2
   - aeson >= 1.4.6.0 && < 1.5
   - aeson-pretty
   - base >= 4.7 && < 5
+  - base64 >= 0.4.2.3
   - bytestring >= 0.10.10.0 && < 0.20
   - containers >= 0.6.2.1 && < 0.7
   - hslogger >= 1.3.1.0 && < 1.4
   - monad-logger >= 0.3.32 && < 0.4
-  - morpheus-graphql >= 0.12
-  - morpheus-graphql-core
+  - morpheus-graphql >= 0.17.0
+  - morpheus-graphql-core >= 0.17.0
   - mtl >= 2.2.2 && < 3
   - optparse-applicative >= 0.15.1.0 && < 0.20
   - protolude
@@ -67,6 +67,7 @@ dependencies:
   - wai-cors >= 0.2.7 && < 0.3
   - wai-extra >= 3.0.29.1 && < 3.1
   - warp >= 3.3.9 && < 3.4
+  - text-conversions
 
 library:
   source-dirs: src

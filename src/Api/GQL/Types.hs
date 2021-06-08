@@ -25,11 +25,11 @@ type Object (o :: OperationType) (m :: * -> *) a
 type OptionalObject (o :: OperationType) (m :: * -> *)  a
      = Resolver o () m (Maybe (a (Resolver o () m)))
 
--- | Resolve [object]!
+-- | Resolve [object!]!
 type ArrayObject (o :: OperationType) (m :: * -> *) a
      = Resolver o () m [a (Resolver o () m)]
 
--- | Resolve [object]
+-- | Resolve [object!]
 type OptionalArrayObject (o :: OperationType) (m :: * -> *) a
      = Resolver o () m (Maybe [a (Resolver o () m)])
 

@@ -1,0 +1,45 @@
+{
+  "input": {
+    "subReq": {
+      "subjectType": "HCP",
+      "qualityMix": [
+        {
+          "qualityNames": ["CalledOn", "Specialty"]
+        }
+      ]
+    },
+    "meaReqs": [
+      {
+        "measurementTypes": ["Distance"],
+        "measurementType": "Rx",
+        "componentMix": [
+          {
+            "componentName": "RxType",
+            "componentValues": {
+              "reduced": true,
+              "txtValues": ["NRx", "Refills", "Walk"]
+            }
+          },
+          {
+            "componentName": "SpanKey",
+            "componentValues": {
+              "reduced": false,
+              "spanValues": [
+                {
+                  "rangeStart": 0,
+                  "rangeLength": 6,
+                  "reduced": true
+                },
+                {
+                  "rangeStart": 8,
+                  "rangeLength": 4,
+                  "reduced": true
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -27,6 +27,7 @@ data Status
      | Success    -- ^ Instantiation of a Request
      | Validated  -- ^ Structurally sound (likely redundant with instantiation)
      | Optimized  -- ^ Without redundancy
+     | Searching  -- ^ Meta to retrieve values
      | Failure    -- ^ Unused but completes the concept
      --  ETL        -- Not part of the Request (identifies instantiator)
 

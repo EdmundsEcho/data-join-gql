@@ -148,6 +148,10 @@ resolverSubExp mix = do
 --
 -- Model.ComponentMixes ~ [GqlType.ComponentMix!]
 --
+-- 🦀 Model.toListComponentMixes mixes
+--    The Map structure requires checking if a key exists and merging the
+--    requests when it makes sense... similarly for Components.
+--
 resolverMeaExps :: (GraphQL o m, MonadLogger m)
                 => Model.ComponentMixes
                 -> ArrayObject o m GqlType.Expression

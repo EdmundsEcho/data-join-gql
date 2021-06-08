@@ -67,7 +67,7 @@ import           Control.Exception.Safe
 import           Control.Monad.Logger
 import           ObsExceptions
 -------------------------------------------------------------------------------
-import qualified Model.ETL.Fragment     as Model (toList)
+import qualified Model.ETL.Fragment     as Model (len, toList)
 import qualified Model.ETL.ObsETL       as Model
 import qualified Model.ETL.TagRedExp    as Model
 import qualified Model.ETL.Transformers as Trans
@@ -141,10 +141,11 @@ resolverMeasurements o'
 resolverComponent :: GraphQL o m
                   => Model.CompKey -> Model.CompValues -> Object o m Component
 resolverComponent key o' =
-  pure $
-    Component
-       (pure $ Model.unKey key)
-       (resolverCompValues o')
+  pure $ Component
+  { componentName = pure $ Model.unKey key
+  , componentValues = resolverCompValues o'
+  , count = pure $ Model.len o'
+  }
 
 --------------------------------------------------------------------------------
 -- *** ComponentValues Model -> View
@@ -190,10 +191,11 @@ resolverQualities o'
 resolverQuality :: GraphQL o m
                 => Model.QualKey -> Model.QualValues -> Object o m Quality
 resolverQuality key o' =
-  pure $
-    Quality
-       (pure $ Model.unKey key)
-       (resolverQualValues o')
+  pure $ Quality
+  { qualityName = pure $ Model.unKey key
+  , qualityValues = resolverQualValues o'
+  , count = pure $ Model.len o'
+  }
 
 --------------------------------------------------------------------------------
 -- *** QualValues Model -> View

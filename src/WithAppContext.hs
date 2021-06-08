@@ -123,16 +123,19 @@ logDebugF = $(logDebug) . decodeUtf8 . B.toStrict . encodePretty
 
 -------------------------------------------------------------------------------
 -- |
--- TODO
--- Why the approach for filtering log messages is not made explicitely clear in
--- the docs is annoying.
+-- Filter-out the debugging log messages
 --
 filterNoDebug :: LoggingT m a -> LoggingT m a
 filterNoDebug = filterLogger noDebug
   where
     noDebug :: LogSource -> LogLevel -> Bool
-    noDebug = undefined
+    noDebug _ LevelDebug = False
+    noDebug _ _ = True
+
 -------------------------------------------------------------------------------
+-- |
+-- Custom log message
+--
 data LogMessage = LogMessage {
   message        :: !Text
   -- , timestamp    :: !UTCTime

@@ -6,7 +6,7 @@ module Api.HTTP.ObsTest (ObsTest , serveObsTest)
     where
 
 --------------------------------------------------------------------------------
-import           Data.Morpheus       (Interpreter (..))
+import           Data.Morpheus       (interpreter)
 import           Data.Morpheus.Types
 import           Servant
 

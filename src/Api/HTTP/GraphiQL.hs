@@ -2,7 +2,7 @@ module Api.HTTP.GraphiQL (GraphiQL , serveGraphiQL)
     where
 
 --------------------------------------------------------------------------------
-import           Data.Morpheus (Interpreter (..))
+import           Data.Morpheus (interpreter)
 --------------------------------------------------------------------------------
 import           Servant
 --------------------------------------------------------------------------------

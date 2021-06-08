@@ -13,7 +13,6 @@ It is not used by Component requests which require an additional field.  See
 
 **Note** This field is similar to 'ReqFieldValues'.  This object does not
 include the 'reduced' specification.
-
 """
 input QualValuesInput {
   txtValues: [String!]
@@ -26,7 +25,6 @@ It is not used by Component requests which require an additional field.  See
 
 **Note** This field is similar to 'ReqFieldValues'.  This object does not
 include the 'reduced' specification.
-
 """
 input CompValuesInput {
   txtValues: [String!]
@@ -46,9 +44,7 @@ input SpanInput {
 """
 Quality values is a `union` of `TxtValues` and `IntValues`.
 """
-union QualityValues
-  = TxtValues
-  | IntValues
+union QualityValues = TxtValues | IntValues
 
 """
 Component values is a union of `TxtValues`, `IntValues` and
@@ -58,10 +54,7 @@ Component values is a union of `TxtValues`, `IntValues` and
 __Note__: For Requests, the union ComponentValues is wrapped
 in an object with the extra 'reduced'::Boolean property.
 """
-union ComponentValues
-  = TxtValues
-  | IntValues
-  | SpanValues
+union ComponentValues = TxtValues | IntValues | SpanValues
 
 """
 Object required to be part of a union

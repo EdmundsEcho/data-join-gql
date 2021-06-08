@@ -39,8 +39,8 @@ module Model.Request
 
   -- * Branches
   -- ** Quality-related
-  , QualityMix (..)
-  , ReqQualities (..)
+  , QualityMix(..)
+  , ReqQualities(..)
   , toListReqQualities
   , minQualityMix
   , minSubResult
@@ -48,7 +48,7 @@ module Model.Request
   , getReqQualityNames'
 
   -- ** Component-related
-  , ComponentMixes (..)
+  , ComponentMixes(..)
   , toListComponentMixes
   , ReqComponents(..)
   , toListReqComponents
@@ -58,36 +58,54 @@ module Model.Request
   , toCompValuesList
 
   -- ** FieldValues-related
-  , CompReqValues (..)
+  , CompReqValues(..)
   , mkSpan
   , toTupleCompReqValues
   , Span
   , areSpanValues
   , isRed
   , isExp
-
-  ) where
+  )
+where
 ---------------------------------------------------------------------------------
-import           Protolude             hiding (null, toList)
+import           Protolude               hiding ( null
+                                                , toList
+                                                )
 ---------------------------------------------------------------------------------
 import           Data.Coerce
-import           Data.Maybe            (fromJust)
+import           Data.Maybe                     ( fromJust )
 ---------------------------------------------------------------------------------
-import           Data.Aeson            (ToJSON)
+import           Data.Aeson                     ( ToJSON )
 ---------------------------------------------------------------------------------
-import           Data.Map.Strict       (mapWithKey, union)
-import qualified Data.Map.Strict       as Map (keys, null, size, toList)
+import           Data.Map.Strict                ( mapWithKey
+                                                , union
+                                                )
+import qualified Data.Map.Strict               as Map
+                                                ( keys
+                                                , null
+                                                , size
+                                                , toList
+                                                )
 ---------------------------------------------------------------------------------
-import           Model.ETL.Components  hiding (null, toList)
-import           Model.ETL.FieldValues hiding (areSpanValues, toCompValuesList)
-import qualified Model.ETL.FieldValues as Values (areSpanValues,
-                                                  toCompValuesList)
-import           Model.ETL.Fragment    hiding (toList)
-import qualified Model.ETL.Fragment    as Fragment (toList)
+import           Model.ETL.Components    hiding ( null
+                                                , toList
+                                                )
+import           Model.ETL.FieldValues   hiding ( areSpanValues
+                                                , toCompValuesList
+                                                , filter
+                                                )
+import qualified Model.ETL.FieldValues         as Values
+                                                ( areSpanValues
+                                                , toCompValuesList
+                                                )
+import           Model.ETL.Fragment      hiding ( toList )
+import qualified Model.ETL.Fragment            as Fragment
+                                                ( toList )
 
 import           Model.ETL.Key
-import           Model.ETL.TagRedExp   hiding (isRed)
-import qualified Model.ETL.TagRedExp   as Tag (isRed)
+import           Model.ETL.TagRedExp     hiding ( isRed )
+import qualified Model.ETL.TagRedExp           as Tag
+                                                ( isRed )
 ---------------------------------------------------------------------------------
 import           Model.SearchFragment
 import           Model.Status
@@ -105,7 +123,7 @@ data Request (status::Status) = Request
   } deriving (Show, Eq, Generic)
 
 type Property = Text
-type Value    = Text
+type Value = Text
 
 instance ToJSON (Request status)
 
@@ -170,10 +188,7 @@ instance ToJSON QualityMix
 -- |
 --
 minQualityMix, minSubResult :: SubKey -> QualityMix
-minQualityMix key
-  = QualityMix { subjectType = key
-               , qualityMix = Nothing
-               }
+minQualityMix key = QualityMix { subjectType = key, qualityMix = Nothing }
 minSubResult = minQualityMix
 
 -- *** ReqQualities
@@ -190,7 +205,7 @@ newtype ReqQualities = ReqQualities
 
 instance Fragment ReqQualities where
   null (ReqQualities vs) = Map.null vs
-  len  (ReqQualities vs) = Map.size vs
+  len (ReqQualities vs) = Map.size vs
 
 instance ToJSON ReqQualities
 
@@ -238,7 +253,7 @@ newtype ComponentMixes = ComponentMixes
 
 instance Fragment ComponentMixes where
   null (ComponentMixes vs) = Map.null vs
-  len  (ComponentMixes vs) = Map.size vs
+  len (ComponentMixes vs) = Map.size vs
 
 instance ToJSON ComponentMixes
 
@@ -270,6 +285,10 @@ toListComponentMixes (ComponentMixes v) = Map.toList v
 --
 -- /Note/: @CompReqValues@ are @FieldValues@ tagged using @TagRedExp@.
 --
+-- 🦀 The Map structure requires merging the request when the key is already
+--    registered. /Note/: This seems to be an extra lift caused by the fact
+--    that subset requests that are reduced, cannot be combined.
+--
 newtype ReqComponents = ReqComponents
         { reqComponents :: Map CompKey (Maybe CompReqValues)
         } deriving (Show, Eq, Ord, Generic)
@@ -277,7 +296,7 @@ newtype ReqComponents = ReqComponents
 
 instance Fragment ReqComponents where
   null (ReqComponents vs) = Map.null vs
-  len  (ReqComponents vs) = Map.size vs
+  len (ReqComponents vs) = Map.size vs
 
 instance ToJSON ReqComponents
 
@@ -302,13 +321,13 @@ toListReqComponents (ReqComponents vs) = Map.toList vs
 -- Api helper
 -- TODO: Use coerce
 --
-fromComponents :: (CompValues -> TagRedExp CompValues)
-               -> Components -> ReqComponents
+fromComponents
+  :: (CompValues -> TagRedExp CompValues) -> Components -> ReqComponents
 -- unwrap CompValues
 -- wrap with Tag
 -- how access CompValues inside Components? fmap
 fromComponents redExp o =
-  ReqComponents .  fmap (Just . CompReqValues . redExp) $ components o
+  ReqComponents . fmap (Just . CompReqValues . redExp) $ components o
 
 -- |
 --   Wrapper to express Reduced vs Expressed request computation
@@ -321,7 +340,7 @@ newtype CompReqValues = CompReqValues { values :: TagRedExp CompValues }
 -- |
 --
 isRed, isExp :: CompReqValues -> Bool
-isRed CompReqValues {values} = Tag.isRed values
+isRed CompReqValues { values } = Tag.isRed values
 isExp = not . isRed
 
 -- |
@@ -334,8 +353,8 @@ areSpanValues (CompReqValues vs) = Values.areSpanValues (unTag vs)
 instance Fragment CompReqValues where
   null (CompReqValues (Red vs)) = null vs
   null (CompReqValues (Exp vs)) = null vs
-  len  (CompReqValues (Red vs)) = len vs
-  len  (CompReqValues (Exp vs)) = len vs
+  len (CompReqValues (Red vs)) = len vs
+  len (CompReqValues (Exp vs)) = len vs
 
 toListCompReqSpans :: CompReqValues -> [Span]
 toListCompReqSpans (CompReqValues tvs) = Fragment.toList $ unTag tvs
@@ -366,8 +385,8 @@ toCompValuesList = Values.toCompValuesList . toCompValues
 
 -- |
 --
-fromCompValues :: (CompValues -> TagRedExp CompValues)
-               -> CompValues -> CompReqValues
+fromCompValues
+  :: (CompValues -> TagRedExp CompValues) -> CompValues -> CompReqValues
 fromCompValues redExp = CompReqValues . redExp
 
 -- |
@@ -382,22 +401,22 @@ type Reduced = Bool
 ---------------------------------------------------------------------------------
 instance Fragment (SearchFragment ReqQualities 'ETL) where
   null = (null @ReqQualities) . coerce
-  len  = (len  @ReqQualities) . coerce
+  len  = (len @ReqQualities) . coerce
 instance Fragment (SearchFragment ReqQualities 'ETLSubset) where
   null = (null @ReqQualities) . coerce
-  len  = (len  @ReqQualities) . coerce
+  len  = (len @ReqQualities) . coerce
 
 instance Fragment (SearchFragment ReqComponents 'ETLSubset) where
   null = (null @ReqComponents) . coerce
-  len  = (len  @ReqComponents) . coerce
+  len  = (len @ReqComponents) . coerce
 -- length . Model.reqComponents . values <$> subsetResults
 --
 instance Fragment (SearchFragment CompReqValues 'Req) where
   null = (null @CompReqValues) . coerce
-  len  = (len  @CompReqValues) . coerce
+  len  = (len @CompReqValues) . coerce
 instance Fragment (SearchFragment CompReqValues 'ETLSubset) where
   null = (null @CompReqValues) . coerce
-  len  = (len  @CompReqValues) . coerce
+  len  = (len @CompReqValues) . coerce
 
 ---------------------------------------------------------------------------------
 -- ** Request FieldCount
@@ -408,8 +427,7 @@ instance Fragment (SearchFragment CompReqValues 'ETLSubset) where
 -- Combined counts from each branch of the request.
 --
 instance FieldCount (Request 'Success) where
-  fieldCount Request {..} = fieldCount subReq
-                         + fieldCount meaReqs
+  fieldCount Request {..} = fieldCount subReq + fieldCount meaReqs
 
 -- ***  Subject arm
 -- |
@@ -427,8 +445,7 @@ instance FieldCount QualityMix where
 -- * Sum of the collection of field series specified in each of the ReqComponents
 --
 instance FieldCount ComponentMixes where
-  fieldCount (ComponentMixes vs)
-    = sum (foldr (:) [] (fieldCount <$> vs))
+  fieldCount (ComponentMixes vs) = sum (foldr (:) [] (fieldCount <$> vs))
 
 -- |
 -- Recall, that a CompMix represents the measurement itself.  The "cuts"
@@ -436,9 +453,8 @@ instance FieldCount ComponentMixes where
 -- Thus, field count = number of mixes.
 --
 instance FieldCounts ComponentMixes where
-  fieldCounts (ComponentMixes coll)
-    = foldr (:) [] (mapWithKey tup coll)
-      where tup k v = (k, fieldCount v)
+  fieldCounts (ComponentMixes coll) = foldr (:) [] (mapWithKey tup coll)
+    where tup k v = (k, fieldCount v)
 
 -- |
 -- Nothing means we display a single summary measurement field
@@ -470,14 +486,14 @@ instance FieldCount (Maybe CompReqValues) where
 -- field count is zero.
 --
 instance FieldCount ReqComponents where
-  fieldCount (ReqComponents vs)
-    = product'
-    . filter (/= 0)
-    $ foldr (:) [] fieldCounts'
-    where
-      fieldCounts' = fieldCount <$> vs
-      product' [] = 0
-      product' xs = product xs
+  fieldCount (ReqComponents vs) = product' . filter (/= 0) $ foldr
+    (:)
+    []
+    fieldCounts'
+   where
+    fieldCounts' = fieldCount <$> vs
+    product' [] = 0
+    product' xs = product xs
 
 -- **** CompReqValues
 -- |
@@ -494,19 +510,23 @@ instance FieldCount ReqComponents where
 --
 instance FieldCount CompReqValues where
   fieldCount vs
-    | areSpanValues vs =
+    | areSpanValues vs
+    =
 
       -- Note how the external, redundant, TagRedExp is ignored (Span values)
-      let getSpanValues' CompReqValues {values} = getSpanValues $ unTag values
+      let getSpanValues' CompReqValues { values } =
+              getSpanValues $ unTag values
           spanList = fromJust (getSpanValues' vs)
-      -- Add the field count from the shared component (SpanType)
-       in sum $ fieldCount <$> spanList
+                                                                             -- Add the field count from the shared component (SpanType)
+      in  sum $ fieldCount <$> spanList
+    |
 
       -- the result depends on the TagRedExp and number of values
-    | otherwise        = case (len vs, isRed vs) of
-                               (0, _)     ->  0
-                               (_, True)  ->  1
-                               (l, False) ->  l
+      otherwise
+    = case (len vs, isRed vs) of
+      (0, _    ) -> 0
+      (_, True ) -> 1
+      (l, False) -> l
 
 
 

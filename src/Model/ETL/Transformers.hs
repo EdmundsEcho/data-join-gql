@@ -11,7 +11,7 @@ import           Protolude
 -------------------------------------------------------------------------------
 import qualified Data.Map.Strict  as Map (foldrWithKey')
 -------------------------------------------------------------------------------
-import           Model.ETL.ObsETL
+import           Model.ETL.ObsETL hiding (filter)
 import           Model.Request    (CompReqValues, ReqComponents (..),
                                    ReqQualities (..), toListReqComponents,
                                    toListReqQualities)

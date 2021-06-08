@@ -2,8 +2,6 @@
 {-# OPTIONS_HADDOCK prune #-}
 
 {-# LANGUAGE ConstraintKinds            #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TypeFamilies               #-}
 
 -- |
@@ -21,7 +19,6 @@ module Api.GQL.RootResolvers
 ---------------------------------------------------------------------------------
 import           Protolude
 ---------------------------------------------------------------------------------
-import           Data.Morpheus.Document     (importGQLDocument)
 import           Data.Morpheus.Types
 ---------------------------------------------------------------------------------
 import qualified Model.ETL.ObsETL           as Model
@@ -35,12 +32,16 @@ import           Api.GQL.Input.Request      (fetchRequest)
 import           Api.GQL.MatrixSpec
 import           Api.GQL.ObsETL
 import           Api.GQL.RequestView        (resolverRequest)
+import qualified Api.GQL.SelectValuesResolver as Internal (resolverSelectValues)
+import qualified Api.GQL.LevelsResolver       as Internal (resolverLevels)
 ---------------------------------------------------------------------------------
+import           Api.GQL.Schemas.ObsETL
 import           Api.GQL.Schemas.MatrixSpec
 import           Api.GQL.Schemas.Request
-import           Api.GQL.Types
-importGQLDocument "src/Api/GQL/Schemas/schema.root.graphql"
+import           Api.GQL.Schemas.Levels
+import           Api.GQL.Schemas.Root
 ---------------------------------------------------------------------------------
+import           Api.GQL.Types
 ---------------------------------------------------------------------------------
 -- * Query Resolvers
 -- ** Query getObsEtl
@@ -86,6 +87,29 @@ resolverGetStatus :: WithAppContext m
                   => Value QUERY m Text
 resolverGetStatus = fmap App.status getDb
 
+---------------------------------------------------------------------------------
+-- ** Query selectValues
+-- |
+-- Paged view of a Quality of Component's values
+-- input specified in @schemas.obstEtl.graphql@.
+-- output specified in @schemas.obsEtl.graphql@.
+--
+resolverSelectValues :: WithAppContext m
+                     => SelectValuesArgs -> Object QUERY m SelectedValues
+resolverSelectValues SelectValuesArgs { fromQuality, fromComponent} =
+  delegateSelectValues fromQuality fromComponent
+
+---------------------------------------------------------------------------------
+-- ** Query leves with pagination support
+-- |
+--
+resolverLevels :: WithAppContext m
+               => LevelsArgs -> Object QUERY m LevelsConnection
+resolverLevels args = do
+  obsEtl :: Model.ObsETL <- getEtlData
+  Internal.resolverLevels args obsEtl
+
+---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
 -- * Mutation NewObsETL
 -- |
@@ -161,7 +185,30 @@ delegateForMatrix req = do
   request :: Maybe (Model.Request 'Inprocess) <- lift $ fetchRequest req obsEtl
   traverse resolverMatrixSpec (Model.validate request)
 
+
 ---------------------------------------------------------------------------------
+-- |
+--
+delegateSelectValues :: (GraphQL o m, WithAppContext m)
+                     => Maybe FromQuality
+                     -> Maybe FromComponent
+                     -> Object o m SelectedValues
+
+delegateSelectValues qualityFilter componentFilter = do
+  obsEtl :: Model.ObsETL <- getEtlData
+  Internal.resolverSelectValues obsEtl qualityFilter componentFilter
+
+---------------------------------------------------------------------------------
+-- |
+--
+delegateLevels :: (GraphQL o m, WithAppContext m)
+               => LevelsArgs
+               -> Object o m LevelsConnection
+
+delegateLevels args = do
+  obsEtl :: Model.ObsETL <- getEtlData
+  Internal.resolverLevels args obsEtl
+
 ---------------------------------------------------------------------------------
 -- * Utility functions
 -- |

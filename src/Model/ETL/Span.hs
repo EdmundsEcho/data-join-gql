@@ -462,16 +462,15 @@ delayStart sp =
       Red Range {..} -> mkSpan Red (rangeStart + 1) rangeLength
 
 
--- |
--- Support function to access Range values
+-- | Support function to access Range values
+--
 -- >>> spanEnd Range { rangeStart = 0, rangeLength = 1 }
 -- 0
 --
 spanEnd :: Range -> Int
 spanEnd (Range s l) = s + l - 1
 
--- |
--- Support function to derive length
+-- | Support function to derive length
 -- /Note/ Disjoint data when the value is negative.
 --
 -- >>> spanLength 0 0

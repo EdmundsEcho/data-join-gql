@@ -1,0 +1,27 @@
+type LevelsConnection {
+  edges: [LevelEdge!]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LevelEdge {
+  cursor: String!
+  node: Level!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+union Level = TxtValue | IntValue | Span
+
+type IntValue {
+  level: Int!
+}
+
+type TxtValue {
+  level: String!
+}

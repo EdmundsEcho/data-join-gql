@@ -8,133 +8,170 @@
 <!DOCTYPE html>
 
 <html lang="en">
-
-<head>
-  <meta charset="utf-8">
-  <meta name="description" content="MMS GraphQL API, Build using Morphues GraphQL">
-  <title>MMS API - ObsETL App</title>
-  <style>
-    body {
-      height: 100%;
-      margin: 0;
-      width: 100%;
-      overflow: hidden;
-    }
-
-    #graphiql {
-      height: 100vh;
-    }
-  </style>
-  <script src="//cdn.jsdelivr.net/es6-promise/4.0.5/es6-promise.auto.min.js"></script>
-  <script src="//cdn.jsdelivr.net/fetch/0.9.0/fetch.min.js"></script>
-  <script src="//cdn.jsdelivr.net/react/15.4.2/react.min.js"></script>
-  <script src="//cdn.jsdelivr.net/react/15.4.2/react-dom.min.js"></script>
-  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/graphiql@0.13.0/graphiql.css" />
-  <link rel="shortcut icon" href="favicon.ico">
-  <script src="//cdn.jsdelivr.net/npm/graphiql@0.13.0/graphiql.js" charset="utf-8"></script>
-
-  <link rel="shortcut icon" href="assets/favicon.ico" type="image/x-icon" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
-  <link rel="manifest" href="assets/site.webmanifest">
-  <link rel="mask-icon" href="assets/safari-pinned-tab.svg" color="#ff0000">
-  <link rel="shortcut icon" href="assets/favicon.ico">
-  <meta name="msapplication-TileColor" content="#ff0000">
-  <meta name="msapplication-config" content="assets/browserconfig.xml">
-  <meta name="theme-color" content="#ffffff">
-
-</head>
-
-<body>
-  <div id="graphiql">Loading...</div>
-  <script>
-    var search = window.location.search;
-    var parameters = {};
-    search.substr(1).split('&').forEach(function(entry) {
-      var eq = entry.indexOf('=');
-      if (eq >= 0) {
-        parameters[decodeURIComponent(entry.slice(0, eq))] =
-          decodeURIComponent(entry.slice(eq + 1));
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="MMS GraphQL API, Build using Morpheus GraphQL and Servant"
+    />
+    <title>Obs MMS API - ObsETL App</title>
+    <style>
+      body {
+        height: 100%;
+        margin: 0;
+        width: 100%;
+        overflow: hidden;
       }
-    });
-    if (parameters.variables) {
-      try {
-        parameters.variables =
-          JSON.stringify(JSON.parse(parameters.variables), null, 2);
-      } catch (e) {}
-    }
 
-    function onEditQuery(newQuery) {
-      parameters.query = newQuery;
-      updateURL();
-    }
+      #graphiql {
+        height: 100vh;
+      }
+    </style>
+    <script src="//cdn.jsdelivr.net/es6-promise/4.0.5/es6-promise.auto.min.js"></script>
+    <script src="//cdn.jsdelivr.net/fetch/0.9.0/fetch.min.js"></script>
+    <script src="//cdn.jsdelivr.net/react/15.4.2/react.min.js"></script>
+    <script src="//cdn.jsdelivr.net/react/15.4.2/react-dom.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="//cdn.jsdelivr.net/npm/graphiql@0.13.0/graphiql.css"
+    />
+    <link rel="shortcut icon" href="favicon.ico" />
+    <script
+      src="//cdn.jsdelivr.net/npm/graphiql@0.13.0/graphiql.js"
+      charset="utf-8"
+    ></script>
 
-    function onEditVariables(newVariables) {
-      parameters.variables = newVariables;
-      updateURL();
-    }
+    <link rel="shortcut icon" href="assets/favicon.ico" type="image/x-icon" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="assets/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="assets/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="assets/favicon-16x16.png"
+    />
+    <link rel="manifest" href="assets/site.webmanifest" />
+    <link rel="mask-icon" href="assets/safari-pinned-tab.svg" color="#ff0000" />
+    <link rel="shortcut icon" href="assets/favicon.ico" />
+    <meta name="msapplication-TileColor" content="#ff0000" />
+    <meta name="msapplication-config" content="assets/browserconfig.xml" />
+    <meta name="theme-color" content="#ffffff" />
+  </head>
 
-    function onEditOperationName(newOperationName) {
-      parameters.operationName = newOperationName;
-      updateURL();
-    }
-
-    function updateURL() {
-      var newSearch = '?' + Object.keys(parameters).filter(function(key) {
-        return Boolean(parameters[key]);
-      }).map(function(key) {
-        return encodeURIComponent(key) + '=' +
-          encodeURIComponent(parameters[key]);
-      }).join('&');
-      history.replaceState(null, null, newSearch);
-    }
-
-    // Defines a GraphQL fetcher using the fetch API. You're not required to
-    // use fetch, and could instead implement graphQLFetcher however you like,
-    // as long as it returns a Promise or Observable.
-    function graphQLFetcher(graphQLParams) {
-      // When working locally, the example expects a GraphQL server at the path /graphql.
-      // In a PR preview, it connects to the Star Wars API externally.
-      // Change this to point wherever you host your GraphQL server.
-      const GRAPH_ENDPOINT = '/graphiql/v1'
-      console.log("Sending...", GRAPH_ENDPOINT)
-
-      return fetch(GRAPH_ENDPOINT, {
-        method: 'post',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(graphQLParams),
-      }).then(function(response) {
-        return response.text();
-      }).then(function(responseBody) {
+  <body>
+    <div id="graphiql">Loading...</div>
+    <script>
+      var search = window.location.search;
+      var parameters = {};
+      search
+        .substr(1)
+        .split("&")
+        .forEach(function (entry) {
+          var eq = entry.indexOf("=");
+          if (eq >= 0) {
+            parameters[
+              decodeURIComponent(entry.slice(0, eq))
+            ] = decodeURIComponent(entry.slice(eq + 1));
+          }
+        });
+      if (parameters.variables) {
         try {
-          return JSON.parse(responseBody);
-        } catch (error) {
-          return responseBody;
-        }
-      });
-    }
-    // Render <GraphiQL /> into the body.
-    // See the README in the top level of this module to learn more about
-    // how you can customize GraphiQL by providing different values or
-    // additional child elements.
-    ReactDOM.render(
-      React.createElement(GraphiQL, {
-        fetcher: graphQLFetcher,
-        query: parameters.query,
-        variables: parameters.variables,
-        operationName: parameters.operationName,
-        onEditQuery: onEditQuery,
-        onEditVariables: onEditVariables,
-        defaultVariableEditorOpen: true,
-        onEditOperationName: onEditOperationName
-      }),
-      document.getElementById('graphiql')
-    );
-  </script>
-</body>
+          parameters.variables = JSON.stringify(
+            JSON.parse(parameters.variables),
+            null,
+            2
+          );
+        } catch (e) {}
+      }
 
+      function onEditQuery(newQuery) {
+        parameters.query = newQuery;
+        updateURL();
+      }
+
+      function onEditVariables(newVariables) {
+        parameters.variables = newVariables;
+        updateURL();
+      }
+
+      function onEditOperationName(newOperationName) {
+        parameters.operationName = newOperationName;
+        updateURL();
+      }
+
+      function updateURL() {
+        var newSearch =
+          "?" +
+          Object.keys(parameters)
+            .filter(function (key) {
+              return Boolean(parameters[key]);
+            })
+            .map(function (key) {
+              return (
+                encodeURIComponent(key) +
+                "=" +
+                encodeURIComponent(parameters[key])
+              );
+            })
+            .join("&");
+        history.replaceState(null, null, newSearch);
+      }
+
+      // Defines a GraphQL fetcher using the fetch API. You're not required to
+      // use fetch, and could instead implement graphQLFetcher however you like,
+      // as long as it returns a Promise or Observable.
+      function graphQLFetcher(graphQLParams) {
+        // When working locally, the example expects a GraphQL server at the path /graphql.
+        // In a PR preview, it connects to the Star Wars API externally.
+        // Change this to point wherever you host your GraphQL server.
+        const GRAPH_ENDPOINT = "/graphiql/v1";
+        console.log("Sending...", GRAPH_ENDPOINT);
+
+        return fetch(GRAPH_ENDPOINT, {
+          method: "post",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(graphQLParams),
+        })
+          .then(function (response) {
+            return response.text();
+          })
+          .then(function (responseBody) {
+            try {
+              return JSON.parse(responseBody);
+            } catch (error) {
+              return responseBody;
+            }
+          });
+      }
+      // Render <GraphiQL /> into the body.
+      // See the README in the top level of this module to learn more about
+      // how you can customize GraphiQL by providing different values or
+      // additional child elements.
+      ReactDOM.render(
+        React.createElement(GraphiQL, {
+          fetcher: graphQLFetcher,
+          query: parameters.query,
+          variables: parameters.variables,
+          operationName: parameters.operationName,
+          onEditQuery: onEditQuery,
+          onEditVariables: onEditVariables,
+          defaultVariableEditorOpen: true,
+          onEditOperationName: onEditOperationName,
+        }),
+        document.getElementById("graphiql")
+      );
+    </script>
+  </body>
 </html>

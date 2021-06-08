@@ -29,6 +29,27 @@ type Query {
   reqMatrixSpec(requestSpec: RequestInput!): MatrixSpec
 
   getStatus: Text!
+
+  # """
+  # New May 2021 - Query/view of a set of values.
+  # Includes a filter, and pagination capacity
+  # """
+  selectValues(
+    fromQuality: FromQuality
+    fromComponent: FromComponent
+  ): SelectedValues!
+
+  """
+  View field levels with pagination support
+  """
+  levels(
+    after: String
+    before: String
+    first: Int
+    last: Int
+    fromQuality: FromQuality
+    fromComponent: FromComponent
+  ): LevelsConnection!
 }
 
 # Root Mutation

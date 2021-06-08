@@ -75,11 +75,6 @@ data Subject = Subject
 
 instance ToJSON Subject
 
--- | documentation
-subDes :: Text
-subDes = "Subject branch for which there is only one. The requested subset\
-         \ determines the number of records included in the matrix."
-
 -- == Measurements
 -- | The @Measurements@ node is a @Map@ with
 -- @ Key :: MeaKey @ and
@@ -115,14 +110,6 @@ lookup vs = flip Map.lookup (measurements vs)
 -- | As of yet, unused support function (perhaps for @Matrix@)
 meaTypes :: Measurements -> [Text]
 meaTypes = names . measurements
-
--- | documentation
-measDes :: Text
-measDes = "A Map collection of the available Measurements.\n\
-          \ Key :: TypeKey that describes the Measurement Type\n\
-          \ Value :: A Map to the Components of the Measurement."
-{-# DEPRECATED measDes "Use the gql schema instead" #-}
-
 
 -- ** Instantiation
 -- |

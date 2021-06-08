@@ -1,0 +1,43 @@
+{
+  "data": {
+    "reqMatrixSpec": {
+      "fieldCount": 4,
+      "subExpression": {
+        "source": { "codomain": "HCP" },
+        "fields": [{ "value": "CalledOn" }, { "value": "Specialty" }],
+        "filter": { "fieldName": null, "relations": [] }
+      },
+      "meaExpressions": [
+        {
+          "source": { "codomain": "Rx" },
+          "fields": [{ "value": "MeaType::Rx" }],
+          "filter": {
+            "fieldName": {
+              "value": "MeaType::Rx.RxType::$NRx,Refills$.SpanKey::0_5"
+            },
+            "relations": [
+              {
+                "lhs": { "fieldName": { "value": "RxType" } },
+                "relation": "IN",
+                "rhs": {
+                  "__typename": "TxtValues",
+                  "txtValues": ["NRx", "Refills"]
+                }
+              },
+              {
+                "lhs": { "fieldName": { "value": "SpanKey" } },
+                "relation": "BETWEEN",
+                "rhs": {
+                  "__typename": "SpanFilter",
+                  "range": { "filterStart": 0, "filterEnd": 5 }
+                }
+              }
+            ]
+          },
+          "reducer": "SUM"
+        }
+      ],
+      "header": null
+    }
+  }
+}

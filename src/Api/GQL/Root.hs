@@ -23,11 +23,12 @@ import           AppTypes
 ---------------------------------------------------------------------------------
 import           Api.GQL.RootResolvers
 ---------------------------------------------------------------------------------
+import           Api.GQL.Schemas.Root
 ---------------------------------------------------------------------------------
 -- * Root resolver
 -- |
 --
-gqlRoot :: GQLRootResolver AppObs () Query Mutation Undefined
+gqlRoot :: RootResolver AppObs () Query Mutation Undefined
 gqlRoot = rootResolver
 
 ---------------------------------------------------------------------------------
@@ -36,15 +37,17 @@ gqlRoot = rootResolver
 --
 -- Resolvers specified here.
 --
-rootResolver :: GQLRootResolver AppObs () Query Mutation Undefined
+rootResolver :: RootResolver AppObs () Query Mutation Undefined
 rootResolver =
-    GQLRootResolver
+    RootResolver
         { queryResolver =
               Query
                   { getObsEtl     = resolverGetObsEtl
                   , validate      = resolverValidate
                   , reqMatrixSpec = resolverReqMatrixSpec
                   , getStatus     = resolverGetStatus
+                  , selectValues  = resolverSelectValues
+                  , levels        = resolverLevels
                   }
         , mutationResolver = Mutation {newObsEtl = resolverNewObsETL}
         , subscriptionResolver = Undefined
