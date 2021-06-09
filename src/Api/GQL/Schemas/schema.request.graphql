@@ -25,6 +25,13 @@ input RequestInput {
   meaReqs: [ComponentMixInput!]
 }
 """
+Fields that can reverse the request i.e., EQ -> NOT EQ implement this interface
+"""
+interface AntiRequest {
+  antiRequest: Bool!
+}
+
+"""
 `QualityMixInput`
 
 Describes the requested mix of Subject Qualities. This mix of qualities
@@ -67,6 +74,10 @@ input QualityReqInput {
   the qualities will be selected.
   """
   qualityValues: QualValuesInput
+  """
+  The anti version of qualityName (i.e., "not these values")
+  """
+  antiRequest: Bool! = false
 }
 """
 `ComponentMixInput`
@@ -135,6 +146,10 @@ input ComponentReqInput {
   to a summary computation.
   """
   componentValues: CompValuesReqInput
+  """
+  The anti version of componentValues (i.e., "not these values")
+  """
+  antiRequest: Bool! = false
 }
 """
 A requested component needs to specify if the collection of values is meant
@@ -180,16 +195,27 @@ type QualityMix implements Warning & FieldCount {
   """
   warning: String
 }
-type ReqQuality implements Message {
+type ReqQuality implements Message & AntiRequest {
   """
   A field with this name will be included in the request.
   """
   qualityName: String!
+
   """
   The values in this field determine what 'Subjects' will be included
   in the data request. The type is a `union` of `TxtValues` and `IntValues`.
   """
   values: QualityValues
+
+  """
+  The anti request (meaning "not these values")
+  Note: Only considered when values is null.
+  """
+  antiRequest: Bool!
+
+  """
+  Warnings generated during the processing of the request.
+  """
   message: String
 }
 """
@@ -214,7 +240,7 @@ type ComponentMix implements Message & FieldCount {
 
   message: String
 }
-type ReqComponent implements Message {
+type ReqComponent implements Message & AntiRequest {
   """
   Describes which measurement components will be included in the series of
   measurememt fields.
@@ -230,6 +256,13 @@ type ReqComponent implements Message {
   each of the values in the 'ReqCompValues'.
   """
   values: ComponentValues
+
+  """
+  The anti request (meaning "not these values")
+  __Note__: Applies on to "subset" requests i.e., when the values field is null.
+  """
+  antiRequest: Bool!
+
   """
   Describes whether the data included will be 'reduced' to a single summary
   values, or a data series.

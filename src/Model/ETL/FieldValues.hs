@@ -1,4 +1,9 @@
 {-# OPTIONS_HADDOCK prune #-}
+
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE InstanceSigs          #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 -- |
 -- Module      : Model.ETL.FieldValues
 -- Description : Hosts the unique levels of a data field
@@ -14,13 +19,27 @@ module Model.ETL.FieldValues
   , FieldValue(..)
   , QualValues
   , CompValues
-  , getSpanValues
   , areSpanValues
+  , getSpanValues
   , subset
   , toCompValuesList
   , toQualValues
   , ToCompValues(..)
   , ValuePredicate(..)
+
+  -- * Encode Include/Exclude semantic
+  , ValuesReqEnum(..)
+  , ValuesReq(..)
+  , AntiRequestEnum(..)
+  , unwrapReqEnum
+  , toExcludeRequest
+  , toIncludeRequest
+  , fromExcludeRequest
+  , fromIncludeRequest
+  , switchToExclude
+  , switchToInclude
+  , areSpanValuesReqEnum
+  , getSpanValuesReqEnum
 
   -- * Type-level features (not using ad-hoc polymorphism)
   , elemAt
@@ -47,7 +66,9 @@ import           Protolude               hiding ( toList
                                                 , splitAt
                                                 )
 
-import           Data.ByteString.Base64         ( decodeBase64Lenient, encodeBase64 )
+import           Data.ByteString.Base64         ( decodeBase64Lenient
+                                                , encodeBase64
+                                                )
 -------------------------------------------------------------------------------
 import           Data.Aeson                     ( ToJSON )
 -------------------------------------------------------------------------------
@@ -73,8 +94,8 @@ import qualified Model.ETL.Span                as Span
 --  the unique values of a field that either describes a 'Model.ObsETL.Subject'
 --  or 'Model.ObsETL.Measurements'.
 --
---  /The value of the measurement itself can be anything (more often a @float@
---  or @Int@).  The value itself is not specified./
+--  The value of the measurement itself can be anything (more often a @float@
+--  or @Int@).  The value itself is not specified.
 --
 --  The expandable range of data types include
 --
@@ -209,14 +230,13 @@ take _   Empty            = panic "Tried to take from an empty collection"
 -- This can throw an Error (outside the panic)
 --
 elemAt :: Int -> FieldValues -> Maybe FieldValue
-elemAt num' fieldValues
-  | num' < size fieldValues = Just $ go num' fieldValues
-  | otherwise = Nothing
-  where
-      go num (TxtSet  values) = TxtValue $ Set.elemAt num values
-      go num (IntSet  values) = IntValue $ Set.elemAt num values
-      go num (SpanSet values) = SpanValue $ Set.elemAt num values
-      go _   Empty            = panic "Unreachable"
+elemAt num' fieldValues | num' < size fieldValues = Just $ go num' fieldValues
+                        | otherwise               = Nothing
+ where
+  go num (TxtSet  values) = TxtValue $ Set.elemAt num values
+  go num (IntSet  values) = IntValue $ Set.elemAt num values
+  go num (SpanSet values) = SpanValue $ Set.elemAt num values
+  go _   Empty            = panic "Unreachable"
 
 -- |
 --
@@ -239,8 +259,8 @@ size Empty            = 0
 -- Utilized by LevelsResolver
 --
 encodeFieldValue :: FieldValue -> Text
-encodeFieldValue (TxtValue x)  = encodeBase64 $ encodeUtf8 x
-encodeFieldValue (IntValue x)  = encodeBase64 . encodeUtf8 $ show x
+encodeFieldValue (TxtValue  x) = encodeBase64 $ encodeUtf8 x
+encodeFieldValue (IntValue  x) = encodeBase64 . encodeUtf8 $ show x
 encodeFieldValue (SpanValue x) = encodeBase64 . encodeUtf8 $ show x
 encodeFieldValue EmptyValue    = panic "Tried to encode an empty value"
 
@@ -266,8 +286,8 @@ splitAt _   Empty            = panic "Tried to split an empty collection"
 findIndex :: Text -> FieldValues -> Int
 findIndex x (TxtSet  values) = Set.findIndex (decode64ToTxt x) values
 findIndex x (IntSet  values) = Set.findIndex (decode64ToInt x) values
-findIndex _ (SpanSet _)      = panic "Not yet supported"
-findIndex _ Empty = panic "Tried to view an empty collection"
+findIndex _ (SpanSet _     ) = panic "Not yet supported"
+findIndex _ Empty            = panic "Tried to view an empty collection"
 
 -- |
 -- base64 encoding of the levels
@@ -309,11 +329,85 @@ data FieldValue
 --
 -- type SpanValues = FieldValues
 
+
 -- |
 -- QualValues only includes TxtSet and IntSet
+-- type QualValues = FieldValues
+newtype ValuesReq (antiRequest :: AntiRequestEnum) = ValuesReq FieldValues
+  deriving (Show, Eq, Ord, Generic)
+
+instance ToJSON (ValuesReq 'Include)
+instance ToJSON (ValuesReq 'Exclude)
+
+-- |
+-- Analogous to 'Model.ETL.TagRedExp'
+--
+-- 🚧 This was a scrappy add-on for version 0.1.4.0 that uses a combination
+--    of a phantom type and an Enum that unifies the different phantom types
+--    to pipe through the process until required..
+--
+--    The type is set by the @antiRequest@ field found both in the graphql
+--    input schema and request view.  The information is used to modify the
+--    relation prop in filter used in the MatrixSpec.
+--
+-- Conceptually,
+--
+--    👉 only relevant when conducting a "subset" request
+--
+--    👉 qualifies field values
+--
+--    👉 does not impact the search results
+--
+--    👉 scope of change is the relation specified in the filter
+--
+data AntiRequestEnum
+  = Include
+  | Exclude
+  deriving (Show, Eq, Ord, Generic)
+
+data ValuesReqEnum
+  = ExcludeRequest (ValuesReq 'Exclude)
+  | IncludeRequest (ValuesReq 'Include)
+  | NA FieldValues
+  deriving (Show, Eq, Ord, Generic)
+
+instance ToJSON ValuesReqEnum
+
+-- |
+-- This is a request-specific version of the FieldValues. The equivalent
+-- extraction function for Exp vs Red is @Model.Request.toTupleCompReqValues@
+--
+unwrapReqEnum :: ValuesReqEnum -> (FieldValues, AntiRequestEnum)
+unwrapReqEnum (ExcludeRequest (ValuesReq vs)) = (vs, Exclude)
+unwrapReqEnum (IncludeRequest (ValuesReq vs)) = (vs, Include)
+unwrapReqEnum (NA             vs            ) = (vs, Include)
+
+
+toExcludeRequest :: FieldValues -> ValuesReqEnum --ValuesReq 'Exclude
+toExcludeRequest = ExcludeRequest . ValuesReq
+
+toIncludeRequest :: FieldValues -> ValuesReqEnum --ValuesReq 'Include
+toIncludeRequest = IncludeRequest . ValuesReq
+
+fromExcludeRequest :: ValuesReq 'Exclude -> FieldValues
+fromExcludeRequest (ValuesReq vs) = vs
+
+fromIncludeRequest :: ValuesReq 'Include -> FieldValues
+fromIncludeRequest (ValuesReq vs) = vs
+
+switchToExclude :: ValuesReq 'Include -> ValuesReq 'Exclude
+switchToExclude (ValuesReq vs) = ValuesReq vs
+
+switchToInclude :: ValuesReq 'Exclude -> ValuesReq 'Include
+switchToInclude (ValuesReq vs) = ValuesReq vs
+
+
+-- | QualValues synonym
+-- | /Note:/ see also ValuesReqEnum
 type QualValues = FieldValues
 
 -- | CompValues synonym
+-- | /Note:/ see also ValuesReqEnum
 type CompValues = FieldValues
 
 -- ** Flexible type synonyms
@@ -334,9 +428,19 @@ areSpanValues _           = False
 
 -- |
 --
+areSpanValuesReqEnum :: ValuesReqEnum -> Bool
+areSpanValuesReqEnum = areSpanValues . fst . unwrapReqEnum
+
+-- |
+--
 getSpanValues :: FieldValues -> Maybe [Span]
 getSpanValues (SpanSet vs) = Just $ Set.toList vs
 getSpanValues _            = Nothing
+
+-- |
+--
+getSpanValuesReqEnum :: ValuesReqEnum -> Maybe [Span]
+getSpanValuesReqEnum = getSpanValues . fst . unwrapReqEnum
 
 
 ---------------------------------------------------------------------------------

@@ -119,9 +119,9 @@ instance ToFullsetReq QualityReqInput FullsetRequest where
     Nothing -> panic "Tried to constuct a fullset request without a key"
 
 instance ToSubsetReq QualityReqInput SubsetQualReq where
-  toSubsetReq QualityReqInput { qualityName, qualityValues } =
+  toSubsetReq QualityReqInput { qualityName, qualityValues, antiRequest } =
     case (qualityName, qualityValues) of
-      (Just k, Just vs) -> SubsetQualReq k vs
+      (Just k, Just vs) -> SubsetQualReq k antiRequest vs
       (_,_) -> panic "Tried to make a subset request without both key and values"
 
 ---------------------------------------------------------------------------------
@@ -162,9 +162,9 @@ instance ToFullsetReq ComponentReqInput FullsetRequest where
     Nothing -> panic "Tried to constuct a fullset request without a key"
 
 instance ToSubsetReq ComponentReqInput SubsetCompReq where
-  toSubsetReq ComponentReqInput { componentName, componentValues } =
+  toSubsetReq ComponentReqInput { componentName, componentValues, antiRequest } =
     case (componentName, componentValues) of
-      (Just k, Just vs) -> SubsetCompReq k vs
+      (Just k, Just vs) -> SubsetCompReq k antiRequest vs
       (_,_) -> panic "Tried to make a subset request without both key and values"
 
 ---------------------------------------------------------------------------------
@@ -182,8 +182,12 @@ instance ToSubsetReq ComponentReqInput SubsetCompReq where
 -- There is only ever at most one for each request.
 -- The source = Request { subReq }
 --
+-- 🔖 Implements the AntiRequest interface
+--   (unlike so for fullset requests)
+--
 data SubsetQualReq = SubsetQualReq {
       subKey          :: !Text
+    , antiRequest     :: !Bool
     , qualValuesInput :: !QualValuesInput
 } deriving (Show, Generic)
 
@@ -203,8 +207,13 @@ instance RequestKey SubsetCompMixReq where
 instance RequestKey SubsetQualReq where
   requestKey SubsetQualReq { subKey } = Just subKey
 
+-- |
+-- 🔖 Implements the AntiRequest interface
+--   (unlike so for fullset requests)
+--
 data SubsetCompReq = SubsetCompReq {
       compKey         :: !Text
+    , antiRequest     :: !Bool
     , compValuesInput :: !CompValuesReqInput
 } deriving (Show, Generic)
 

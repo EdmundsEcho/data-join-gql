@@ -120,8 +120,16 @@ type FilterRange {
   filterStart: Int!
   filterEnd: Int!
 }
+"""
+The relations used in the filters
+
+*Updated Jun 2021 to include contras*
+"""
 enum RelSymbolEnum {
   IN
   EQ
   BETWEEN
+  NOT_IN
+  NOT_EQ
+  NOT_BETWEEN
 }

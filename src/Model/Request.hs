@@ -53,7 +53,6 @@ module Model.Request
   , ReqComponents(..)
   , toListReqComponents
   , toListCompReqSpans
-  , fromComponents
   , fromCompValues
   , toCompValuesList
 
@@ -65,6 +64,8 @@ module Model.Request
   , areSpanValues
   , isRed
   , isExp
+  , isExcludeRequest
+  , isIncludeRequest
   )
 where
 ---------------------------------------------------------------------------------
@@ -95,7 +96,7 @@ import           Model.ETL.FieldValues   hiding ( areSpanValues
                                                 , filter
                                                 )
 import qualified Model.ETL.FieldValues         as Values
-                                                ( areSpanValues
+                                                ( areSpanValuesReqEnum
                                                 , toCompValuesList
                                                 )
 import           Model.ETL.Fragment      hiding ( toList )
@@ -198,9 +199,10 @@ minSubResult = minQualityMix
 -- - QualKey Just vs => display the quality field, select levels
 --
 -- /Note/: QualValues are FieldValues.
+-- /0.1.4.0/: Update uses ValuesReqEnum instead of QualValues and CompValues
 --
 newtype ReqQualities = ReqQualities
-        { reqQualities :: Map QualKey (Maybe QualValues)
+        { reqQualities :: Map QualKey (Maybe ValuesReqEnum)
         } deriving (Show, Eq, Ord, Generic)
 
 instance Fragment ReqQualities where
@@ -231,7 +233,7 @@ instance Monoid ReqQualities where
 --
 --
 --
-toListReqQualities :: ReqQualities -> [(QualKey, Maybe QualValues)]
+toListReqQualities :: ReqQualities -> [(QualKey, Maybe ValuesReqEnum)]
 toListReqQualities (ReqQualities vs) = Map.toList vs
 
 getReqQualityNames :: ReqQualities -> [Text]
@@ -317,24 +319,13 @@ instance Monoid ReqComponents where
 toListReqComponents :: ReqComponents -> [(CompKey, Maybe CompReqValues)]
 toListReqComponents (ReqComponents vs) = Map.toList vs
 
--- |
--- Api helper
--- TODO: Use coerce
---
-fromComponents
-  :: (CompValues -> TagRedExp CompValues) -> Components -> ReqComponents
--- unwrap CompValues
--- wrap with Tag
--- how access CompValues inside Components? fmap
-fromComponents redExp o =
-  ReqComponents . fmap (Just . CompReqValues . redExp) $ components o
 
 -- |
---   Wrapper to express Reduced vs Expressed request computation
+--   Internal wrapper to express Reduced vs Expressed request computation
 --   of the associated measurement value. So, just the same FieldValues
 --   plus an extra tag.  This fits throughout further down the Request tree.
 --
-newtype CompReqValues = CompReqValues { values :: TagRedExp CompValues }
+newtype CompReqValues = CompReqValues { values :: TagRedExp ValuesReqEnum }
   deriving (Show, Eq, Ord, Generic)
 
 -- |
@@ -345,8 +336,17 @@ isExp = not . isRed
 
 -- |
 --
+isExcludeRequest, isIncludeRequest :: CompReqValues -> Bool
+isExcludeRequest CompReqValues { values } =
+  case snd . unwrapReqEnum $ unTag values of
+    Exclude -> True
+    _       -> False
+isIncludeRequest = not . isExcludeRequest
+
+-- |
+--
 areSpanValues :: CompReqValues -> Bool
-areSpanValues (CompReqValues vs) = Values.areSpanValues (unTag vs)
+areSpanValues (CompReqValues vs) = Values.areSpanValuesReqEnum (unTag vs)
 
 -- |
 --
@@ -355,6 +355,7 @@ instance Fragment CompReqValues where
   null (CompReqValues (Exp vs)) = null vs
   len (CompReqValues (Red vs)) = len vs
   len (CompReqValues (Exp vs)) = len vs
+
 
 toListCompReqSpans :: CompReqValues -> [Span]
 toListCompReqSpans (CompReqValues tvs) = Fragment.toList $ unTag tvs
@@ -373,29 +374,38 @@ instance ToJSON CompReqValues
 -- |
 -- Used to instantiate a request in-process (not data)
 --
-toTupleCompReqValues :: CompReqValues -> (CompValues, Reduced)
+toTupleCompReqValues :: CompReqValues -> (ValuesReqEnum, Reduced)
 toTupleCompReqValues (CompReqValues (Red vs)) = (vs, True)
 toTupleCompReqValues (CompReqValues (Exp vs)) = (vs, False)
 
 -- |
--- Creates a list of singletons (list of list n = 1)
+-- Creates a list of singletons (list of list n = 1). Utilized to expand
+-- a request with the @Model.ETL.TagRedExp.Exp@.
 --
 toCompValuesList :: CompReqValues -> [CompValues]
 toCompValuesList = Values.toCompValuesList . toCompValues
 
 -- |
 --
-fromCompValues
-  :: (CompValues -> TagRedExp CompValues) -> CompValues -> CompReqValues
-fromCompValues redExp = CompReqValues . redExp
+fromCompValues :: Reduced -> AntiRequest -> CompValues -> CompReqValues
+fromCompValues reduced antiRequest vs
+  | reduced && antiRequest         = CompReqValues . Red $ toExcludeRequest vs
+  | reduced && not antiRequest     = CompReqValues . Red $ toIncludeRequest vs
+  | not reduced && antiRequest     = CompReqValues . Exp $ toExcludeRequest vs
+  | not reduced && not antiRequest = CompReqValues . Exp $ toIncludeRequest vs
+  | otherwise                      = panic "Unreachable - fromCompValues"
 
 -- |
 --
 instance ToCompValues CompReqValues where
-  toCompValues = unTag . coerce
+  -- toCompValues :: a -> CompValues
+  toCompValues = fst . unwrapReqEnum . unTag . coerce
 
 -- | Synonym used to set TagRedExp value
 type Reduced = Bool
+
+-- | Synonym used to set AntiRequestEnum value
+type AntiRequest = Bool
 
 
 ---------------------------------------------------------------------------------
@@ -512,16 +522,21 @@ instance FieldCount CompReqValues where
   fieldCount vs
     | areSpanValues vs
     =
-
+      --
       -- Note how the external, redundant, TagRedExp is ignored (Span values)
+      -- 🚧 ⬜ Double check logic of concluding is redundant
+      --
       let getSpanValues' CompReqValues { values } =
-              getSpanValues $ unTag values
+              getSpanValuesReqEnum $ unTag values
           spanList = fromJust (getSpanValues' vs)
-                                                                             -- Add the field count from the shared component (SpanType)
+                        -- Add the field count from the shared component (SpanType)
       in  sum $ fieldCount <$> spanList
     |
 
-      -- the result depends on the TagRedExp and number of values
+      --
+      -- the result depends on the TagRedExp and the number of values
+      -- ⚠️  The number of values depends on AntiRequestEnum value
+      --
       otherwise
     = case (len vs, isRed vs) of
       (0, _    ) -> 0

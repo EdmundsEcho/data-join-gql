@@ -31,22 +31,36 @@
 -- The Subject node is ~ Measurements node
 --
 --
-module Api.ETL
-  where
+module Api.ETL where
 ---------------------------------------------------------------------------------
-import           Protolude          hiding (Type, null, isPrefixOf )
+import           Protolude               hiding ( Type
+                                                , null
+                                                , isPrefixOf
+                                                )
 ---------------------------------------------------------------------------------
 import           Data.Coerce
-import           Data.Text          (count, isPrefixOf, isSuffixOf)
-import qualified Data.Set           as Set (filter)
+import           Data.Text                      ( count
+                                                , isPrefixOf
+                                                , isSuffixOf
+                                                )
+import qualified Data.Set                      as Set
+                                                ( filter )
 ---------------------------------------------------------------------------------
 import           Model.ETL.Fragment
-import           Model.Search       hiding (logDivide, logRequest, isSubstring)
+import           Model.Search            hiding ( logDivide
+                                                , logRequest
+                                                , isSubstring
+                                                )
 ---------------------------------------------------------------------------------
-import           Model.ETL.ObsETL   hiding (null)
-import qualified Model.ETL.Components as Components (lookup)
-import qualified Model.ETL.Qualities  as Qualities (lookup)
-import           Model.Request      (CompReqValues (..), toTupleCompReqValues)
+import           Model.ETL.ObsETL        hiding ( null )
+import qualified Model.ETL.Components          as Components
+                                                ( lookup )
+import qualified Model.ETL.Qualities           as Qualities
+                                                ( lookup )
+import           Model.Request                  ( CompReqValues(..)
+                                                , toTupleCompReqValues
+                                                , fromCompValues
+                                                )
 ---------------------------------------------------------------------------------
 import           WithAppContext
 ---------------------------------------------------------------------------------
@@ -59,13 +73,12 @@ getSubjectType = subType . obsSubject
 -- Retrieve a reference to the Measurements collection.
 -- The collection is one of two branches in the Obs object.
 --
-lookupMeasurements :: MonadLogger m
-                   => ObsETL -> m Measurements
+lookupMeasurements :: MonadLogger m => ObsETL -> m Measurements
 lookupMeasurements o = do
   let result = obsMeasurements o
-  logDebugN   "ETL data"
-  logDebugN $ "lookupMeasurements found measurements: "
-            <> show (meaTypes result)
+  logDebugN "ETL data"
+  logDebugN $ "lookupMeasurements found measurements: " <> show
+    (meaTypes result)
   pure result
 
 -- ** Request
@@ -74,31 +87,41 @@ lookupMeasurements o = do
 -- In the event no values are provided, the filter delivers all values
 -- with the Exp tag.
 --
-requestCompReqValues :: (MonadLogger m, MonadThrow m)
-                    => CompReqValues -> SearchFragment CompValues 'ETL
-                    -> m (SearchFragment CompReqValues 'ETLSubset)
+-- 🧮
+--
+requestCompReqValues
+  :: (MonadLogger m, MonadThrow m)
+  => CompReqValues
+  -> SearchFragment CompValues 'ETL
+  -> m (SearchFragment CompReqValues 'ETLSubset)
+
 requestCompReqValues search values
-
-
-  | null search = do
+  | -- empty request is always Include vs Exclude
+    null search = do
       logDebugN "ETL data"
       logWarnN "Ran a search with a null value search => series with all values"
-      requestCompReqValues (coerce (fromFieldCompReqValues False (coerce values))) values
+      requestCompReqValues
+        (fromCompValues False False (coerce values))
+        values
+  |
       -- expressed = False -- this is confusing; False encodes Expressed
-
-  | otherwise   = do
-      let (search', reduced) = toTupleCompReqValues search
-      result <- request (toFragmentReq search') values
-      logDebugN  "ETL data"
-      logRequest "requestCompReqValues" search values result
-      pure $ fromFieldCompReqValues reduced result
+    otherwise = do
+    let (search', reduced) = toTupleCompReqValues search
+    let (search'', antiRequest) = unwrapReqEnum search'
+    let exclude = case antiRequest of Exclude -> True; _ -> False
+    result <- request (toFragmentReq search'') values
+    logDebugN "ETL data"
+    logRequest "requestCompReqValues" search values result
+    pure . coerce $ fromCompValues reduced exclude (coerce result)
 
 -- ** requestValues
 -- |
 -- Unifying filter for FieldValues. The null search returns a null set.
 --
-requestQualReqValues, requestValues :: (MonadLogger m, MonadThrow m)
-  => FieldValues -> SearchFragment FieldValues 'ETL
+requestQualReqValues, requestValues
+  :: (MonadLogger m, MonadThrow m)
+  => FieldValues
+  -> SearchFragment FieldValues 'ETL
   -> m (SearchFragment FieldValues 'ETLSubset)
 
 requestQualReqValues search values = do
@@ -117,8 +140,10 @@ requestValues = requestQualReqValues
 -- Return values that contain a search term. Return all values when search
 -- term is an empty string.
 --
-searchValues :: (MonadLogger m, MonadThrow m)
-  => Text -> SearchFragment FieldValues 'ETL
+searchValues
+  :: (MonadLogger m, MonadThrow m)
+  => Text
+  -> SearchFragment FieldValues 'ETL
   -> m (SearchFragment FieldValues 'ETLSubset)
 
 searchValues search values = do
@@ -133,7 +158,8 @@ searchValues search values = do
 getQualityValues :: Text -> ObsETL -> Maybe FieldValues
 getQualityValues qualityName etl = do
   let subject :: Subject = obsSubject etl
-  fieldValues :: QualValues <- Qualities.lookup (subQualities subject) (mkQualKey qualityName)
+  fieldValues :: QualValues <- Qualities.lookup (subQualities subject)
+                                                (mkQualKey qualityName)
   return fieldValues
 
 -- ** getComponentValues
@@ -142,8 +168,10 @@ getQualityValues qualityName etl = do
 getComponentValues :: Text -> Text -> ObsETL -> Maybe FieldValues
 getComponentValues measurementType componentName etl = do
   let measurements :: Measurements = obsMeasurements etl
-  (_, components) :: (MeaKey, Components) <- getValues measurements measurementType
-  fieldValues :: CompValues <- Components.lookup components (mkCompKey componentName)
+  (_, components) :: (MeaKey, Components) <- getValues measurements
+                                                       measurementType
+  fieldValues :: CompValues <- Components.lookup components
+                                                 (mkCompKey componentName)
   return fieldValues
 
 filterValues :: (Text -> Text -> Bool) -> Text -> FieldValues -> FieldValues
@@ -151,36 +179,42 @@ filterValues p searchTerm (TxtSet xs) = TxtSet $ Set.filter (p searchTerm) xs
 filterValues _ _ _ = panic "Filter values does not work with non-text values"
 
 isSubstringP :: Text -> Text -> Bool
-isSubstringP "" _ = True
+isSubstringP ""        _       = True
 isSubstringP filterTxt tryThis = case count filterTxt tryThis of
-  0 -> False;
-  _ -> True;
+  0 -> False
+  _ -> True
 
 startsWithP :: Text -> Text -> Bool
-startsWithP "" _ = True
+startsWithP ""         _       = True
 startsWithP startsWith tryThis = isPrefixOf startsWith tryThis
 
 endsWithP :: Text -> Text -> Bool
-endsWithP "" _ = True
+endsWithP ""       _       = True
 endsWithP endsWith tryThis = isSuffixOf endsWith tryThis
 
 
-logRequest :: (MonadLogger m, ToJSON a, ToJSON b, ToJSON c)
-           => Text -> a -> b -> c -> m ()
+logRequest
+  :: (MonadLogger m, ToJSON a, ToJSON b, ToJSON c)
+  => Text
+  -> a
+  -> b
+  -> c
+  -> m ()
 logRequest heading search values result = do
   logDebugN logDivide
-  logDebugN $ ("ETL - "::Text) <> heading
-  logDebugN ("Search: "::Text)
+  logDebugN $ ("ETL - " :: Text) <> heading
+  logDebugN ("Search: " :: Text)
   logDebugF search
-  logDebugN ("Values: "::Text)
-  logDebugF  values
-  logDebugN ("Result: "::Text)
+  logDebugN ("Values: " :: Text)
+  logDebugF values
+  logDebugN ("Result: " :: Text)
   logDebugF result
   logDebugN logDivide
   logDebugN logDivide
 
 logDivide :: Text
-logDivide = "-------------------------------------------------------------------"
+logDivide =
+  "-------------------------------------------------------------------"
 
 
 ---------------------------------------------------------------------------------

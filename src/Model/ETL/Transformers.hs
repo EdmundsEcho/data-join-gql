@@ -28,10 +28,10 @@ fromQualities :: (QualKey -> QualValues -> a) -> Qualities -> [a]
 fromQualities f o = fromMap f (qualities o)   -- o :: Qualities is a record type
 
 -- | Used by Matrix
-fromReqQualities :: (QualKey -> QualValues -> a) -> ReqQualities -> [a]
+fromReqQualities :: (QualKey -> ValuesReqEnum -> a) -> ReqQualities -> [a]
 fromReqQualities f o = fmap (uncurry f) (ppJustValues o)
   where
-    ppJustValues :: ReqQualities -> [(QualKey, QualValues)]
+    ppJustValues :: ReqQualities -> [(QualKey, ValuesReqEnum)]
     ppJustValues o' =
       fmap fromJust <$> filter (\(_,b) -> isJust b) (toListReqQualities o')
 

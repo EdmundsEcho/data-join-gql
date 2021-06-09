@@ -12,39 +12,79 @@
 -- Portability : POSIX
 --
 --
-module Model.ETL.Fragment
-  where
+module Model.ETL.Fragment where
 ---------------------------------------------------------------------------------
-import           Data.Coerce               (coerce)
-import           Data.Text                 (intercalate)
-import           Protolude                 hiding (from, get, intercalate, null,
-                                            toList)
+import           Data.Coerce                    ( coerce )
+import           Data.Text                      ( intercalate )
+import           Protolude               hiding ( from
+                                                , get
+                                                , intercalate
+                                                , null
+                                                , toList
+                                                )
 ---------------------------------------------------------------------------------
-import           Model.ETL.Components      hiding (lookup, null, size, toList)
-import qualified Model.ETL.Components      as Components (lookup)
-import           Model.ETL.FieldValues     (FieldValues (..), FilterRange (..))
-import           Model.ETL.Key             (Key (CompKey, MeaKey), unKey)
-import           Model.ETL.ObsETL          (MeaKey, Measurements (..), SubKey,
-                                            Subject (..), mkMeaKey)
-import qualified Model.ETL.ObsETL          as Measurements (lookup, null, size)
-import           Model.ETL.Qualities       hiding (lookup, null, size, toList)
-import qualified Model.ETL.Qualities       as Qualities (lookup)
-import           Model.ETL.Span            (Span (Span))
-import qualified Model.ETL.Span            as Span
+import           Model.ETL.Components    hiding ( lookup
+                                                , null
+                                                , size
+                                                , toList
+                                                )
+import qualified Model.ETL.Components          as Components
+                                                ( lookup )
+import           Model.ETL.FieldValues          ( FieldValues(..)
+                                                , FilterRange(..)
+                                                , ValuesReqEnum(..)
+                                                , ValuesReq(..)
+                                                , AntiRequestEnum(..)
+                                                , FieldValue(..)
+                                                , unwrapReqEnum
+                                                )
+import           Model.ETL.Key                  ( Key(CompKey, MeaKey)
+                                                , unKey
+                                                )
+import           Model.ETL.ObsETL               ( MeaKey
+                                                , Measurements(..)
+                                                , SubKey
+                                                , Subject(..)
+                                                , mkMeaKey
+                                                )
+import qualified Model.ETL.ObsETL              as Measurements
+                                                ( lookup
+                                                , null
+                                                , size
+                                                )
+import           Model.ETL.Qualities     hiding ( lookup
+                                                , null
+                                                , size
+                                                , toList
+                                                )
+import qualified Model.ETL.Qualities           as Qualities
+                                                ( lookup )
+import           Model.ETL.Span                 ( Span(Span) )
+import qualified Model.ETL.Span                as Span
 import           Model.ETL.TagRedExp
 import           Model.SearchFragment
 ---------------------------------------------------------------------------------
-import qualified Data.Set                  as Set (fromList, intersection, null,
-                                                   size, toList, filter)
+import qualified Data.Set                      as Set
+                                                ( fromList
+                                                , intersection
+                                                , null
+                                                , size
+                                                , toList
+                                                , filter
+                                                )
 ---------------------------------------------------------------------------------
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Maybe
 ---------------------------------------------------------------------------------
-import           Api.GQL.Schemas.Request   (ComponentMixInput (..),
-                                            ComponentReqInput, QualityMixInput,
-                                            QualityReqInput, RequestKey (..),
-                                            SubsetCompMixReq, SubsetCompReq,
-                                            SubsetQualReq)
+import           Api.GQL.Schemas.Request        ( ComponentMixInput(..)
+                                                , ComponentReqInput
+                                                , QualityMixInput
+                                                , QualityReqInput
+                                                , RequestKey(..)
+                                                , SubsetCompMixReq
+                                                , SubsetCompReq
+                                                , SubsetQualReq
+                                                )
 ---------------------------------------------------------------------------------
 --
 -- |
@@ -79,25 +119,61 @@ instance Fragment Measurements where
 
 -- |
 instance Fragment FieldValues where
-  null (TxtSet set)  = Set.null set
-  null (IntSet set)  = Set.null set
+  null (TxtSet  set) = Set.null set
+  null (IntSet  set) = Set.null set
   null (SpanSet set) = Set.null set
   null Empty         = True
 
-  len (TxtSet set)  = Set.size set
-  len (IntSet set)  = Set.size set
+  len (TxtSet  set) = Set.size set
+  len (IntSet  set) = Set.size set
   len (SpanSet set) = Set.size set
   len Empty         = 0
+-- |
+--
+instance Fragment ValuesReqEnum where
+  null (ExcludeRequest vs) = null vs
+  null (IncludeRequest vs) = null vs
+  null (NA             vs) = null vs
+
+  len (ExcludeRequest vs) = len vs
+  len (IncludeRequest vs) = len vs
+  len (NA             vs) = len vs
+
+-- |
+instance ToList ValuesReqEnum FieldValue where
+  toList = toList . fst . unwrapReqEnum
+
+-- |
+-- 👍 The only time this version of toList is called
+-- is when the return type is [Span]
+instance ToList ValuesReqEnum Span where
+  toList = toList . fst . unwrapReqEnum
+
+-- |
+--
+instance Fragment (ValuesReq 'Include) where
+  null (ValuesReq vs) = null vs
+  len (ValuesReq vs) = len vs
+
+-- |
+--
+instance Fragment (ValuesReq 'Exclude) where
+  null (ValuesReq vs) = null vs
+  len (ValuesReq vs) = len vs
+
+  -- = ExcludeRequest (ValuesReq 'Exclude)
+  -- | IncludeRequest (ValuesReq 'Include)
+  -- | NA FieldValues
 
 instance Fragment (SearchFragment FieldValues 'ETL) where
   null = (null @FieldValues) . coerce
-  len  = (len  @FieldValues) . coerce
+  len  = (len @FieldValues) . coerce
 instance Fragment (SearchFragment FieldValues 'Req) where
   null = (null @FieldValues) . coerce
-  len  = (len  @FieldValues) . coerce
+  len  = (len @FieldValues) . coerce
 instance Fragment (SearchFragment FieldValues 'ETLSubset) where
   null = (null @FieldValues) . coerce
-  len  = (len  @FieldValues) . coerce
+  len  = (len @FieldValues) . coerce
 
 -- |
 -- 'Model.ETL.FieldValues.FilterRange' can equate to one or more values
@@ -107,7 +183,7 @@ instance Fragment (SearchFragment FieldValues 'ETLSubset) where
 --
 instance Fragment FilterRange where
   null v = len v == 0
-  len  FilterRange {..} = maximum [0, filterEnd - filterStart + 1]
+  len FilterRange {..} = maximum [0, filterEnd - filterStart + 1]
 
 ---------------------------------------------------------------------------------
 -- ** To and FromList
@@ -131,9 +207,20 @@ instance ToList FieldValues Span where
   toList (SpanSet vs) = Set.toList vs
   toList _            = panic $ message "toList" "Span"
 
+-- |
+instance ToList FieldValues FieldValue where
+  toList (TxtSet  vs) = TxtValue <$> Set.toList vs
+  toList (IntSet  vs) = IntValue <$> Set.toList vs
+  toList (SpanSet vs) = SpanValue <$> Set.toList vs
+  toList Empty        = []
+
 message :: Text -> Text -> Text
-message func' type' = "ToList type mismatch:\n Called "
-             <> type' <> " " <> func' <> " with the wrong input data type."
+message func' type' =
+  "ToList type mismatch:\n Called "
+    <> type'
+    <> " "
+    <> func'
+    <> " with the wrong input data type."
 
 ---------------------------------------------------------------------------------
 -- |
@@ -159,9 +246,10 @@ class Intersection a where
 
 -- |
 instance Intersection FieldValues where
-  intersection (TxtSet get)  (TxtSet from)  = TxtSet  $ Set.intersection  get from
-  intersection (IntSet get)  (IntSet from)  = IntSet  $ Set.intersection  get from
-  intersection (SpanSet get) (SpanSet from) = SpanSet $ Span.intersection get from
+  intersection (TxtSet get) (TxtSet from) = TxtSet $ Set.intersection get from
+  intersection (IntSet get) (IntSet from) = IntSet $ Set.intersection get from
+  intersection (SpanSet get) (SpanSet from) =
+    SpanSet $ Span.intersection get from
   intersection _ _ = panic "Type mismatch: intersection using different types"
 
 ---------------------------------------------------------------------------------
@@ -171,18 +259,21 @@ class HasFilterSearch i c where
 
 -- |
 instance HasFilterSearch Text FieldValues where
-  filterSearch p (TxtSet values)  = TxtSet $ Set.filter p values
-  filterSearch _ _ = panic "Type mismatch:  using a Text filter on the wrong FieldValues"
+  filterSearch p (TxtSet values) = TxtSet $ Set.filter p values
+  filterSearch _ _ =
+    panic "Type mismatch:  using a Text filter on the wrong FieldValues"
 
 -- |
 instance HasFilterSearch Int FieldValues where
-  filterSearch p (IntSet values)  = IntSet $ Set.filter p values
-  filterSearch _ _ = panic "Type mismatch:  using an Int filter on the wrong FieldValues"
+  filterSearch p (IntSet values) = IntSet $ Set.filter p values
+  filterSearch _ _ =
+    panic "Type mismatch:  using an Int filter on the wrong FieldValues"
 
 -- |
 instance HasFilterSearch Span FieldValues where
-  filterSearch p (SpanSet values)  = SpanSet $ Set.filter p values
-  filterSearch _ _ = panic "Type mismatch:  using a Span filter on the wrong FieldValues"
+  filterSearch p (SpanSet values) = SpanSet $ Set.filter p values
+  filterSearch _ _ =
+    panic "Type mismatch:  using a Span filter on the wrong FieldValues"
 
 
 ---------------------------------------------------------------------------------
@@ -203,7 +294,7 @@ type NameTag = Text
 
 -- | LHS
 instance NameTagC Key where
-  nameTag key@(MeaKey _)  = "MeaType::" <> unKey key
+  nameTag key@(MeaKey  _) = "MeaType::" <> unKey key
   nameTag key@(CompKey _) = unKey key
   nameTag _               = mempty
 
@@ -214,15 +305,14 @@ instance NameTagC Key where
 --
 instance NameTagC FieldValues where
   nameTag vs@(TxtSet _) = go_ (nameTag @Text) vs
-  nameTag vs@(IntSet _) = go_ (nameTag @Int)  vs
+  nameTag vs@(IntSet _) = go_ (nameTag @Int) vs
   nameTag Empty         = mempty
   nameTag (SpanSet _)   = panic "No name tag for SpanSet; use FilterRange"
 
 -- private
 go_ :: (ToList a b, Fragment a) => (b -> Text) -> a -> Text
-go_ tagFn vs
-  | len vs == 1 = intercalate "," (tagFn <$> toList vs)
-  | otherwise ="$" <> intercalate "," (tagFn <$> toList vs) <> "$"
+go_ tagFn vs | len vs == 1 = intercalate "," (tagFn <$> toList vs)
+             | otherwise   = "$" <> intercalate "," (tagFn <$> toList vs) <> "$"
 
 -- | RHS
 instance NameTagC Text where
@@ -234,10 +324,9 @@ instance NameTagC Int where
 
 -- | RHS
 instance NameTagC FilterRange where
-  nameTag FilterRange {..} =
-    if filterStart == filterEnd
-       then show filterStart
-       else show filterStart <> "_" <> show filterEnd
+  nameTag FilterRange {..} = if filterStart == filterEnd
+    then show filterStart
+    else show filterStart <> "_" <> show filterEnd
 
 ---------------------------------------------------------------------------------
 -- ** FieldCount
@@ -271,7 +360,7 @@ class FieldCount fragment where
 --
 instance FieldCount Span where
   fieldCount Span { span = span' } = case span' of
-    (Red _)     -> 1
+    (Red _    ) -> 1
     (Exp range) -> Span.rangeLength range
 
 -- ** FieldCounts
@@ -363,9 +452,8 @@ class (RequestKey request, GetEtlFragment etl k fragment)
 ---------------------------------------------------------------------------------
 -- |
 instance GetEtlFragment Measurements MeaKey Components where
-  getValues measurements k
-    = let key = mkMeaKey k
-       in (key,) <$> Measurements.lookup measurements key
+  getValues measurements k =
+    let key = mkMeaKey k in (key, ) <$> Measurements.lookup measurements key
 
 -- |
 instance GetEtlFragment Subject SubKey Qualities where
@@ -374,16 +462,16 @@ instance GetEtlFragment Subject SubKey Qualities where
 
 -- |
 instance GetEtlFragment Qualities QualKey (SearchFragment QualValues 'ETL) where
-  getValues qualities k
-    = let key = mkQualKey k
-       in coerce . (key,) <$> Qualities.lookup qualities key
+  getValues qualities k =
+    let key = mkQualKey k
+    in  coerce . (key, ) <$> Qualities.lookup qualities key
 
 -- |
 --
 instance GetEtlFragment Components CompKey (SearchFragment CompValues 'ETL) where
-  getValues components k
-    = let key = mkCompKey k
-       in coerce . (key,) <$> Components.lookup components key
+  getValues components k =
+    let key = mkCompKey k
+    in  coerce . (key, ) <$> Components.lookup components key
 
 
 instance IsSubset SubsetCompMixReq  Measurements MeaKey  Components

@@ -41,7 +41,7 @@ module Api.GQL.ObsETL
   , Span
   , ComponentValues(..)
   , resolverCompValues
-  , resolverQualValues
+  , resolverValuesReqEnum
   , resolverSpanValue
   , resolverSubType
 
@@ -77,7 +77,6 @@ import           Api.GQL.Schemas.Shared
 import           Api.GQL.Types
 import           WithAppContext
 -------------------------------------------------------------------------------
-
 -------------------------------------------------------------------------------
 -- * ObsETL Model -> View
 -- |
@@ -158,7 +157,7 @@ resolverComponent key o' =
 --
 -- Pattern match to delegate to one of the 3 value types
 --
--- TODO: Complete the use of Empty.  e.g., have it display null in GQL.
+-- ⬜ Complete the use of Empty.  e.g., have it display null in GQL.
 --
 resolverCompValues :: GraphQL o m => Model.CompValues -> Object o m ComponentValues
 resolverCompValues (Model.TxtSet o') =
@@ -208,7 +207,7 @@ resolverQuality key o' =
 --
 -- Pattern match to delegate to one of the 3 value types
 --
-resolverQualValues :: GraphQL o m => Model.QualValues -> Object o m QualityValues
+resolverQualValues :: GraphQL o m => Model.FieldValues -> Object o m QualityValues
 resolverQualValues (Model.TxtSet o') =
   QualityValuesTxtValues <$> resolverTxtValues (Model.TxtSet o')
 
@@ -216,6 +215,29 @@ resolverQualValues (Model.IntSet o') =
   QualityValuesIntValues <$> resolverIntValues (Model.IntSet o')
 
 resolverQualValues  _ = panic "QualValues resolver: tried with the wrong type."
+
+
+--------------------------------------------------------------------------------
+-- *** ValuesReqEnum Model -> View
+-- |
+-- Model QualValues, GQL Union QualityValues
+-- data ValuesReqEnum
+-- = ExcludeRequest (ValuesReq 'Exclude)
+-- | IncludeRequest (ValuesReq 'Include)
+-- | NA QualValues
+-- deriving (Show, Eq, Ord, Generic)
+--
+-- 🚧 Finish with SpSpanValues
+-- 🔑 This is where we encode the Include Exclude!!
+--
+resolverValuesReqEnum :: GraphQL o m
+                      => Model.ValuesReqEnum
+                      -> (Object o m QualityValues, Bool)
+resolverValuesReqEnum vs =
+   let (vs', antiEnum) = Model.unwrapReqEnum vs
+   in case antiEnum of
+      Model.Include -> (resolverQualValues vs', False)
+      Model.Exclude -> (resolverQualValues vs', True)
 
 --------------------------------------------------------------------------------
 -- **** FieldValues Model -> View

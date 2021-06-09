@@ -12,24 +12,35 @@
 --
 module Api.GQL.Input.MeaRequests where
 ---------------------------------------------------------------------------------
-import           Protolude               hiding (null)
+import           Protolude               hiding ( null )
 ---------------------------------------------------------------------------------
-import           Data.Maybe              (fromJust)
+import           Data.Maybe                     ( fromJust )
 ---------------------------------------------------------------------------------
-import           Api.ETL                 (requestCompReqValues)
-import qualified Api.GQL.ObsETL          as Shared
+import           Api.ETL                        ( requestCompReqValues )
+import qualified Api.GQL.ObsETL                as Shared
 ---------------------------------------------------------------------------------
-import qualified Model.ETL.ObsETL        as Model (CompValues, Components,
-                                                   MeaKey, Measurements, Span)
-import qualified Model.ETL.TagRedExp     as Model
-import qualified Model.Request           as Model (CompReqValues (..),
-                                                   ReqComponents (..), mkSpan)
+import qualified Model.ETL.ObsETL              as Model
+                                                ( CompValues
+                                                , Components
+                                                , MeaKey
+                                                , Measurements
+                                                , Span
+                                                , toIncludeRequest
+                                                , toExcludeRequest
+                                                , ValuesReqEnum
+                                                )
+import qualified Model.ETL.TagRedExp           as Model
+import qualified Model.Request                 as Model
+                                                ( CompReqValues(..)
+                                                , ReqComponents(..)
+                                                , mkSpan
+                                                )
 ---------------------------------------------------------------------------------
 import           Model.ETL.Fragment
 import           Model.Search
 ---------------------------------------------------------------------------------
-import qualified Api.GQL.Schemas.Request as GqlInput
-import qualified Api.GQL.Schemas.Shared  as GqlInput
+import qualified Api.GQL.Schemas.Request       as GqlInput
+import qualified Api.GQL.Schemas.Shared        as GqlInput
 ---------------------------------------------------------------------------------
 import           WithAppContext
 ---------------------------------------------------------------------------------
@@ -59,15 +70,17 @@ import           WithAppContext
 -- === No Alias Required
 -- The struct returns Arrays avoiding the need to name repeated requests.
 --
-fetchSubsetComponentMix :: (MonadLogger m, MonadThrow m)
-                        => GqlInput.SubsetCompMixReq -> Model.Measurements
-                        -> m (Maybe (Model.MeaKey, Maybe MeaETLSubset))
+fetchSubsetComponentMix
+  :: (MonadLogger m, MonadThrow m)
+  => GqlInput.SubsetCompMixReq
+  -> Model.Measurements
+  -> m (Maybe (Model.MeaKey, Maybe MeaETLSubset))
 
 fetchSubsetComponentMix req etl = do
 
   let result = getEtlFragment etl req
-  logDebugN $ ("fetch MEAKEY: "::Text)
-              <> show (fromJust $ GqlInput.requestKey req)
+  logDebugN $ ("fetch MEAKEY: " :: Text) <> show
+    (fromJust $ GqlInput.requestKey req)
 
   case result of
   -- Maybe (MeaKey, Components)
@@ -75,8 +88,8 @@ fetchSubsetComponentMix req etl = do
     -- 1. did the key return a collection?
     -- No, return Nothing.
     Nothing -> do
-      logWarnN $ ("Measurement key does not exist: " :: Text)
-               <> show (fromJust $ GqlInput.requestKey req)
+      logWarnN $ ("Measurement key does not exist: " :: Text) <> show
+        (fromJust $ GqlInput.requestKey req)
       pure Nothing
 
     -- Yes,
@@ -84,58 +97,59 @@ fetchSubsetComponentMix req etl = do
     Just keyValues -> do
     -- (MeaKey, Components)
 
-       logDebugN "fetch COMPMIX"
+      logDebugN "fetch COMPMIX"
 
-       let nextRequest = GqlInput.compReqInput req
-       logDebugN $ "children: " <> show (len nextRequest)
-       logDebugN $ ("component searches: "::Text) <> show (sum $
-          (\GqlInput.ComponentReqInput {..} ->
-               maybe 0 length componentNames +
-               maybe 0 (const 1) componentName) <$> nextRequest)
+      let nextRequest = GqlInput.compReqInput req
+      logDebugN $ "children: " <> show (len nextRequest)
+      logDebugN $ ("component searches: " :: Text) <> show
+        (   sum
+        $   (\GqlInput.ComponentReqInput {..} ->
+              maybe 0 length componentNames + maybe 0 (const 1) componentName
+            )
+        <$> nextRequest
+        )
 
-       -- Subset requests
-       -- utilizes MixedRequest type class version of request
-       --------------------------------------------------------------------------
-       let subsetReqs = concat $ GqlInput.subsets <$> nextRequest
-       subsetResults <- fetchSubsetComponents subsetReqs (snd keyValues)
+      -- Subset requests
+      -- utilizes MixedRequest type class version of request
+      --------------------------------------------------------------------------
+      let subsetReqs = concat $ GqlInput.subsets <$> nextRequest
+      subsetResults <- fetchSubsetComponents subsetReqs (snd keyValues)
 
 
-       -- Fullset requests
-       -- utilizes MixedRequest type class version of request
-       --------------------------------------------------------------------------
-       let fullsetReqs = concat $ GqlInput.fullsets <$> nextRequest
+      -- Fullset requests
+      -- utilizes MixedRequest type class version of request
+      --------------------------------------------------------------------------
+      let fullsetReqs = concat $ GqlInput.fullsets <$> nextRequest
 
-       let results = fromListExpComponents
-                   . catMaybes
-                   $ getEtlFragment (snd keyValues)
-                   <$> fullsetReqs  -- lift over a list of requests
+      let results =
+            fromListExpComponents
+              .   catMaybes
+              $   getEtlFragment (snd keyValues)
+              <$> fullsetReqs  -- lift over a list of requests
 
-       fullsetResults <-
-          if null fullsetReqs
-             then pure Nothing
+      fullsetResults <- if null fullsetReqs
+        then pure Nothing
+        else if null results
+          then do
+            logWarnN "=> None of the fullset component requests were valid."
+            logWarnN $ show fullsetReqs
+            pure Nothing
+          else do
+            logDebugN "=> fullset success"
+            pure $ Just results
 
-          else if null results
-             then do
-                logWarnN "=> None of the fullset component requests were valid."
-                logWarnN $ show fullsetReqs
-                pure Nothing
+      logDebugN "Measurement request"
+      logDebugN $ "...subset requests: " <> show (len subsetReqs)
+      logDebugN . show $ GqlInput.compKey <$> subsetReqs
+      logDebugN $ ("=> subsets: " :: Text) <> show (len subsetResults)
 
-             else do
-               logDebugN "=> fullset success"
-               pure $ Just results
+      logDebugN $ "...fullset requests: " <> show (len fullsetReqs)
+      logDebugN $ "" <> show fullsetReqs
+      logDebugN $ "=> fullSets: " <> show (len fullsetResults)
 
-       logDebugN "Measurement request"
-       logDebugN $ "...subset requests: " <> show (len subsetReqs)
-       logDebugN . show $ GqlInput.compKey <$> subsetReqs
-       logDebugN $ ("=> subsets: "::Text) <> show (len subsetResults)
-
-       logDebugN $ "...fullset requests: "  <> show (len fullsetReqs)
-       logDebugN $ "" <> show fullsetReqs
-       logDebugN $ "=> fullSets: " <> show (len fullsetResults)
-
-       -- combined result
-       --------------------------------------------------------------------------
-       pure . Just $ (fst keyValues, subsetResults <> fullsetResults)
+      -- combined result
+      --------------------------------------------------------------------------
+      pure . Just $ (fst keyValues, subsetResults <> fullsetResults)
 
 
 ---------------------------------------------------------------------------------
@@ -167,92 +181,144 @@ fetchSubsetComponentMix req etl = do
 -- included if CompReqValues are not specified (augmented request). Reduced
 -- is not included unless a subset request is made.
 --
-fetchSubsetComponents :: (MonadLogger m, MonadThrow m)
-                      => [GqlInput.SubsetCompReq] -> Model.Components
-                      -> m (Maybe (SearchFragment Model.ReqComponents 'ETLSubset))
-fetchSubsetComponents [] _ = pure Nothing
+fetchSubsetComponents
+  :: (MonadLogger m, MonadThrow m)
+  => [GqlInput.SubsetCompReq]
+  -> Model.Components
+  -> m (Maybe (SearchFragment Model.ReqComponents 'ETLSubset))
+fetchSubsetComponents []       _   = pure Nothing
 fetchSubsetComponents requests etl = do
 
   logDebugN "Running components subset requests"
   logDebugN $ show (GqlInput.compKey <$> requests)
 
-  result <- fromListReqComponents . catMaybes
-            <$> traverse fetchComponent requests
+  result <-
+    fromListReqComponents . catMaybes <$> traverse fetchComponent requests
 
   if null result
-     then do
-        logWarnN $ ("Invalid key(s) in the component subset request(s)."::Text)
-                 <> show (catMaybes $ GqlInput.requestKey <$> requests)
-        pure Nothing
-     else pure $ Just result
+    then do
+      logWarnN
+        $  ("Invalid key(s) in the component subset request(s)." :: Text)
+        <> show (catMaybes $ GqlInput.requestKey <$> requests)
+      pure Nothing
+    else pure $ Just result
 
-  where
+ where
 
     -- :: -> m Maybe (key, Maybe values)
-    fetchComponent req = do
-       let fullsetFragment = getEtlFragment etl req
-       logDebugN "ETL data"
-       logDebugN $ ("fetchComponent key: "::Text) <> show (GqlInput.requestKey req)
-       logDebugN $ show (fmap showLen <$> fullsetFragment)
-       logDebugF req
+    -- :: -> m Maybe (key, Maybe Model.CompReqValues 'ETLSubset)
+    -- req hosts antiRequest
+  fetchComponent req = do
+    let exclude         = getAntiRequest req
+    let fullsetFragment = getEtlFragment etl req
+    logDebugN "ETL data"
+    logDebugN $ ("fetchComponent key: " :: Text) <> show
+      (GqlInput.requestKey req)
+    logDebugN $ show (fmap showLen <$> fullsetFragment)
+    logDebugF req
 
-       case fullsetFragment of
-          Nothing -> do
-            logWarnN $ "fullsetFragment invalid key: "
-                     <> show (GqlInput.requestKey req)
-            pure Nothing  -- invalid key
+    case fullsetFragment of
+      Nothing -> do
+        logWarnN $ "fullsetFragment invalid key: " <> show
+          (GqlInput.requestKey req)
+        pure Nothing  -- invalid key
 
-          -- request values
-          Just (key, etlValues) -> do
-            logDebugN $ "...making the request from ETL: " <> show key
-            values <- requestCompReqValues
-                      (fromInputReqCompValues (GqlInput.compValuesInput req))
-                      etlValues
+      -- request values
+      Just (key, etlValues) -> do
+        logDebugN $ "...making the request from ETL: " <> show key
+        values <- requestCompReqValues
+          (fromInputReqCompValues exclude (GqlInput.compValuesInput req))
+          etlValues
 
-            -- Warn about valid key, but invalid subset
-            if null values
-               then do
-                  logWarnN "MeaRequests line 208 *** null values ***"
-                  logWarnN $ "Component filter failed despite a valid key; no filter applied"
-                           <> "\n key: " <> show key
-                           <> "\n failed filter: " <> show values
-                  pure $ Just (key, Nothing)    -- valid key, no values
-               else do
-                  logDebugN $ "Component subset request for key: " <> show key
-                  pure $ Just (key, Just values)
+        -- Warn about valid key, but invalid subset
+        -- 🚧 ...less of an issue when the antiRequest = Exclude
+        if null values
+          then do
+            logWarnN "MeaRequests line 208 *** null values ***"
+            logWarnN
+              $ "Component filter failed despite a valid key; no filter applied"
+              <> "\n key: "
+              <> show key
+              <> "\n failed filter: "
+              <> show values
+            pure $ Just (key, Nothing)    -- valid key, no values
+          else do
+            logDebugN $ "Component subset request for key: " <> show key
+            pure $ Just (key, Just values)
 
+getAntiRequest :: GqlInput.SubsetCompReq -> Bool
+getAntiRequest GqlInput.SubsetCompReq { antiRequest } = antiRequest
 
 ---------------------------------------------------------------------------------
 -- |
 -- This could be refactored to share more from ObsETL.  The only difference
 -- is the use of 'Model.ETL.Span.mkSpan' instead of the monadic version.
 --
+-- 1️⃣  Input
 -- This request version does not fail when provided negative span lengths.
+-- > ComponentReqInput {
+-- >   componentNames:  [String!]
+-- >   componentName:   String
+-- >   componentValues: CompValuesReqInput
+-- >   antiRequest: Bool!
+-- > }
 --
-fromInputReqCompValues :: GqlInput.CompValuesReqInput -> Model.CompReqValues
-fromInputReqCompValues (GqlInput.CompValuesReqInput txt int span red)
-    | red       = Model.CompReqValues . Model.Red $ fromRequest (GqlInput.CompValuesInput txt int span)
-    | otherwise = Model.CompReqValues . Model.Exp $ fromRequest (GqlInput.CompValuesInput txt int span)
+-- > ComponentValuesReqInput {
+-- >   txtValues: [String!]
+-- >   intValues: [Int!]
+-- >   spanValues: [Span!]
+-- >   reduced: Boolean!
+-- > }
+--
+-- 2️⃣  Ouput Model
+-- newtype ReqComponents = ReqComponents
+--         { reqComponents :: Map CompKey (Maybe CompReqValues)
+--         } deriving (Show, Eq, Ord, Generic)
 
-    where
+--
+-- newtype CompReqValues = CompReqValues { values :: TagRedExp ValuesReqEnum }
+--   deriving (Show, Eq, Ord, Generic)
 
-      fromRequest :: Shared.CompValuesInput -> Model.CompValues
-      fromRequest Shared.CompValuesInput { txtValues  = Just vs } = (fromList @Model.CompValues) vs
-      fromRequest Shared.CompValuesInput { intValues  = Just vs } = (fromList @Model.CompValues) vs
-      fromRequest Shared.CompValuesInput { spanValues = Just vs } =
-        (fromList @Model.CompValues) $ spanFromInput <$> vs
-            where
-              -- | GraphQL -> Model
-              spanFromInput :: Shared.SpanInput -> Model.Span
-              spanFromInput Shared.SpanInput{..}
-                | reduced   = Model.mkSpan Model.Red rangeStart rangeLength
-                | otherwise = Model.mkSpan Model.Exp rangeStart rangeLength
+--Task: the antiRequest information include in the function param
+--
+fromInputReqCompValues
+  :: Exclude -> GqlInput.CompValuesReqInput -> Model.CompReqValues
+fromInputReqCompValues exclude (GqlInput.CompValuesReqInput txt int span red)
+  | red = Model.CompReqValues . Model.Red $ fromRequest
+    (GqlInput.CompValuesInput txt int span)
+  | otherwise = Model.CompReqValues . Model.Exp $ fromRequest
+    (GqlInput.CompValuesInput txt int span)
 
-      fromRequest Shared.CompValuesInput {}
-        = panic "The values type does not match that for CompValues"
+ where
+  -- uses exclude from the local/global scope
+  fromRequest :: Shared.CompValuesInput -> Model.ValuesReqEnum
+  fromRequest Shared.CompValuesInput { txtValues = Just vs } = if exclude
+    then Model.toExcludeRequest $ (fromList @Model.CompValues) vs
+    else Model.toIncludeRequest $ (fromList @Model.CompValues) vs
+  fromRequest Shared.CompValuesInput { intValues = Just vs } = if exclude
+    then Model.toExcludeRequest $ (fromList @Model.CompValues) vs
+    else Model.toIncludeRequest $ (fromList @Model.CompValues) vs
+  fromRequest Shared.CompValuesInput { spanValues = Just vs } = if exclude
+    then
+      Model.toExcludeRequest
+      .   (fromList @Model.CompValues)
+      $   spanFromInput
+      <$> vs
+    else
+      Model.toIncludeRequest
+      .   (fromList @Model.CompValues)
+      $   spanFromInput
+      <$> vs
 
+   where
+    -- GraphQL -> Model
+    spanFromInput :: Shared.SpanInput -> Model.Span
+    spanFromInput Shared.SpanInput {..}
+      | reduced   = Model.mkSpan Model.Red rangeStart rangeLength
+      | otherwise = Model.mkSpan Model.Exp rangeStart rangeLength
 
-
+  fromRequest Shared.CompValuesInput{} =
+    panic "The values type does not match that for CompValues"
 
 
 
