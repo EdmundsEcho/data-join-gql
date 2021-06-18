@@ -25,7 +25,7 @@ import           Protolude               hiding ( first
                                                 )
 ---------------------------------------------------------------------------------
 import qualified Model.ETL.ObsETL              as Model
-import qualified Model.ETL.Fragment            as Model
+import qualified Model.ETL.Fragment            as Model hiding (member)
 ---------------------------------------------------------------------------------
 import           WithAppContext                 ( WithAppContext )
 import qualified WithAppContext                as App
@@ -38,6 +38,7 @@ import           Api.GQL.Schemas.Root
 ---------------------------------------------------------------------------------
 import qualified Api.ETL                       as ETL
 ---------------------------------------------------------------------------------
+--
 -- |
 --
 resolverLevels
@@ -221,17 +222,23 @@ resolverLevelsConnection
         -> Object o m LevelsConnection
 
 resolverLevelsConnection (Just values) args = do
-        lift $ App.logInfoN "The ETL data exists..."
         -- 🚧 use monad context edgesToReturn
-        let (page, pageInfo) = edgesToReturn args values
-        pure $ LevelsConnection
-                { edges      = Just <$> traverse resolverLevelEdge (toList page)
-                , pageInfo   = resolverPageInfo (Just pageInfo)
-                , totalCount = pure $ Model.len values -- length edges
-                }
+        let (values', pageInfo) = edgesToReturn args values
+        case values' of
+           -- re-apply with empty values when the filters return Empty
+           Model.Empty -> resolverLevelsConnection Nothing args
+           -- ... otherwise proceed to report out the values
+           _ -> do
+                   lift $ App.logInfoN "✅ The ETL data exists..."
+
+                   pure $ LevelsConnection
+                        { edges      = Just <$> traverse resolverLevelEdge (toList values')
+                        , pageInfo   = resolverPageInfo (Just pageInfo)
+                        , totalCount = pure $ Model.len values -- length edges
+                        }
 
 resolverLevelsConnection Nothing _ = do
-        lift $ App.logInfoN "There is no ETL data for this request."
+        lift $ App.logInfoN "⚠️  There is no ETL data for this request."
         pure $ LevelsConnection { edges      = pure Nothing
                                 , pageInfo   = resolverPageInfo Nothing
                                 , totalCount = pure 0
@@ -257,7 +264,8 @@ edgesToReturn args@LevelsArgs {..} values
                 )
 
         -- splitAt after then take first
-        | (Just first', Just after') <- (first, after) =
+        | (Just first', Just after') <- (first, after) = if Model.member after' values
+           then
                 let (_, forwardValues) = Model.splitAt (1 + Model.findIndex after' values) values
                 in ( Model.take first' forwardValues
                    , InternalPageInfo
@@ -267,6 +275,9 @@ edgesToReturn args@LevelsArgs {..} values
                      , endCursor = Model.encodeFieldValue <$> Model.elemAt (first' - 1) forwardValues
                      }
                 )
+
+           -- what it means when the after cursor does not exist
+           else ( Model.Empty, emptyPageInfo )
 
         -- Backwards
         -- splitAt length - last, then take last (return split)
@@ -292,7 +303,8 @@ edgesToReturn args@LevelsArgs {..} values
         -- use the first half of the split
         -- end of slice = before
         -- start of slice = ...
-        | (Just last', Just before') <- (last, before) =
+        | (Just last', Just before') <- (last, before) = if Model.member before' values
+           then
                 let (backwardValues, _) = Model.splitAt (Model.findIndex before' values) values
                     splitHere = if Model.len backwardValues - last' < 0 then 0
                                 else Model.len backwardValues - last'
@@ -306,6 +318,9 @@ edgesToReturn args@LevelsArgs {..} values
                      , endCursor = Model.encodeFieldValue <$> Model.elemAt (Model.len slice - 1) slice
                      }
                 )
+
+           -- what it means when the before cursor does not exist
+           else ( Model.Empty, emptyPageInfo )
 
         -- recasts application of edgesToReturn
         -- 🚧 Append a warning message to the response
@@ -322,14 +337,7 @@ edgesToReturn args@LevelsArgs {..} values
         | (Just _, Just _) <- (first, before) =
                 edgesToReturn (args { before = Nothing }) values
 
-        | otherwise = ( Model.Empty
-                , InternalPageInfo
-                     { hasNextPage = False
-                     , hasPreviousPage = False
-                     , startCursor = Nothing
-                     , endCursor = Nothing
-                     }
-                )
+        | otherwise = ( Model.Empty, emptyPageInfo )
 
 data InternalPageInfo =
         InternalPageInfo
@@ -338,6 +346,15 @@ data InternalPageInfo =
                   , startCursor :: Maybe Text
                   , endCursor :: Maybe Text
                   }
+
+emptyPageInfo :: InternalPageInfo
+emptyPageInfo = InternalPageInfo
+                     { hasNextPage = False
+                     , hasPreviousPage = False
+                     , startCursor = Nothing
+                     , endCursor = Nothing
+                     }
+
 -- |
 --
 toList :: Model.FieldValues -> [Model.FieldValue]
@@ -379,7 +396,7 @@ resolverPageInfo (Just InternalPageInfo {..}) = pure $ PageInfo
 resolverLevel :: GraphQL o m => Model.FieldValue -> Object o m Level
 resolverLevel (Model.TxtValue value) = LevelTxtValue <$> resolverTxtValue value
 resolverLevel (Model.IntValue value) = LevelIntValue <$> resolverIntValue value
-resolverLevel _                      = panic "not supported"
+resolverLevel _                      = panic "field level is either empty or otherwise not supported"
 
 
 -- |
@@ -394,7 +411,6 @@ resolverIntValue x = pure $ IntValue { level = pure x }
 
 -- resolverSpanValue :: GraphQL o m => Model.Span -> Object o m Span
 -- resolverSpanValue x = pure $ Span x
-
 
 -- |
 -- Api ETL data helper

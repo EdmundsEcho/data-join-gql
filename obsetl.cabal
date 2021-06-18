@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e275c5ab4726268d65a08f751863753545517e4ef105c266dfa59d8387968168
+-- hash: f971ae1ae5f0e4f3a3a74861a4455b6f2727ce554393d316394019119e5ccd40
 
 name:           obsetl
-version:        0.1.3.0
+version:        0.1.4.0
 description:    Please see the README on GitHub at <https://github.com/lucivia/obsetl#readme>
 homepage:       https://github.com/lucivia/obsetl#readme
 bug-reports:    https://github.com/lucivia/obsetl/issues

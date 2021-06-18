@@ -46,6 +46,7 @@ module Model.ETL.FieldValues
   , encodeFieldValue
   , findIndex
   , filter
+  , member
   , splitAt
   , take
 
@@ -91,8 +92,8 @@ import qualified Model.ETL.Span                as Span
 -- ** Overview
 -- | Defines the a unifying data type to host the range of data types
 --  that describe a subject and measurement. The values represent
---  the unique values of a field that either describes a 'Model.ObsETL.Subject'
---  or 'Model.ObsETL.Measurements'.
+--  the unique values of a field that either describes a 'Model.ETL.ObsETL.Subject'
+--  or 'Model.ETL.ObsETL.Measurements'.
 --
 --  The value of the measurement itself can be anything (more often a @float@
 --  or @Int@).  The value itself is not specified.
@@ -101,12 +102,13 @@ import qualified Model.ETL.Span                as Span
 --
 --  * Int
 --  * Text
---  * 'Model.ETL.Span' - measurement-related only
+--  * 'Model.ETL.Span.Span' - measurement-related only
 --
 -- The type is a sum type that is designed to capture every way possible of
 -- describing the data.  Nothwithstanding, the sum type can be expanded as needed.
 --
--- /Note/: The design requires that a any one instance of 'Model.ETL.FieldVales'
+-- /Note/: The design requires that a any one instance of
+-- 'Model.ETL.FieldVales.FieldValues'
 -- host a single type.
 --
 data FieldValues
@@ -273,6 +275,15 @@ splitAt num (SpanSet values) = applyToTuple SpanSet $ Set.splitAt num values
 splitAt _   Empty            = panic "Tried to split an empty collection"
 
 -- |
+--    Base64 -> FieldValues -> Bool
+--
+member :: Text -> FieldValues -> Bool
+member x (TxtSet  values) = Set.member (decode64ToTxt x) values
+member x (IntSet  values) = Set.member (decode64ToInt x) values
+member _ (SpanSet _)      = panic "Not yet supported"
+member _ Empty            = False
+
+-- |
 --
 -- ⬜ Create a wrapper for Base64 Text
 --
@@ -282,6 +293,8 @@ splitAt _   Empty            = panic "Tried to split an empty collection"
 -- The key was created using a element of the set (a level/field value)
 --
 -- This can throw an Error
+--
+-- alternatively: use lookupIndex -> Maybe Int
 --
 findIndex :: Text -> FieldValues -> Int
 findIndex x (TxtSet  values) = Set.findIndex (decode64ToTxt x) values
@@ -344,7 +357,7 @@ instance ToJSON (ValuesReq 'Exclude)
 --
 -- 🚧 This was a scrappy add-on for version 0.1.4.0 that uses a combination
 --    of a phantom type and an Enum that unifies the different phantom types
---    to pipe through the process until required..
+--    to pipe through the process until required.
 --
 --    The type is set by the @antiRequest@ field found both in the graphql
 --    input schema and request view.  The information is used to modify the

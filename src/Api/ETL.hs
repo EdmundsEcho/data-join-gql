@@ -9,6 +9,11 @@
 --
 -- == Overview
 --
+-- This module uses "internal" types to process a request.
+--
+--     @Model Request -> Model -> Model Request@
+--     @Model Request -> SearchFragment 'ETL -> SearchFragment 'ETLSubset@
+--
 -- Much of the computations required to access the 'Model.ETL.ObsETL' data
 -- is defined in the 'Model.ETL.Fragment' typeclass module.
 --
@@ -83,11 +88,11 @@ lookupMeasurements o = do
 
 -- ** Request
 -- |
--- Unifying filter for CompReqValues
+-- 🧮 Unifying filter for CompReqValues
+--
 -- In the event no values are provided, the filter delivers all values
 -- with the Exp tag.
 --
--- 🧮
 --
 requestCompReqValues
   :: (MonadLogger m, MonadThrow m)
@@ -99,24 +104,27 @@ requestCompReqValues search values
   | -- empty request is always Include vs Exclude
     null search = do
       logDebugN "ETL data"
-      logWarnN "Ran a search with a null value search => series with all values"
+      logWarnN "Ran a search with a null value search 👉 Reduce with all values"
+      logWarnN "⚠️  This request state should be avoided (deselect all instead)."
       requestCompReqValues
-        (fromCompValues False False (coerce values))
+        (fromCompValues True False (coerce values))
         values
   |
       -- expressed = False -- this is confusing; False encodes Expressed
     otherwise = do
-    let (search', reduced) = toTupleCompReqValues search
-    let (search'', antiRequest) = unwrapReqEnum search'
-    let exclude = case antiRequest of Exclude -> True; _ -> False
-    result <- request (toFragmentReq search'') values
-    logDebugN "ETL data"
-    logRequest "requestCompReqValues" search values result
-    pure . coerce $ fromCompValues reduced exclude (coerce result)
+       let (search', reduced) = toTupleCompReqValues search
+       let (search'', antiRequest) = unwrapReqEnum search'
+       let exclude = case antiRequest of Exclude -> True; _ -> False
+       result <- request (toFragmentReq search'') values
+       logDebugN "ETL data"
+       logRequest "requestCompReqValues" search values result
+       pure . coerce $ fromCompValues reduced exclude (coerce result)
 
 -- ** requestValues
 -- |
 -- Unifying filter for FieldValues. The null search returns a null set.
+-- 🦀 The null [] request signals we want the field in the select statement
+--    ... the where clause is null (no filter, no limit filter => max rows)
 --
 requestQualReqValues, requestValues
   :: (MonadLogger m, MonadThrow m)

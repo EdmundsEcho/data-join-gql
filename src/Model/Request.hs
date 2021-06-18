@@ -129,22 +129,23 @@ type Value = Text
 instance ToJSON (Request status)
 
 -- |
--- *** Placeholder
+-- == Placeholder
 --
--- **** Ideas for subsequent use
+-- === Ideas for subsequent use
 --
 -- 1. Validating a structure where changes can only be made by the user
 --     * Including at least one 'Model.ETL.Quality' in the request
 --     * Ensuring the required, and single, 'Model.ETL.Span' component for
 --       every @Measurement@ in the 'Model.Request.ComponentMixes' fragment
 --       of the request
+--
 -- 1. Enforcing a non-redundant structure. For instance:
 --     * Consolidating Subject requests
 --     * Consolidating each mix in 'Model.Request.ComponentMixes'
 --     * Including a default 'Model.ETL.Span' request value
 --     * Removing a so called-subset of values Eq to fullset
 --
--- **** Considerations
+-- === Considerations
 --
 -- * The position in the workflow for when to optimize the 'Model.Request'
 -- needs to consider the user experience; how will the change impact how
@@ -175,10 +176,9 @@ instance ToJSON EtlContent
 ---------------------------------------------------------------------------------
   -- Subject arm
 ---------------------------------------------------------------------------------
--- |
--- ** Branches
-
+--
 -- | @ map :: ETL values -> Requested values @
+--
 data QualityMix = QualityMix
   { subjectType :: !Key
   , qualityMix  :: !(Maybe ReqQualities)
@@ -192,14 +192,17 @@ minQualityMix, minSubResult :: SubKey -> QualityMix
 minQualityMix key = QualityMix { subjectType = key, qualityMix = Nothing }
 minSubResult = minQualityMix
 
--- *** ReqQualities
 -- |
 -- Encoding
--- - QualKey Nothing => display the quality field, select all levels
--- - QualKey Just vs => display the quality field, select levels
 --
--- /Note/: QualValues are FieldValues.
--- /0.1.4.0/: Update uses ValuesReqEnum instead of QualValues and CompValues
+--   - QualKey Nothing => display the quality field, select all levels
+--
+--   - QualKey Just vs => display the quality field, select levels
+--
+-- 🔖  QualValues is a type alias for 'Model.ETL.FieldValues.FieldValues'
+--
+-- 🏷️  0.1.4.0: Update use 'Model.ETL.FieldValues.ValuesReqEnum' instead of
+--   'Model.ETL.FieldValues.QualValues' and 'Model.ETL.FieldValues.CompValues'
 --
 newtype ReqQualities = ReqQualities
         { reqQualities :: Map QualKey (Maybe ValuesReqEnum)
@@ -213,7 +216,8 @@ instance ToJSON ReqQualities
 
 -- |
 -- Limited to matching on key values with left bias
--- TODO: Prioritize bias using the value of Maybe
+--
+-- ⬜ Prioritize bias using the value of Maybe
 --
 instance Semigroup ReqQualities where
   (ReqQualities a) <> (ReqQualities b) = ReqQualities $ union a b
@@ -227,10 +231,9 @@ instance Monoid ReqQualities where
 -- |
 -- Utilized by 'Api.GQL.RequestView'
 --
--- /Notes/
--- * mkQualityMix is defined in the 'Model.Search' module.
--- * TODO: Consider changing the input type to @'ETLSubset@
+-- 🔖 mkQualityMix is defined in the 'Model.Search' module.
 --
+-- ⬜ Consider changing the input type to @'ETLSubset@
 --
 --
 toListReqQualities :: ReqQualities -> [(QualKey, Maybe ValuesReqEnum)]
@@ -280,15 +283,19 @@ toListComponentMixes (ComponentMixes v) = Map.toList v
 -- Each value specifies a series of fields to be included in the data request.
 --
 -- Encoding
--- - CompKey Nothing => create a series of fields using all levels (Exp)
--- - CompKey Just vs =>
---     - Exp: create a series using the levels specified
---     - Red: create a single summary field using the levels specified
 --
--- /Note/: @CompReqValues@ are @FieldValues@ tagged using @TagRedExp@.
+--   - CompKey Nothing => create a series of fields using all levels (Exp)
+--
+--   - CompKey Just vs =>
+--
+--      - Exp: create a series using the levels specified
+--
+--      - Red: create a single summary field using the levels specified
+--
+-- 🔖 @CompReqValues@ are @FieldValues@ tagged using @TagRedExp@.
 --
 -- 🦀 The Map structure requires merging the request when the key is already
---    registered. /Note/: This seems to be an extra lift caused by the fact
+--    registered. This seems to be an extra lift caused by the fact
 --    that subset requests that are reduced, cannot be combined.
 --
 newtype ReqComponents = ReqComponents
@@ -310,7 +317,7 @@ instance Monoid ReqComponents where
   mappend (ReqComponents a) (ReqComponents b) = ReqComponents $ union a b
 
 -- |
--- /Notes/
+-- 🔖
 --
 --   * (CompKey, Nothing) may be used to encode all Exp All Values
 --
@@ -380,7 +387,7 @@ toTupleCompReqValues (CompReqValues (Exp vs)) = (vs, False)
 
 -- |
 -- Creates a list of singletons (list of list n = 1). Utilized to expand
--- a request with the @Model.ETL.TagRedExp.Exp@.
+-- a request with the 'Model.ETL.TagRedExp.Exp'.
 --
 toCompValuesList :: CompReqValues -> [CompValues]
 toCompValuesList = Values.toCompValuesList . toCompValues
@@ -511,12 +518,11 @@ instance FieldCount ReqComponents where
 --
 -- * Reduced is a single summary field when the request is valid
 -- * Expressed = number of values in the request result
--- * Expressed = number of values in the request result
 --
--- /Note/: Pull whether field values are span values into a *request* context
+-- Pull whether field values are span values into a _request_ context
 -- (the only way to differentiate from ETL).
 --
--- TODO: make sure the first point makes sense.
+-- ⬜ make sure the first point makes sense.
 --
 instance FieldCount CompReqValues where
   fieldCount vs
