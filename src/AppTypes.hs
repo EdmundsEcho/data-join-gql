@@ -20,7 +20,7 @@ module AppTypes
   )
   where
 --------------------------------------------------------------------------------
-import           Protolude      hiding (State)
+import           Protolude      hiding (State, Handler)
 import           WithAppContext
 --------------------------------------------------------------------------------
 -- App specific
