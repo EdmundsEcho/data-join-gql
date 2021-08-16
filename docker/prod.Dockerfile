@@ -1,4 +1,4 @@
-FROM ghcr.io/lucivia/obs-base:latest
+FROM ghcr.io/lucivia/obs-base:1135615579
 
 COPY . /work
 WORKDIR /work
