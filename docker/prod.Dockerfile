@@ -7,7 +7,7 @@ RUN stack build \
     --copy-bins \
     --local-bin-path=/bin/
 
-FROM ghcr.io/lucivia/obs-runtime:latest
+FROM ghcr.io/lucivia/obs-runtime:1135610655
 
 COPY --from=0 /bin/obsetl-exe /bin/obsetl-exe
 
