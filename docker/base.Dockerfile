@@ -1,4 +1,4 @@
-FROM ghcr.io/lucivia/obs-src:latest
+FROM ghcr.io/lucivia/obs-src:1135599306
 
 WORKDIR /build-workdir
 
