@@ -1,0 +1,27 @@
+name: Build and push src docker image
+
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Do not change'
+        required: true
+        default: 'dummy input'
+      tags:
+        description: 'dummy input, ignore'
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Login to Github registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build image
+        run: |
+          IMAGE_ID=ghcr.io/lucivia/obs-src:$GITHUB_RUN_ID
+          docker build . -f docker/src.Dockerfile -t $IMAGE_ID
+          docker push $IMAGE_ID
