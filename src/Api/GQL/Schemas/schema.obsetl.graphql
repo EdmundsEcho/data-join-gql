@@ -1,7 +1,7 @@
 # Obs - input
 # (state from which all else follows)
 input ObsEtlInput {
-  id: String
+  id: String!
   subject: SubjectInput!
   measurements: [MeasurementInput!]!
 }
@@ -27,7 +27,6 @@ input ComponentInput {
 Describes the ETL Observation. The query used to generate this view
 does not include the capacity to subselect values within the structure.
 Each observation has a Subject and a collection of Measurements.
-
 Note: see the obsEtlLeanView and obsEtlView fragments.
 """
 type ObsETL {
@@ -155,7 +154,6 @@ input FromQuality {
 """
 Output type
 Perhaps support Span; how different from request?
-
 @likely deprecate; use levels instead
 """
 union SelectedValues = TxtValues | IntValues | SpanValues | Empty

@@ -18,7 +18,7 @@ import           AppTypes
 -- |
 -- == Endpoint type
 -- Servant Has Server types
-type ObsEtlApi  = GQLAPI "obsetl" "v1"
+type ObsEtlApi  = GQLAPI "v1" "obsetl"
 
 -- |
 -- interpreter :: Monad m

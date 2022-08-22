@@ -287,11 +287,11 @@ fromInputObsEtl :: WithAppContext m
 fromInputObsEtl ObsEtlInput {..}
   = catch
     (do result <-
-          Model.ObsETL Model.mkID (fromInputSubject subject)  -- :: Input -> Model.Subject
+          Model.ObsETL (Model.mkID id) (fromInputSubject subject)  -- :: Input -> Model.Subject
           <$> fromInputMeasurements measurements                -- :: Input -> m Model.Measurements
 
-        logInfoN  "Processing Input ObsETL"
-        logDebugF result
+        logInfoN  $ "Processing Input ObsETL for project: " <> show id
+        logDebugF result  -- ⬜ create a summary debug view without levels
 
         pure $ pure result
 
