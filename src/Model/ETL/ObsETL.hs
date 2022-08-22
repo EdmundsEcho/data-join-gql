@@ -29,11 +29,11 @@ import           Protolude
 ---------------------------------------------------------------------------------
 import qualified Data.Map.Strict       as Map (fromList, lookup, null, size,
                                                union)
-import           Data.Text             (append)
+-- import           Data.Text             (append)
 -------------------------------------------------------------------------------
 import           Data.Aeson            (ToJSON)
 ---------------------------------------------------------------------------------
-import           Lib.NodeManager
+-- import           Lib.NodeManager
 import           Model.ETL.Components  hiding (lookup, names, null, size,
                                         toList)
 import           Model.ETL.FieldValues
@@ -45,7 +45,7 @@ import           Model.ETL.Span        hiding (intersection, subset)
 -- = Observation model
 -- |
 data ObsETL = ObsETL
-        { obsID           :: !ID            -- ^ Implemented, but not may not be useful
+        { obsID           :: !ID
         , obsSubject      :: !Subject
         , obsMeasurements :: !Measurements
         } deriving (Show, Eq, Ord, Generic)
@@ -53,11 +53,10 @@ data ObsETL = ObsETL
 instance ToJSON ObsETL
 
 -- | Private smart constructor that utilizes an ID generator.
--- /Note/: The ID generator is implemented, but not exploited by the app.
-mkObsETL :: ID -> Subject -> Measurements -> NodeManager ObsETL
-mkObsETL id s ms = do
+mkObsETL :: ID -> Subject -> Measurements -> ObsETL
+mkObsETL id s ms = ObsETL id s ms
   -- idx <- generateIdx   -- just give me state (moved to value channel)
-  return $ ObsETL id s ms -- return (a :: ObsETL)
+  --  return $ ObsETL id s ms -- return (a :: ObsETL)
 
 --    where
 --       mkID' :: Int32 -> ID
