@@ -1,9 +1,9 @@
 name:                obsetl
-version:             0.1.4.0
+version:             0.1.4.1
 github:              "lucivia/obsetl"
 author:              "Edmund Cape"
 maintainer:          "edmund.cape@lucivia.com"
-copyright:           "Lucivia LLC 2021"
+copyright:           "Lucivia LLC 2022"
 
 extra-source-files:
 - README.md
