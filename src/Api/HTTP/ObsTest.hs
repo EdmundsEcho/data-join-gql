@@ -18,7 +18,7 @@ import           AppTypes
 -- |
 -- == Endpoint type
 -- Servant Has Server types
-type ObsTest  = GQLAPI "obstest" "v1"
+type ObsTest  = GQLTest "v1" "obstest"
 
 api :: GQLRequest -> AppObs GQLResponse
 api = interpreter gqlRoot

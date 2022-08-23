@@ -18,7 +18,7 @@ type GraphiQL
 
 -- Types that map to specific handlers
 -- The endpoints are one in the same.
-type ObsAPI = GQLAPI "v1" "graphiql"
+type ObsAPI = GQLAPI "v1" "warehouse" "projectId"
 type Graphi =  "v1" :> "graphiql" :> ServeGraphi
 
 -- Servant Has Handler types

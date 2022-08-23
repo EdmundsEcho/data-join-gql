@@ -18,9 +18,15 @@ import           Data.Morpheus.Types (GQLRequest, GQLResponse)
 -- |
 -- Morpheus helpers
 --
-type GQLAPI (name :: Symbol) (version :: Symbol)
-  = name     -- endpoint
-  :> version -- endpoint
+type GQLAPI (version :: Symbol) (name :: Symbol) (projectId :: Symbol)
+  = version     -- endpoint
+  :> name       -- endpoint
+  :> projectId  -- endpoint
+  :> ReqBody '[JSON] GQLRequest :> Post '[JSON] GQLResponse -- Servant Has Handler
+
+type GQLTest (version :: Symbol) (name :: Symbol)
+  = version     -- endpoint
+  :> name       -- endpoint
   :> ReqBody '[JSON] GQLRequest :> Post '[JSON] GQLResponse -- Servant Has Handler
 
 -- == Gql endpoint type
@@ -36,7 +42,7 @@ type GQLAPI (name :: Symbol) (version :: Symbol)
 --   api = interpreter gqlRoot
 --
 serveGQL :: (GQLRequest -> AppObs GQLResponse)
-         -> ServerT (GQLAPI name version) AppObs
+         -> ServerT (GQLAPI version name projectId) AppObs
 serveGQL = identity
 
 

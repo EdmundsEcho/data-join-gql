@@ -4,16 +4,16 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7fa11d27d3dfa1f4c611a2cc7b3857b83d107c58aaafbf38bc0ad2b239739345
+-- hash: 00cec6317a8aa5e47103bccfdb621cf88309334ac104f902e722fcfa9ff73773
 
 name:           obsetl
-version:        0.1.4.0
+version:        0.1.4.1
 description:    Please see the README on GitHub at <https://github.com/lucivia/obsetl#readme>
 homepage:       https://github.com/lucivia/obsetl#readme
 bug-reports:    https://github.com/lucivia/obsetl/issues
 author:         Edmund Cape
 maintainer:     edmund.cape@lucivia.com
-copyright:      Lucivia LLC 2021
+copyright:      Lucivia LLC 2022
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
