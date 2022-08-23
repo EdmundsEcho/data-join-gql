@@ -14,7 +14,6 @@ import           Data.Morpheus.Types
 import           Servant
 --------------------------------------------------------------------------------
 import           Api.GQL.Root        (gqlRoot)
-import           Api.GqlHttp
 import           AppTypes
 --------------------------------------------------------------------------------
 --
@@ -39,7 +38,6 @@ type GQLApi (version :: Symbol) (name :: Symbol) (projectId :: Symbol)
 type ObsEtlApi  = GQLApi "v1" "warehouse" "projectId"
 
 
-
 -- |
 -- Ingredient for the Handler
 --
@@ -56,9 +54,9 @@ type ObsEtlApi  = GQLApi "v1" "warehouse" "projectId"
 api :: ProjectId -> GQLRequest -> AppObs GQLResponse
 api pid = interpreter gqlRoot
 
-serveGQL2 :: (ProjectId -> GQLRequest -> AppObs GQLResponse)
+serveGQL :: (ProjectId -> GQLRequest -> AppObs GQLResponse)
          -> ServerT (GQLApi version name projectId) AppObs
-serveGQL2 = identity
+serveGQL = identity
 -- |
 -- == Handlers
 -- Servant Has Handler
@@ -67,4 +65,4 @@ serveGQL2 = identity
 -- AppObs is (m:: * -> *)
 --
 serveObsEtlApi :: ServerT ObsEtlApi AppObs
-serveObsEtlApi = serveGQL2 api
+serveObsEtlApi = serveGQL api
