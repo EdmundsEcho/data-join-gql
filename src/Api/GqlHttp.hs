@@ -24,10 +24,6 @@ type GQLAPI (version :: Symbol) (name :: Symbol) (projectId :: Symbol)
   :> projectId  -- endpoint
   :> ReqBody '[JSON] GQLRequest :> Post '[JSON] GQLResponse -- Servant Has Handler
 
-type GQLTest (version :: Symbol) (name :: Symbol)
-  = version     -- endpoint
-  :> name       -- endpoint
-  :> ReqBody '[JSON] GQLRequest :> Post '[JSON] GQLResponse -- Servant Has Handler
 
 -- == Gql endpoint type
 -- |
