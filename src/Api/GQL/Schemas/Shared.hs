@@ -10,9 +10,10 @@ module Api.GQL.Schemas.Shared where
 ---------------------------------------------------------------------------------
 import           Protolude
 ---------------------------------------------------------------------------------
-import           Data.Aeson             (ToJSON)
+import           Data.Aeson             (FromJSON, ToJSON)
 ---------------------------------------------------------------------------------
 import           Data.Morpheus.Document (importGQLDocument)
+-- import Api.GQL.ObsETL (QualValuesInput)
 ---------------------------------------------------------------------------------
 importGQLDocument "src/Api/GQL/Schemas/schema.shared.graphql"
 ---------------------------------------------------------------------------------
@@ -23,6 +24,11 @@ importGQLDocument "src/Api/GQL/Schemas/schema.shared.graphql"
 -- types specified in the schema
 --
 instance ToJSON QualValuesInput
+instance ToJSON CompValuesInput
 instance ToJSON SpanInput
+
+instance FromJSON QualValuesInput
+instance FromJSON CompValuesInput
+instance FromJSON SpanInput
 
 ---------------------------------------------------------------------------------

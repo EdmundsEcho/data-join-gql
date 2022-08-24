@@ -78,7 +78,7 @@ data Database =
     } deriving (Show)
 
 -- |
--- Extensable Sum Type to host predefined state objects
+-- Extensible Sum Type to host predefined state objects
 data Data
   = DataObsETL  ObsETL
   | DataObsTest ObsTest

@@ -29,9 +29,10 @@ import           Network.Wai.Middleware.Cors
 import           Network.Wai.Middleware.RequestLogger
 import           Servant
 --------------------------------------------------------------------------------
-import           Api.HTTP.GraphiQL
-import           Api.HTTP.ObsETL
-import           Api.HTTP.ObsTest
+import           Api.HTTP.ObsETL                      (ObsEtlApi, serveObsEtlApi)
+import           Api.HTTP.ObsTest                     (ObsTest, serveObsTest)
+import           Api.HTTP.GraphiQL                    (GraphiQL, serveGraphiQL)
+--------------------------------------------------------------------------------
 import           AppTypes                             (AppConfig (..), AppObs,
                                                        Env (..), dbInit, nat)
 --------------------------------------------------------------------------------

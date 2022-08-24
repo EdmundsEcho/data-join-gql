@@ -19,7 +19,9 @@
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 # resolver: lts-15.13
 # resolver: lts-16.11
-resolver: lts-17.6
+# resolver: lts-17.6
+resolver: lts-18.19
+# upgrade in order to use language-server and ghc 8.10.7
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.

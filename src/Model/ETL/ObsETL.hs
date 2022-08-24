@@ -54,7 +54,7 @@ instance ToJSON ObsETL
 
 -- | Private smart constructor that utilizes an ID generator.
 mkObsETL :: ID -> Subject -> Measurements -> ObsETL
-mkObsETL id s ms = ObsETL id s ms
+mkObsETL = ObsETL
   -- idx <- generateIdx   -- just give me state (moved to value channel)
   --  return $ ObsETL id s ms -- return (a :: ObsETL)
 

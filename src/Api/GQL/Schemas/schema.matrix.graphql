@@ -20,20 +20,15 @@ type MatrixSpec {
   meaExpressions: [Expression!]!
   """
   header is a collection of `FieldNames` sourced as follows:
-
     * `LHS` of a `Relation` for Qualities (1 per `Relation`)
-
     * Composition of `Filters` that make-up the `Filter`
       for Components (1 per `Filter`)
-
     * The implied `Measurement` value (1 per `Measurement`)
-
     * The implied `Subject` id (1 per `Matrix`)
   """
   header: [FieldName!]
   """
   Total fieldCount =
-
   1 Subject + N Measurements + N Filters + N Relations for Suject Qualities
   """
   fieldCount: Int!
@@ -49,19 +44,12 @@ ETLTable is a source in the ETL warehouse.  Tables in the warehouse are
 organized by `etlUnit`.  These units represent valid functions that
 describe the 'Model.ETL.ObsETL' data. The identifying feature is the
 codomain (output) of the function, thus the name of the source.
-
   * type Quality
-
       @ Subject -> Quality @
-
   * type Measurement
-
       @ Subject -> zero+ [Component] -> SpanType -> Measurement Value
-
 From EtlUnit -> Matrix
-
   * Minimum:   ReqQualities -> Empty
-
   * Generally: ReqQualities -> Filter [QualityName IN Values]
 """
 type ETLTable {
@@ -69,9 +57,7 @@ type ETLTable {
 }
 """
 Here, `fieldName` describes a field in the matrix.
-
 The value is set by the mix of components used to generate a `Filter`.
-
 This concept for `Qualities` is true for `Relation`
 """
 type Filter {
@@ -95,7 +81,6 @@ type Relation {
 }
 """
 `fieldName` represents the component or quality set.
-
 This concept extends to a fieldName in the matrix for qualities.
 """
 type LHS {
@@ -103,12 +88,10 @@ type LHS {
 }
 """
 RHS type definition.  This is a unifying data type.
-
 It pulls values from ETL:
 * TxtValues
 * IntValues
 * SpanValues
-
 Note: Use `__typename` to learn the type of the output.
 """
 union RHS = TxtValues | IntValues | SpanFilter
@@ -122,7 +105,6 @@ type FilterRange {
 }
 """
 The relations used in the filters
-
 *Updated Jun 2021 to include contras*
 """
 enum RelSymbolEnum {
