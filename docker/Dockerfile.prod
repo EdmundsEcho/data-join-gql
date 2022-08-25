@@ -1,6 +1,0 @@
-FROM fpco/stack-build:lts-18.19 as dependencies
-RUN mkdir /opt/build
-WORKDIR /opt/build
-
-
-

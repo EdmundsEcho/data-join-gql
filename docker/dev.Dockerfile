@@ -1,3 +1,6 @@
+# Aug 25, 2022: use the production
+# This is out of date
+
 FROM debian:9-slim@sha256:1a470b92197dd16a46f7aa9cb308fa91f7d0948e0dccd625a03cbbdf2d4516e6 as build
 
 ################################################################################

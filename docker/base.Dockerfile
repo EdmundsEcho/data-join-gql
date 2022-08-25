@@ -3,6 +3,7 @@ WORKDIR /build-workdir
 
 ################################################################################
 # Install the right GHC version and update package index
+# 🔖 Rendering this image can take > 10 min
 
 RUN pwd && stack setup && stack update
 
