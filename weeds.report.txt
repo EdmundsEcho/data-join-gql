@@ -1,0 +1,490 @@
+src/Api/ETL.hs:144:1: error: requestValues is unused
+
+     142 ┃ -- Unlike 'requestCompReqValues' we do not augment a null search request.
+     143 ┃ --
+     144 ┃ requestValues = requestQualReqValues
+     145 ┃ 
+     146 ┃ -- ** searchValues
+
+    Delete this definition or add ‘Api.ETL.requestValues’ as a root to fix this error.
+
+
+src/Api/ETL.hs:157:1: error: searchValues is unused
+
+     155 ┃   -> m (SearchFragment FieldValues 'ETLSubset)
+     156 ┃ 
+     157 ┃ searchValues search values = do
+     158 ┃   logDebugN "ETL data"
+     159 ┃   result <- selectWithTerm search values
+
+    Delete this definition or add ‘Api.ETL.searchValues’ as a root to fix this error.
+
+
+src/Api/GQL/RequestView.hs:250:1: error: dedup is unused
+
+     248 ┃ -- Utility function
+     249 ┃ dedup :: Ord a => [a] -> [a]
+     250 ┃ dedup = Set.toList . Set.fromList
+
+    Delete this definition or add ‘Api.GQL.RequestView.dedup’ as a root to fix this error.
+
+
+src/Api/GQL/RootResolvers.hs:212:1: error: delegateLevels is unused
+
+     210 ┃                -> Object o m LevelsConnection
+     211 ┃ 
+     212 ┃ delegateLevels args = do
+     213 ┃   obsEtl :: Model.ObsETL <- getEtlData
+     214 ┃   Internal.resolverLevels args obsEtl
+
+    Delete this definition or add ‘Api.GQL.RootResolvers.delegateLevels’ as a root to fix this error.
+
+
+src/Config.hs:30:1: error: envRead is unused
+
+      28 ┃ -- Not utilized
+      29 ┃ envRead :: Read a => String -> IO a
+      30 ┃ envRead key = do
+      31 ┃   rawVal <- getEnv key
+      32 ┃   case readMaybe rawVal of
+
+    Delete this definition or add ‘Config.envRead’ as a root to fix this error.
+
+
+src/Config.hs:39:1: error: fromEnv is unused
+
+      37 ┃ -- Not utilized
+      38 ┃ fromEnv :: IO Config
+      39 ┃ fromEnv = Config
+      40 ┃     <$> envRead "PORT"
+      41 ┃     <*> envRead "MOUNT_POINT"
+
+    Delete this definition or add ‘Config.fromEnv’ as a root to fix this error.
+
+
+src/Lib/EitherM.hs:28:1: error: fromEitherM is unused
+
+      26 ┃ 
+      27 ┃ fromEitherM :: EitherM a -> Maybe a
+      28 ┃ fromEitherM (RightM a)           = Just a
+      29 ┃ fromEitherM (LeftM (_, Just a))  = Just a
+      30 ┃ fromEitherM (LeftM (_, Nothing)) = Nothing
+
+    Delete this definition or add ‘Lib.EitherM.fromEitherM’ as a root to fix this error.
+
+
+src/Lib/EitherM.hs:36:1: error: toSet is unused
+
+      34 ┃ --
+      35 ┃ toSet :: Ord a => EitherM a -> Set a
+      36 ┃ toSet (RightM v)           = Set.fromList [v]
+      37 ┃ toSet (LeftM (_, Just v))  = Set.fromList [v]
+      38 ┃ toSet (LeftM (_, Nothing)) = Set.fromList []
+
+    Delete this definition or add ‘Lib.EitherM.toSet’ as a root to fix this error.
+
+
+src/Lib/NodeManager.hs:25:1: error: generateIdx is unused
+
+      23 ┃ -- update state for the next time
+      24 ┃ generateIdx :: NodeManager Int32
+      25 ┃ generateIdx = do
+      26 ┃   n <- get   -- dump state into what will be the value channel
+      27 ┃   put (n+1)  -- update state
+
+    Delete this definition or add ‘Lib.NodeManager.generateIdx’ as a root to fix this error.
+
+
+src/Lib/NodeManager.hs:36:1: error: iniManager is unused
+
+      34 ┃ -- | internal
+      35 ┃ iniManager :: Int32
+      36 ┃ iniManager = 0
+
+    Delete this definition or add ‘Lib.NodeManager.iniManager’ as a root to fix this error.
+
+
+src/Lib/NodeManager.hs:32:1: error: runNodeManager is unused
+
+      30 ┃ -- | Releases the monad value
+      31 ┃ runNodeManager :: NodeManager a -> a
+      32 ┃ runNodeManager m = evalState m iniManager
+      33 ┃ 
+      34 ┃ -- | internal
+
+    Delete this definition or add ‘Lib.NodeManager.runNodeManager’ as a root to fix this error.
+
+
+src/Model/ETL/Components.hs:82:1: error: comsDes is unused
+
+      80 ┃ -- | GQL documentation support
+      81 ┃ comsDes :: Text
+      82 ┃ comsDes = "A Map collection of the Components for a given Measurement.\n\
+      83 ┃           \ Key :: CompKey - Component name (generally, FieldName)\n\
+      84 ┃           \ Value :: A Set collection of the values (Field Values or Levels)\n\
+
+    Delete this definition or add ‘Model.ETL.Components.comsDes’ as a root to fix this error.
+
+
+src/Model/ETL/Components.hs:66:1: error: getComponentNames is unused
+
+      64 ┃ --
+      65 ┃ getComponentNames :: Components -> [Text]
+      66 ┃ getComponentNames = names . components
+      67 ┃ 
+      68 ┃ null :: Components -> Bool
+
+    Delete this definition or add ‘Model.ETL.Components.getComponentNames’ as a root to fix this error.
+
+
+src/Model/ETL/Components.hs:90:1: error: names is unused
+
+      88 ┃ -- | Private support
+      89 ┃ names :: Map Key vs -> [Text]
+      90 ┃ names mp = unKey <$> keys mp
+
+    Delete this definition or add ‘Model.ETL.Components.names’ as a root to fix this error.
+
+
+src/Model/ETL/Components.hs:69:1: error: null is unused
+
+      67 ┃ 
+      68 ┃ null :: Components -> Bool
+      69 ┃ null (Components cs) = Map.null cs
+      70 ┃ 
+      71 ┃ size :: Components -> Int
+
+    Delete this definition or add ‘Model.ETL.Components.null’ as a root to fix this error.
+
+
+src/Model/ETL/Components.hs:72:1: error: size is unused
+
+      70 ┃ 
+      71 ┃ size :: Components -> Int
+      72 ┃ size (Components cs)  = Map.size cs
+      73 ┃ 
+      74 ┃ lookup :: Components -> CompKey -> Maybe CompValues
+
+    Delete this definition or add ‘Model.ETL.Components.size’ as a root to fix this error.
+
+
+src/Model/ETL/Components.hs:78:1: error: toList is unused
+
+      76 ┃ 
+      77 ┃ toList :: Components -> [(CompKey, CompValues)]
+      78 ┃ toList = Map.toList . coerce
+      79 ┃ 
+      80 ┃ -- | GQL documentation support
+
+    Delete this definition or add ‘Model.ETL.Components.toList’ as a root to fix this error.
+
+
+src/Model/ETL/FieldValues.hs:217:1: error: filter is unused
+
+     215 ┃ -- Extra features for working with FieldValues
+     216 ┃ filter :: ValuePredicate -> FieldValues -> FieldValues
+     217 ┃ filter (TxtFilter f) (TxtSet values) = TxtSet $ Set.filter f values
+     218 ┃ filter (IntFilter f) (IntSet values) = IntSet $ Set.filter f values
+     219 ┃ filter (SpanFilter f) (SpanSet values) = SpanSet $ Set.filter f values
+
+    Delete this definition or add ‘Model.ETL.FieldValues.filter’ as a root to fix this error.
+
+
+src/Model/ETL/FieldValues.hs:406:1: error: fromExcludeRequest is unused
+
+     404 ┃ 
+     405 ┃ fromExcludeRequest :: ValuesReq 'Exclude -> FieldValues
+     406 ┃ fromExcludeRequest (ValuesReq vs) = vs
+     407 ┃ 
+     408 ┃ fromIncludeRequest :: ValuesReq 'Include -> FieldValues
+
+    Delete this definition or add ‘Model.ETL.FieldValues.fromExcludeRequest’ as a root to fix this error.
+
+
+src/Model/ETL/FieldValues.hs:409:1: error: fromIncludeRequest is unused
+
+     407 ┃ 
+     408 ┃ fromIncludeRequest :: ValuesReq 'Include -> FieldValues
+     409 ┃ fromIncludeRequest (ValuesReq vs) = vs
+     410 ┃ 
+     411 ┃ switchToExclude :: ValuesReq 'Include -> ValuesReq 'Exclude
+
+    Delete this definition or add ‘Model.ETL.FieldValues.fromIncludeRequest’ as a root to fix this error.
+
+
+src/Model/ETL/FieldValues.hs:412:1: error: switchToExclude is unused
+
+     410 ┃ 
+     411 ┃ switchToExclude :: ValuesReq 'Include -> ValuesReq 'Exclude
+     412 ┃ switchToExclude (ValuesReq vs) = ValuesReq vs
+     413 ┃ 
+     414 ┃ switchToInclude :: ValuesReq 'Exclude -> ValuesReq 'Include
+
+    Delete this definition or add ‘Model.ETL.FieldValues.switchToExclude’ as a root to fix this error.
+
+
+src/Model/ETL/FieldValues.hs:415:1: error: switchToInclude is unused
+
+     413 ┃ 
+     414 ┃ switchToInclude :: ValuesReq 'Exclude -> ValuesReq 'Include
+     415 ┃ switchToInclude (ValuesReq vs) = ValuesReq vs
+     416 ┃ 
+     417 ┃ 
+
+    Delete this definition or add ‘Model.ETL.FieldValues.switchToInclude’ as a root to fix this error.
+
+
+src/Model/ETL/Key.hs:69:1: error: mkOIKey is unused
+
+      67 ┃ --
+      68 ┃ mkOIKey :: Maybe Text -> OIKey
+      69 ┃ mkOIKey Nothing    = OIKey Nothing
+      70 ┃ mkOIKey (Just txt) = OIKey (Just (KeyID txt))
+      71 ┃ 
+
+    Delete this definition or add ‘Model.ETL.Key.mkOIKey’ as a root to fix this error.
+
+
+src/Model/ETL/Key.hs:90:1: error: mkSpanKey is unused
+
+      88 ┃ -- |
+      89 ┃ mkSpanKey :: SpanKey
+      90 ┃ mkSpanKey = SpanKey
+      91 ┃ 
+      92 ┃ 
+
+    Delete this definition or add ‘Model.ETL.Key.mkSpanKey’ as a root to fix this error.
+
+
+src/Model/ETL/ObsETL.hs:57:1: error: mkObsETL is unused
+
+      55 ┃ -- | Private smart constructor that utilizes an ID generator.
+      56 ┃ mkObsETL :: ID -> Subject -> Measurements -> ObsETL
+      57 ┃ mkObsETL = ObsETL
+      58 ┃   -- idx <- generateIdx   -- just give me state (moved to value channel)
+      59 ┃   --  return $ ObsETL id s ms -- return (a :: ObsETL)
+
+    Delete this definition or add ‘Model.ETL.ObsETL.mkObsETL’ as a root to fix this error.
+
+
+src/Model/ETL/Qualities.hs:66:1: error: getQualityNames is unused
+
+      64 ┃ -- Utilized by "Model.Matrix.Expression" to generate field names
+      65 ┃ getQualityNames :: Qualities -> [Text]
+      66 ┃ getQualityNames = names . qualities
+      67 ┃ 
+      68 ┃ null :: Qualities -> Bool
+
+    Delete this definition or add ‘Model.ETL.Qualities.getQualityNames’ as a root to fix this error.
+
+
+src/Model/ETL/Qualities.hs:69:1: error: null is unused
+
+      67 ┃ 
+      68 ┃ null :: Qualities -> Bool
+      69 ┃ null (Qualities vs) = Map.null vs
+      70 ┃ 
+      71 ┃ size :: Qualities -> Int
+
+    Delete this definition or add ‘Model.ETL.Qualities.null’ as a root to fix this error.
+
+
+src/Model/ETL/Qualities.hs:72:1: error: size is unused
+
+      70 ┃ 
+      71 ┃ size :: Qualities -> Int
+      72 ┃ size (Qualities vs) = Map.size vs
+      73 ┃ 
+      74 ┃ lookup :: Qualities -> QualKey -> Maybe QualValues
+
+    Delete this definition or add ‘Model.ETL.Qualities.size’ as a root to fix this error.
+
+
+src/Model/ETL/Qualities.hs:78:1: error: toList is unused
+
+      76 ┃ 
+      77 ┃ toList :: Qualities -> [(QualKey, QualValues)]
+      78 ┃ toList = Map.toList . coerce
+      79 ┃ 
+      80 ┃ -- | Private support
+
+    Delete this definition or add ‘Model.ETL.Qualities.toList’ as a root to fix this error.
+
+
+src/Model/ETL/Span.hs:458:1: error: delayStart is unused
+
+     456 ┃ -- For testing
+     457 ┃ delayStart :: Span -> Span
+     458 ┃ delayStart sp =
+     459 ┃   let Span { span = span' } = sp
+     460 ┃    in case span' of
+
+    Delete this definition or add ‘Model.ETL.Span.delayStart’ as a root to fix this error.
+
+
+src/Model/ETL/Span.hs:501:36: error: filterEnd is unused
+
+     499 ┃ --
+     500 ┃ pattern FilterRange :: Start -> End -> FilterRange
+     501 ┃ pattern FilterRange { filterStart, filterEnd } <- FilterRange_ filterStart filterEnd
+     502 ┃ {-# COMPLETE FilterRange :: FilterRange #-}
+     503 ┃ 
+
+    Delete this definition or add ‘Model.ETL.Span.filterEnd’ as a root to fix this error.
+
+
+src/Model/ETL/Span.hs:516:1: error: filterSize is unused
+
+     514 ┃ -- Utilized by Models.Expression
+     515 ┃ filterSize :: FilterRange -> Size
+     516 ┃ filterSize (FilterRange s e) = e - s + 1
+     517 ┃ 
+     518 ┃ -- Private
+
+    Delete this definition or add ‘Model.ETL.Span.filterSize’ as a root to fix this error.
+
+
+src/Model/ETL/Span.hs:501:23: error: filterStart is unused
+
+     499 ┃ --
+     500 ┃ pattern FilterRange :: Start -> End -> FilterRange
+     501 ┃ pattern FilterRange { filterStart, filterEnd } <- FilterRange_ filterStart filterEnd
+     502 ┃ {-# COMPLETE FilterRange :: FilterRange #-}
+     503 ┃ 
+
+    Delete this definition or add ‘Model.ETL.Span.filterStart’ as a root to fix this error.
+
+
+src/Model/ETL/Span.hs:449:1: error: incLen is unused
+
+     447 ┃ -- For testing
+     448 ┃ incLen :: Span -> Span
+     449 ┃ incLen sp =
+     450 ┃   let Span { span = span' } = sp
+     451 ┃    in case span' of
+
+    Delete this definition or add ‘Model.ETL.Span.incLen’ as a root to fix this error.
+
+
+src/Model/ETL/Span.hs:174:16: error: span is unused
+
+     172 ┃ --
+     173 ┃ pattern Span :: TagRedExp Range -> Span
+     174 ┃ pattern Span { span } <- Span_ { span_ = span }
+     175 ┃ {-# COMPLETE Span :: Span  #-}
+     176 ┃ 
+
+    Delete this definition or add ‘Model.ETL.Span.span’ as a root to fix this error.
+
+
+src/Model/ETL/Span.hs:480:1: error: spanLength is unused
+
+     478 ┃ --
+     479 ┃ spanLength :: Start -> End -> Int
+     480 ┃ spanLength start end = end - start + 1
+     481 ┃ 
+     482 ┃ -- |
+
+    Delete this definition or add ‘Model.ETL.Span.spanLength’ as a root to fix this error.
+
+
+src/Model/ObsTest.hs:17:1: error: testInstance is unused
+
+      15 ┃ 
+      16 ┃ testInstance :: ObsTest
+      17 ┃ testInstance = ObsTest
+      18 ┃   { subject = "test subject"
+      19 ┃   , quality = testQuality
+
+    Delete this definition or add ‘Model.ObsTest.testInstance’ as a root to fix this error.
+
+
+src/Model/ObsTest.hs:23:1: error: testQuality is unused
+
+      21 ┃ 
+      22 ┃ testQuality :: Quality
+      23 ┃ testQuality = Quality
+      24 ┃   { name = "color"
+      25 ┃   , values = ["red", "blue"]
+
+    Delete this definition or add ‘Model.ObsTest.testQuality’ as a root to fix this error.
+
+
+src/Model/Request.hs:347:1: error: isExcludeRequest is unused
+
+     345 ┃ --
+     346 ┃ isExcludeRequest, isIncludeRequest :: CompReqValues -> Bool
+     347 ┃ isExcludeRequest CompReqValues { values } =
+     348 ┃   case snd . unwrapReqEnum $ unTag values of
+     349 ┃     Exclude -> True
+
+    Delete this definition or add ‘Model.Request.isExcludeRequest’ as a root to fix this error.
+
+
+src/Model/Request.hs:351:1: error: isIncludeRequest is unused
+
+     349 ┃     Exclude -> True
+     350 ┃     _       -> False
+     351 ┃ isIncludeRequest = not . isExcludeRequest
+     352 ┃ 
+     353 ┃ -- |
+
+    Delete this definition or add ‘Model.Request.isIncludeRequest’ as a root to fix this error.
+
+
+src/Model/Request.hs:193:1: error: minSubResult is unused
+
+     191 ┃ minQualityMix, minSubResult :: SubKey -> QualityMix
+     192 ┃ minQualityMix key = QualityMix { subjectType = key, qualityMix = Nothing }
+     193 ┃ minSubResult = minQualityMix
+     194 ┃ 
+     195 ┃ -- |
+
+    Delete this definition or add ‘Model.Request.minSubResult’ as a root to fix this error.
+
+
+src/Model/Request.hs:368:1: error: toListCompReqSpans is unused
+
+     366 ┃ 
+     367 ┃ toListCompReqSpans :: CompReqValues -> [Span]
+     368 ┃ toListCompReqSpans (CompReqValues tvs) = Fragment.toList $ unTag tvs
+     369 ┃ 
+     370 ┃ -- instance ToList CompReqValues Text where
+
+    Delete this definition or add ‘Model.Request.toListCompReqSpans’ as a root to fix this error.
+
+
+src/Model/Search.hs:248:1: error: fromFieldCompReqValues is unused
+
+     246 ┃   -> SearchFragment CompReqValues 'ETLSubset
+     247 ┃ 
+     248 ┃ fromFieldCompReqValues reduced exclude vs
+     249 ┃   |
+     250 ┃   -- span values = Exp when there is more than one value || Range reduced = false
+
+    Delete this definition or add ‘Model.Search.fromFieldCompReqValues’ as a root to fix this error.
+
+
+src/Model/Search.hs:301:1: error: toCompReqValues is unused
+
+     299 ┃ toCompReqValues
+     300 ┃   :: SearchFragment CompValues 'ETL -> SearchFragment CompReqValues 'ETLSubset
+     301 ┃ toCompReqValues (SearchFragment vs) = coerce . CompReqValues . Exp $ NA vs
+     302 ┃ -- newtype CompReqValues = CompReqValues { values :: TagRedExp ValuesReqEnum }
+     303 ┃ 
+
+    Delete this definition or add ‘Model.Search.toCompReqValues’ as a root to fix this error.
+
+
+src/WithAppContext.hs:139:1: error: filterNoDebug is unused
+
+     137 ┃ -- Filter-out the debugging log messages
+     138 ┃ filterNoDebug :: LoggingT m a -> LoggingT m a
+     139 ┃ filterNoDebug = filterLogger noDebug
+     140 ┃   where
+     141 ┃     noDebug :: LogSource -> LogLevel -> Bool
+
+    Delete this definition or add ‘WithAppContext.filterNoDebug’ as a root to fix this error.
+
+
+Weeds detected: 45

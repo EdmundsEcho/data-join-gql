@@ -71,6 +71,8 @@ type ObsEtlApi  = GQLApi "v1" "warehouse" "projectId"
 -- |
 -- Consumed by the Handler
 --
+-- ⬜ review the error handling
+--
 -- MOUNT_POINT + '/diamonds/{project_id}/warehouse.json'
 -- projectId is extracted from the endpoint by servant using Capture
 --
