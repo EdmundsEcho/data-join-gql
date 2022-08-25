@@ -30,7 +30,6 @@ import           Network.Wai.Middleware.RequestLogger
 import           Servant
 --------------------------------------------------------------------------------
 import           Api.HTTP.ObsETL                      (ObsEtlApi, serveObsEtlApi)
-import           Api.HTTP.ObsTest                     (ObsTest, serveObsTest)
 import           Api.HTTP.GraphiQL                    (GraphiQL, serveGraphiQL)
 --------------------------------------------------------------------------------
 import           AppTypes                             (Config(..), AppObs,
@@ -50,7 +49,7 @@ corsPolicy = simpleCorsResourcePolicy
 -- |
 -- Servant "has ServerT instance"
 --
-type Api = ObsTest :<|> ObsEtlApi :<|> GraphiQL
+type Api = ObsEtlApi :<|> GraphiQL
 
 -- |
 -- Proxy @Api
@@ -62,7 +61,7 @@ apiType = Proxy
 -- nat :: AppObs -> Handler
 --
 appM :: ServerT Api AppObs
-appM  = serveObsTest :<|> serveObsEtlApi :<|> serveGraphiQL
+appM  = serveObsEtlApi :<|> serveGraphiQL
 
 -- import Network.Wai.Middleware.RequestLogger
 --------------------------------------------------------------------------------

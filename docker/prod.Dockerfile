@@ -14,5 +14,4 @@ COPY --from=0 /bin/obsetl-exe /bin/obsetl-exe
 # mount point of shared volume
 RUN mkdir /shared
 
-
-CMD ["/bin/obsetl-exe --port 5003 --data diamonds --mount shared"]
+CMD ["/bin/obsetl-exe", "--port", "5003", "--data", "diamonds", "--mount", "shared"]

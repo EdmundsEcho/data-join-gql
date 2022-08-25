@@ -16,10 +16,10 @@ ENV LANG en_US.UTF-8
 ################################################################################
 # Download a specific Stack version
 
-RUN curl https://github.com/commercialhaskell/stack/releases/download/v2.7.3/stack-2.7.3-linux-x86_64-static.tar.gz \
+RUN curl https://github.com/commercialhaskell/stack/releases/download/v2.7.5/stack-2.7.5-linux-x86_64-static.tar.gz \
     --silent -L \
     -o stack.tar.gz && \
-    tar zxf stack.tar.gz && mv stack-2.7.3-linux-x86_64-static/stack /usr/bin/
+    tar zxf stack.tar.gz && mv stack-2.7.5-linux-x86_64-static/stack /usr/bin/
 
 ################################################################################
 # Switch to work dir
