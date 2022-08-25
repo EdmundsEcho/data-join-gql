@@ -30,7 +30,7 @@ type ProjectId = Text
 --
 mkFilename :: Config -> ProjectId -> FilePath
 mkFilename cfg projectId =
-    unpack(mountPoint cfg)
+    unpack (mkMountPoint (mountPoint cfg))
     <> unpack (mkDataDir (dataDir cfg))
     <> "/" <> unpack projectId
     <> "/warehouse.json"
@@ -39,6 +39,8 @@ mkFilename cfg projectId =
         mkDataDir :: Text -> Text
         mkDataDir d = if null d then "" else "/" <> d
 
+        mkMountPoint :: Text -> Text
+        mkMountPoint m = if null m then "" else "/" <> m
 
 -- Facilitates type inference
 getJSON :: FilePath -> IO B.ByteString

@@ -11,4 +11,4 @@ FROM ghcr.io/lucivia/obs-runtime:1135610655
 
 COPY --from=0 /bin/obsetl-exe /bin/obsetl-exe
 
-CMD ["/bin/obsetl-exe"]
+CMD ["/bin/obsetl-exe --port 5003 --data diamonds --mount shared"]
