@@ -17,14 +17,16 @@
 module AppTypes
   ( module AppTypes
   , module WithAppContext
+  , module Config
   )
   where
 --------------------------------------------------------------------------------
 import           Protolude      hiding (State, Handler)
-import           WithAppContext
+import           Servant
 --------------------------------------------------------------------------------
 -- App specific
-import           Servant
+import           WithAppContext
+import           Config
 --------------------------------------------------------------------------------
   --
 -- ** The WebApp integrated into the GraphQL capacity.

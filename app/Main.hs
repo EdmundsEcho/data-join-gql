@@ -2,6 +2,7 @@ module Main where
 
 --------------------------------------------------------------------------------
 import           Prelude
+import           Data.Text
 --------------------------------------------------------------------------------
 import           Control.Exception.Safe
 import           Data.Maybe             (fromMaybe)
@@ -12,14 +13,25 @@ import           System.IO.Error        (ioeGetFileName, isDoesNotExistError)
 import qualified App
 import           AppTypes
 --------------------------------------------------------------------------------
+--
+-- MOUNT_POINT + '/diamonds/{project_id}/warehouse.sqlite',
 
-mkConfig :: Opt.Parser AppConfig
-mkConfig = AppConfig
+mkConfig :: Opt.Parser Config
+mkConfig = Config
   <$> option auto (metavar "PORT" <> short 'p' <> long "port"
                  <> value 5003 <> showDefault <> help "Http port number ")
 
-withConfig :: AppConfig -> IO ()
-withConfig = App.exec
+  <*> strOption (metavar "MOUNT_POINT" <> short 'm' <> long "mount"
+                 <> value "/shared" <> showDefault <> help "Shared drive mount point")
+
+  <*> strOption (metavar "DATA_DIR" <> short 'd' <> long "data"
+                 <> value "" <> showDefault <> help "Data directory")
+
+withConfig :: Config -> IO ()
+withConfig cfg = do
+    putStrLn ("listening on port: " <> show(port cfg) <> "...")
+    putStrLn ("data: " <> unpack(mountPoint cfg) <> "/" <> unpack(dataDir cfg))
+    App.exec cfg
 
 main :: IO ()
 main =

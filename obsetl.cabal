@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 00cec6317a8aa5e47103bccfdb621cf88309334ac104f902e722fcfa9ff73773
+-- hash: ec4eab3966e1a336e0a19c786152807da12e24af34744257078f400308d618c0
 
 name:           obsetl
 version:        0.1.4.1
@@ -52,6 +52,7 @@ library
       Api.HTTP.ObsTest
       App
       AppTypes
+      Config
       Lib.EitherM
       Lib.NodeManager
       Model.ETL.Components

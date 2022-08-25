@@ -6,7 +6,8 @@ module Api.HTTP.ObsETL (ObsEtlApi , serveObsEtlApi)
     where
 
 --------------------------------------------------------------------------------
-import           Protolude
+import           Protolude           hiding (null)
+import           Data.Text
 --------------------------------------------------------------------------------
 import           Data.Morpheus       (interpreter)
 import           Data.Morpheus.Types
@@ -14,8 +15,7 @@ import           Data.Morpheus.Types
 import           Servant
 --------------------------------------------------------------------------------
 import           Api.GQL.Root        (gqlRoot)
-import           AppTypes
-import qualified WithAppContext      as App hiding (WithAppContext)
+import           AppTypes            as App
 --------------------------------------------------------------------------------
 --New IO to read file
 import qualified Data.ByteString.Lazy as B
@@ -25,14 +25,28 @@ import           Api.GQL.ObsETL      (fromInputObsEtl, ObsEtlInput)
 --
 type ProjectId = Text
 
-jsonFile :: FilePath
-jsonFile = "obsTestCase.json"
+-- |
+-- Where to retrieve project-specific data
+--
+mkFilename :: Config -> ProjectId -> FilePath
+mkFilename cfg projectId =
+    unpack(mountPoint cfg)
+    <> unpack (mkDataDir (dataDir cfg))
+    <> "/" <> unpack projectId
+    <> "/warehouse.json"
 
-getJSON :: IO B.ByteString
-getJSON = B.readFile jsonFile
+    where
+        mkDataDir :: Text -> Text
+        mkDataDir d = if null d then "" else "/" <> d
 
-decodeObsInput :: IO (Maybe ObsEtlInput)
-decodeObsInput = decode <$> getJSON
+
+-- Facilitates type inference
+getJSON :: FilePath -> IO B.ByteString
+getJSON = B.readFile
+
+
+decodeObsInput :: FilePath -> IO (Maybe ObsEtlInput)
+decodeObsInput path = decode <$> getJSON path
 --
 -- Endpoint type constructor
 --
@@ -53,7 +67,10 @@ type ObsEtlApi  = GQLApi "v1" "warehouse" "projectId"
 
 
 -- |
--- Ingredient for the Handler
+-- Consumed by the Handler
+--
+-- MOUNT_POINT + '/diamonds/{project_id}/warehouse.json'
+-- projectId is extracted from the endpoint by servant using Capture
 --
 -- interpreter :: Monad m
 --             => RootResCon m e query mut sub
@@ -67,19 +84,36 @@ type ObsEtlApi  = GQLApi "v1" "warehouse" "projectId"
 --
 api :: ProjectId -> GQLRequest -> AppObs GQLResponse
 api pid req = do
-   maybeObs :: Maybe ObsEtlInput <- liftIO decodeObsInput
+   -- derive where to find the project-specific data
+   env :: Env <- ask
+   let path = mkFilename (App.config env) pid
+
+   maybeObs :: Maybe ObsEtlInput <- liftIO $ decodeObsInput path
+
    obsInput :: ObsEtlInput <- case maybeObs of
      Just obs -> pure obs
      Nothing  -> do
-        App.logErrorN "Failed to decode obsetl"
+        App.logErrorN $ "Failed to read: " <> pack path
         App.throw
            $ App.ValueException
                 (Just "\nThe obsetl data decoding failed")
 
-   newObs <- fromInputObsEtl obsInput
-   dbTVar <- asks App.database
-   _      <- liftIO . atomically $ App.readTVar dbTVar
+   tryObsETL <- fromInputObsEtl obsInput  -- :: Either Exception ObsETL
+
+   -- retrieve the store ref
+   dbTVar <- asks App.database  -- :: TVar Database
+
+   App.logInfoN ("💫 Loading project: " <> show pid)
+
+   -- build a new store from tryObsETL if possible, otherwise return empty db
+   newStore  <- case tryObsETL of
+        Left  e      -> do App.logErrorN $ show e; pure dbInit
+        Right obsETL -> pure $ dbNew obsETL
+
+   liftIO . atomically $ App.writeTVar dbTVar newStore
+
    interpreter gqlRoot req
+
 
 
 serveGQL :: (ProjectId -> GQLRequest -> AppObs GQLResponse)

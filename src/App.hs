@@ -13,8 +13,8 @@
 module App
   ( -- * single export
     --
-    -- > :: AppConfig -> IO ()
-    -- [@AppConfig@]: Mostly a placeholder.  Currently holds port number.
+    -- > :: Config -> IO ()
+    -- [@Config@]: Mostly a placeholder.  Currently holds port number.
     --
     exec
   ) where
@@ -33,7 +33,7 @@ import           Api.HTTP.ObsETL                      (ObsEtlApi, serveObsEtlApi
 import           Api.HTTP.ObsTest                     (ObsTest, serveObsTest)
 import           Api.HTTP.GraphiQL                    (GraphiQL, serveGraphiQL)
 --------------------------------------------------------------------------------
-import           AppTypes                             (AppConfig (..), AppObs,
+import           AppTypes                             (Config(..), AppObs,
                                                        Env (..), dbInit, nat)
 --------------------------------------------------------------------------------
 
@@ -87,12 +87,11 @@ app env = logStdoutDev . cors ( const $ Just corsPolicy )
 
 -- |
 -- Single point of access to the module
-exec :: AppConfig -> IO ()
-exec config = do
-  let p = port config
+exec :: Config -> IO ()
+exec cfg = do
+  let p = port cfg
   db <- newTVarIO dbInit
-  Warp.run p $ app (Env db (Just config))
-
+  Warp.run p $ app (Env db cfg)
 
   --
 --------------------------------------------------------------------------------
