@@ -2,7 +2,7 @@
 
 -- |
 -- Module      : WithAppContext
--- Description : Constraints required to run the GQL resolvers
+-- Description : The set of type classes available to the application
 -- Copyright   : (c) Lucivia LLC, 2020
 -- Maintainer  : edmund.cape@lucivia.com
 -- Stability   : experimental
