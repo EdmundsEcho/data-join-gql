@@ -59,7 +59,6 @@ RUN apt-get update && \
     apt-get install -yq --no-install-suggests --no-install-recommends --force-yes -y -qq \
             netbase ca-certificates libgmp-dev libz-dev libicu-dev libtinfo-dev
 
-
 COPY --from=build /bin/obsetl-exe /bin/obsetl-exe
 
-CMD ["/bin/obsetl-exe"]
+CMD: [ "/bin/obsetl-exe", "--port", "5003", "--data", "diamonds", "--mount", "shared" ]
