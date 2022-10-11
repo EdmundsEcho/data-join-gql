@@ -27,10 +27,24 @@ mkConfig = Config
   <*> strOption (metavar "DATA_DIR" <> short 'd' <> long "data"
                  <> value "" <> showDefault <> help "Data directory")
 
+  <*> strOption (metavar "FILE_SHARE_URI" <> short 'u' <> long "shareuri"
+                 <> value "" <> showDefault <> help "File share uri")
+
+  <*> strOption (metavar "REGION" <> short 'r' <> long "region"
+                 <> value "" <> showDefault <> help "File share region")
+
+  <*> strOption (metavar "SECRET" <> short 's' <> long "secret"
+                 <> value "" <> showDefault <> help "File share secret")
+
+  <*> strOption (metavar "ACCESS_ID" <> short 'i' <> long "accessid"
+                 <> value "" <> showDefault <> help "File share access id")
+
+
 withConfig :: Config -> IO ()
 withConfig cfg = do
     putStrLn ("listening on port: " <> show(port cfg) <> "...")
     putStrLn ("data: " <> unpack(mountPoint cfg) <> "/" <> unpack(dataDir cfg))
+    putStrLn ("file share uri: " <> fileShareUri cfg)
     App.exec cfg
 
 main :: IO ()

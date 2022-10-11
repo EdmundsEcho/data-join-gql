@@ -19,5 +19,17 @@ COPY --chown=appuser:appuser --from=0 /bin/obsetl-exe /bin/obsetl-exe
 RUN mkdir /shared
 RUN chown appuser:appuser /shared
 
+# only docker listens to exposed port
+EXPOSE 5003
+
 USER appuser
-CMD ["/bin/obsetl-exe", "--port", "5003", "--data", "diamonds", "--mount", "shared"]
+# CMD ["/bin/obsetl-exe", "--port", "5003", "--data", "diamonds", "--mount", "shared"]
+CMD [ "/bin/obsetl-exe", \
+      "--port", "5003", \
+      "--data", "diamonds", \
+      "--mount", "shared" , \
+      "--shareuri", "https://luci-space.sfo3.digitaloceanspaces.com", \
+      "--region", "sfo3", \
+      "--secret", "Y+4Ld8Cu/PCOgtMUmWTFR1O00T4g5YpR15tAX177PJI", \
+      "--accessid", "DO003ZZWAE34HMFMRCQ3" \
+]

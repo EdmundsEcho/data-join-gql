@@ -4,7 +4,11 @@
 --
 module Api.HTTP.ObsETL (ObsEtlApi , serveObsEtlApi)
     where
-
+--
+--------------------------------------------------------------------------------
+-- import           Network.URI             (parseURI)
+import qualified Network.HTTP.Client     as H
+import qualified Network.HTTP.Client.TLS as H
 --------------------------------------------------------------------------------
 import           Protolude           hiding (null)
 import           Data.Text
@@ -24,16 +28,22 @@ import           Api.GQL.ObsETL      (fromInputObsEtl, ObsEtlInput)
 --------------------------------------------------------------------------------
 --
 type ProjectId = Text
+type WithFile = Bool
+
+warehouseFileName :: [Char]
+warehouseFileName = "warehouse.json"
+
 
 -- |
 -- Where to retrieve project-specific data
 --
-mkFilename :: Config -> ProjectId -> FilePath
-mkFilename cfg projectId =
-    unpack (mkMountPoint (mountPoint cfg))
-    <> unpack (mkDataDir (dataDir cfg))
-    <> "/" <> unpack projectId
-    <> "/warehouse.json"
+mkFilename :: WithFile -> Config -> ProjectId -> FilePath
+mkFilename wf cfg projectId = do
+    let path = unpack (mkMountPoint (mountPoint cfg))
+             <> unpack (mkDataDir (dataDir cfg))
+             <> "/" <> unpack projectId
+
+    if wf then path <> "/" <> warehouseFileName else path
 
     where
         mkDataDir :: Text -> Text
@@ -42,13 +52,22 @@ mkFilename cfg projectId =
         mkMountPoint :: Text -> Text
         mkMountPoint m = if null m then "" else "/" <> m
 
+-- |
+-- Where to retrieve project-specific data
+--
+mkRequest :: Config -> ProjectId -> H.Request
+mkRequest cfg projectId = undefined
+
 -- Facilitates type inference
 getJSON :: FilePath -> IO B.ByteString
 getJSON = B.readFile
 
 
-decodeObsInput :: FilePath -> IO (Maybe ObsEtlInput)
-decodeObsInput path = decode <$> getJSON path
+decodeFromPathObsInput :: FilePath -> IO (Maybe ObsEtlInput)
+decodeFromPathObsInput path = decode <$> getJSON path
+
+decodeFromUrlObsInput :: FilePath -> IO (Maybe ObsEtlInput)
+decodeFromUrlObsInput path = decode <$> getJSON path
 --
 -- Endpoint type constructor
 --
@@ -90,9 +109,9 @@ api :: ProjectId -> GQLRequest -> AppObs GQLResponse
 api pid req = do
    -- derive where to find the project-specific data
    env :: Env <- ask
-   let path = mkFilename (App.config env) pid
+   let path = mkFilename True (App.config env) pid
 
-   maybeObs :: Maybe ObsEtlInput <- liftIO $ decodeObsInput path
+   maybeObs :: Maybe ObsEtlInput <- liftIO $ decodeFromPathObsInput path
 
    obsInput :: ObsEtlInput <- case maybeObs of
      Just obs -> pure obs
