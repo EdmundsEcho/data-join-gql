@@ -22,11 +22,13 @@ module AppTypes
   where
 --------------------------------------------------------------------------------
 import           Protolude      hiding (State, Handler)
-import           Servant
+import           Servant        (Handler)
+--------------------------------------------------------------------------------
+-- import           Conduit
 --------------------------------------------------------------------------------
 -- App specific
-import           WithAppContext
 import           Config
+import           WithAppContext
 --------------------------------------------------------------------------------
   --
 -- ** The WebApp integrated into the GraphQL capacity.
@@ -57,7 +59,8 @@ newtype AppObs a =
 --
 nat :: Env -> AppObs a -> Handler a
 nat env app = runStderrLoggingT (
-                 runReaderT (iniApp app) env)
+                 runReaderT (iniApp app) env
+                 )
 
 --------------------------------------------------------------------------------
   --

@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ConstraintKinds #-}
 -- |
 -- Module      : HttpClient
@@ -14,48 +13,132 @@
 -- other microservices.
 --
 module HttpClient
-  ( module HttpClient
+  ( mkS3Env     -- :: Config -> S3.Env
+  , request     -- :: ProjectId -> Config -> S3.Env -> S3.GetObjectResponse
+  , sinkFile    -- :: S3.BucketName -> C.ConduitM ByteString o m FilePath
+  , bucketName  -- :: ProjectId -> S3.BucketName
   )
   where
 --------------------------------------------------------------------------------
-import           Protolude      hiding (State, Handler)
-import           Data.Has
---------------------------------------------------------------------------------
-import Control.Exception.Safe
---------------------------------------------------------------------------------
-import           Network.HTTP.Client
-import           Network.HTTP.Client.TLS
+import           Protolude                      hiding (null, State, Handler)
+import           Prelude                        (String)
+import           Data.Text                      (null, pack, unpack)
+import           Control.Monad.Trans.Resource   (MonadResource)
 --------------------------------------------------------------------------------
 -- App specific
 import           Config
 --------------------------------------------------------------------------------
+import qualified Amazonka                       as S3
+import qualified Amazonka.S3                    as S3
+import qualified Conduit                        as C (ConduitM, sinkTempFile)
+--------------------------------------------------------------------------------
 --
 
--- ** HttpManager
+data PathType = WithFilename | WithoutFilename
+
+warehouseFileName :: [Char]
+warehouseFileName = "warehouse.json"
+
+tmpDir :: FilePath
+tmpDir = "/tmp"
+
+tmpFile :: S3.BucketName -> String
+tmpFile bucketn = toString bucketn <> "." <> warehouseFileName
+
+--
+-- Notes
+-- Tasks required for Sending an S3 request
+-- 1. configure the Authentication strategy
+-- 2. instantiate the desired operation type
+-- 3. apply send on the operation object (combines 1 & 2)
+--    update the action with the requested object key (S3 object)
+--    send :: (MonadResource m, AWSRequest a) => Env -> a -> m (AWSResponse a)
+--    - throws io error
+--    alternative sendEither -
+-- 4. destructure the response object
+-- 5. deserialize the json body to instantiate obsEtl
+--
+-- Hosting and ref app design
+-- A. Host 1 & 2 in the AppEnv (reuse single purpose getObject)
+-- B. Execute the request in the app's stack context
+
 
 -- |
--- Hosts the shared manager and placeholder for reusable request.
-data HttpManager = HttpManager
-    { stateInitReq :: !Request
-    , stateManager :: !Manager
-    }
+-- Initialization
+-- Use the app config to instantiate the Env that contains
+-- the global s3session. Include a pointer to the database
+-- placeholder.
+mkS3Env :: MonadIO m => Config -> m S3.Env
+mkS3Env cfg = do
+    logger <- S3.newLogger S3.Debug stdout
 
-type HttpClient r m = (MonadReader r m, Has HttpManager r, MonadIO m, MonadThrow m)
+    let s3cfg    = fileShareCfg cfg
+        -- region'  = region s3cfg
+        s3id     = case S3.fromText $ accessId s3cfg of
+                      Left e  -> panic ("Failed s3key: " <> pack e)
+                      Right r -> r
+        s3secret = case S3.fromText $ secret s3cfg of
+                      Left e  -> panic ("Failed secret: " <> pack e)
+                      Right r -> r
 
-type Session = CookieJar
+    credentials :: S3.Env <- S3.newEnv (S3.FromKeys s3id s3secret)
 
-data UnexpectedResponse a =
-    UnexpectedResponse Request (Response a)
-    deriving (Show)
+    let s3env'  = credentials { S3._envLogger = logger
+                              , S3._envRegion = "US"
+                              }
+    pure $ S3.configure (endpointInService cfg) s3env'
 
-instance (Typeable a, Show a) => Exception (UnexpectedResponse a)
+    where
+       -- |
+       -- Fixed tls
+       -- Endpoint is a property of Service,
+       -- Service a property of Request
+       -- see root configure :: Service -> Env -> Env
+       endpointInService :: Config -> S3.Service
+       endpointInService cfg' = S3.setEndpoint
+           True                                             -- ssl
+           (encodeUtf8 . hostBucket $ fileShareCfg cfg')    -- hostname
+           443                                              -- port
+           S3.defaultService                                -- service being updated
 
-withHttpManager :: Config -> (HttpManager -> IO a) -> IO a
-withHttpManager cfg action = do
-    mgr     <- newManager tlsManagerSettings
-    initReq <- parseRequest $ fileShareUri cfg
-    let initReqWithJson =
-            initReq { requestHeaders =
-                        [("Content-Type", "application/json; charset=utf-8")]
-                    }
-    action $ HttpManager initReqWithJson mgr
+-- |
+-- Runtime
+-- send :: (MonadResource m, S3.AWSRequest a) => S3.Env -> a -> m (S3.AWSResponse a)
+-- type AWSResponse GetObject = GetObjectResponse
+-- {.., body :: Core.ResponseBody }
+request :: MonadResource m => ProjectId -> Config -> S3.Env -> m (S3.AWSResponse S3.GetObject)
+request pid cfg s3env = S3.send s3env (getObject pid cfg)
+
+    where
+        getObject :: ProjectId -> Config -> S3.GetObject
+        getObject pid' cfg' = S3.newGetObject
+            (bucketName pid)
+            (S3.ObjectKey $ pack $ mkFilename WithFilename cfg' pid')
+       -- newGetObject :: BucketName -> ObjectKey -> GetObject
+
+sinkFile :: MonadResource m => S3.BucketName -> C.ConduitM ByteString o m FilePath
+sinkFile bucketn = C.sinkTempFile tmpDir (tmpFile bucketn)
+
+bucketName :: ProjectId -> S3.BucketName
+bucketName = S3.BucketName
+
+-- |
+-- Where to retrieve project-specific data
+--
+mkFilename :: PathType -> Config -> ProjectId -> FilePath
+mkFilename wf cfg projectId = do
+    let path = unpack (mkMountPoint (mountPoint cfg))
+             <> unpack (mkDataDir (dataDir cfg))
+             <> "/" <> unpack projectId
+
+    case wf of
+        WithFilename -> path <> "/" <> warehouseFileName
+        WithoutFilename -> path
+
+    where
+        mkDataDir :: Text -> Text
+        mkDataDir d = if null d then "" else "/" <> d
+
+        mkMountPoint :: Text -> Text
+        mkMountPoint m = if null m then "" else "/" <> m
+

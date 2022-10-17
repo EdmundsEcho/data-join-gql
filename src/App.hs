@@ -28,12 +28,14 @@ import qualified Network.Wai.Handler.Warp             as Warp
 import           Network.Wai.Middleware.Cors
 import           Network.Wai.Middleware.RequestLogger
 import           Servant
+-- import           Servant.Client.Streaming
+-- import qualified Servant.Types.SourceT                as S
 --------------------------------------------------------------------------------
 import           Api.HTTP.ObsETL                      (ObsEtlApi, serveObsEtlApi)
 import           Api.HTTP.GraphiQL                    (GraphiQL, serveGraphiQL)
 --------------------------------------------------------------------------------
 import           AppTypes                             (Config(..), AppObs,
-                                                       Env (..), dbInit, nat)
+                                                       Env, mkAppEnv, dbInit, nat)
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
@@ -90,7 +92,8 @@ exec :: Config -> IO ()
 exec cfg = do
   let p = port cfg
   db <- newTVarIO dbInit
-  Warp.run p $ app (Env db cfg)
+  env <- mkAppEnv db cfg
+  Warp.run p $ app env
 
   --
 --------------------------------------------------------------------------------

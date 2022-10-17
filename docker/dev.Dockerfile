@@ -61,13 +61,11 @@ RUN apt-get update && \
 
 COPY --from=build /bin/obsetl-exe /bin/obsetl-exe
 
-# CMD: [ "/bin/obsetl-exe", "--port", "5003", "--data", "diamonds", "--mount", "shared" ]
+# only docker (enables customizing the option)
+EXPOSE 5003
+
 CMD [ "/bin/obsetl-exe", \
       "--port", "5003", \
       "--data", "diamonds", \
       "--mount", "shared" , \
-      "--shareuri", "https://luci-space.sfo3.digitaloceanspaces.com", \
-      "--region", "sfo3", \
-      "--secret", "Y+4Ld8Cu/PCOgtMUmWTFR1O00T4g5YpR15tAX177PJI", \
-      "--accessid", "DO003ZZWAE34HMFMRCQ3" \
 ]

@@ -4,22 +4,26 @@
 -- Maintainer  : edmund.cape@lucivia.com
 -- Stability   : experimental
 -- Portability : POSIX
-module Config (Config (..)) where
+module Config (
+    -- * types
+    Config (..),
+    ProjectId,
+    FileShareCfg (..),
+    -- * functions
+    fileShareCfgFromEnv,
+    mkBucketName,    -- :: ProjectId -> S3.BucketName
+    toString         -- :: BucketName -> String
+) where
 
 --------------------------------------------------------------------------------
-
-import System.Environment
+import System.Environment (getEnv)
+import Data.String
 import Protolude
-import Prelude (error, String)
--- import HttpClient (HttpManager)
-
+import Prelude (error)
+import Data.Text (pack, unpack)
 --------------------------------------------------------------------------------
-
--- digital ocean space (using boto3)
--- S3_ACCESS_ID = "DO003ZZWAE34HMFMRCQ3"
--- S3_SECRET_KEY = "Y+4Ld8Cu/PCOgtMUmWTFR1O00T4g5YpR15tAX177PJI"
--- S3_URL = "https://luci-space.sfo3.digitaloceanspaces.com"
--- S3_REGION = "sfo3"
+import qualified Amazonka.S3 as S3 (BucketName(..))
+--------------------------------------------------------------------------------
 
 -- ** Config
 
@@ -29,30 +33,44 @@ data Config = Config
   { port         :: !Int,
     mountPoint   :: !Text,
     dataDir      :: !Text,
-    -- fileShareCfg :: !FileShareCfg
-    fileShareUri :: !String,
-    region       :: !String,
-    secret       :: !String,
-    accessId     :: !String
+    fileShareCfg :: !FileShareCfg
   }
 
---data FileShareCfg = FileShareCfg
---  { url :: !Text,
---    region :: !Text,
---    secret :: !Text,
---    accessId :: !Text
---  }
-
---fileShareInstance :: FileShareCfg
---fileShareInstance = FileShareCfg
---  { accessId = "DO003ZZWAE34HMFMRCQ3"
---  , secret = "Y+4Ld8Cu/PCOgtMUmWTFR1O00T4g5YpR15tAX177PJI"
---  , url = "https://luci-space.sfo3.digitaloceanspaces.com"
---  , region = "sfo3"
---  }
+-- |
+-- warehouse.json data source
+-- used to instantiate the graphql server
+data FileShareCfg = FileShareCfg
+ { region     :: !Text,
+   hostBase   :: !Text,
+   hostBucket :: !Text,
+   accessId   :: !Text,
+   secret     :: !Text
+ }
 
 -- |
--- Not utilized
+-- Index value within the hostBucket
+type ProjectId = Text
+
+mkBucketName :: ProjectId -> S3.BucketName
+mkBucketName = S3.BucketName
+
+toString :: S3.BucketName -> String
+toString (S3.BucketName txt) = unpack txt
+
+-- |
+-- Instantiate from ENV
+-- These values need to be present in the ENV
+fileShareCfgFromEnv :: IO FileShareCfg
+fileShareCfgFromEnv = FileShareCfg
+    <$> (pack <$> getEnv "S3_REGION")
+    <*> (pack <$> getEnv "S3_HOST_BASE")
+    <*> (pack <$> getEnv "S3_HOST_BUCKET")
+    <*> (pack <$> getEnv "AWS_ACCESS_KEY_ID")
+    <*> (pack <$> getEnv "AWS_SECRET_ACCESS_KEY")
+
+-- |
+-- Find and parse ENV values; throws exception when either
+-- not found or fails to convert read :: String -> a
 envRead :: Read a => String -> IO a
 envRead key = do
   rawVal <- getEnv key
@@ -61,10 +79,7 @@ envRead key = do
     Nothing -> error $ key <> ": Unable to parse " <> rawVal
 
 -- |
--- Not utilized
---fromEnv :: IO Config
---fromEnv = Config
---    <$> envRead "PORT"
---    <*> envRead "MOUNT_POINT"
---    <*> envRead "DATA_DIR"
-
+-- Retrieve a value from ENV
+-- Throws an exception if the value is not found
+envFromString :: (IsString a) => String -> IO a
+envFromString key = fromString <$> getEnv key

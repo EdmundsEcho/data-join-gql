@@ -42,6 +42,13 @@ extra-deps:
   - morpheus-graphql-app-0.17.0@sha256:7561a7b371673417c8d7e4200ce2e79f01b5a8557547efdf341136459132d9cc,5425
   - morpheus-graphql-core-0.17.0@sha256:4192366e2c23594a435364cc42832f2949620b8b116a69b57e59fde7111b1a0d,12939
   - base64-0.4.2.3@sha256:d8a82b0f446e89d1d3b3e7c8fc5b3cd2f5063c43309bd3c971050d9c0eb74783,2867
+  - github: brendanhay/amazonka
+    commit: 0ccede621e56fb6f240e4850e205cde82d0e4a4b
+    subdirs:
+    - lib/amazonka
+    - lib/amazonka-core
+    - lib/services/amazonka-sts
+    - lib/services/amazonka-s3
 
 #  - morpheus-graphql-core-0.12.0@sha256:e7ec1f041cba294ce57a6caee4215b47a291239aef688fb3db71864fdf311539,4959
 

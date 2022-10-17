@@ -282,7 +282,7 @@ resolverSpanValue = \case
 -- |
 -- (GQL -> Model)
 --
-fromInputObsEtl :: WithAppContext m
+fromInputObsEtl :: (MonadLogger m, MonadCatch m)
                 => ObsEtlInput -> m (Either ObsException Model.ObsETL)
 fromInputObsEtl ObsEtlInput {..}
   = catch

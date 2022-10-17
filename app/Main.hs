@@ -15,8 +15,9 @@ import           AppTypes
 --------------------------------------------------------------------------------
 --
 -- MOUNT_POINT + '/diamonds/{project_id}/warehouse.sqlite',
-
-mkConfig :: Opt.Parser Config
+-- space + '{project_id}/shared/diamonds/{project_id}/warehouse.sqlite',
+--
+mkConfig :: Opt.Parser (FileShareCfg -> Config)
 mkConfig = Config
   <$> option auto (metavar "PORT" <> short 'p' <> long "port"
                  <> value 5003 <> showDefault <> help "Http port number ")
@@ -27,25 +28,15 @@ mkConfig = Config
   <*> strOption (metavar "DATA_DIR" <> short 'd' <> long "data"
                  <> value "" <> showDefault <> help "Data directory")
 
-  <*> strOption (metavar "FILE_SHARE_URI" <> short 'u' <> long "shareuri"
-                 <> value "" <> showDefault <> help "File share uri")
 
-  <*> strOption (metavar "REGION" <> short 'r' <> long "region"
-                 <> value "" <> showDefault <> help "File share region")
-
-  <*> strOption (metavar "SECRET" <> short 's' <> long "secret"
-                 <> value "" <> showDefault <> help "File share secret")
-
-  <*> strOption (metavar "ACCESS_ID" <> short 'i' <> long "accessid"
-                 <> value "" <> showDefault <> help "File share access id")
-
-
-withConfig :: Config -> IO ()
-withConfig cfg = do
-    putStrLn ("listening on port: " <> show(port cfg) <> "...")
-    putStrLn ("data: " <> unpack(mountPoint cfg) <> "/" <> unpack(dataDir cfg))
-    putStrLn ("file share uri: " <> fileShareUri cfg)
+withConfig :: (FileShareCfg -> Config) -> IO ()
+withConfig cfgWithoutShare = do
+    cfg <- fmap cfgWithoutShare fileShareCfgFromEnv
+    putStrLn ("🟢 listening on port: " <> show(port cfg) <> "...")
+    putStrLn ("mount/data dir: " <> unpack(mountPoint cfg) <> "/" <> unpack(dataDir cfg))
+    putStrLn ("file share uri: " <> unpack(hostBucket(fileShareCfg cfg)))
     App.exec cfg
+
 
 main :: IO ()
 main =
@@ -62,8 +53,10 @@ main =
         ( fullDesc
             <> progDesc "Graphql ETL server of statistical data"
         )
+
     parserExit :: ExitCode -> IO ()
     parserExit _ = pure ()
+
     printIOError :: IOException -> IO ()
     printIOError e
       | isDoesNotExistError e = do

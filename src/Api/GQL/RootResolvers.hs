@@ -55,7 +55,7 @@ resolverGetObsEtl = do
   obsEtl' <- fmap App.db getDb
   case obsEtl' of
     App.DataObsETL o -> Just <$> resolverObsEtl o
-    _                -> pure Nothing
+    _anyOtherFailure -> pure Nothing
 
 ---------------------------------------------------------------------------------
 -- ** Query validate
@@ -102,7 +102,7 @@ resolverSelectValues SelectValuesArgs { fromQuality, fromComponent} =
   delegateSelectValues fromQuality fromComponent
 
 ---------------------------------------------------------------------------------
--- ** Query leves with pagination support
+-- ** Query levels with pagination support
 -- |
 --
 resolverLevels :: WithAppContext m
