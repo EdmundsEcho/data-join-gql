@@ -15,38 +15,27 @@
 module HttpClient
   ( mkS3Env     -- :: Config -> S3.Env
   , request     -- :: ProjectId -> Config -> S3.Env -> S3.GetObjectResponse
-  , sinkFile    -- :: S3.BucketName -> C.ConduitM ByteString o m FilePath
-  , bucketName  -- :: ProjectId -> S3.BucketName
   )
   where
 --------------------------------------------------------------------------------
 import           Protolude                      hiding (null, State, Handler)
-import           Prelude                        (String)
 import           Data.Text                      (null, pack, unpack)
-import           Control.Monad.Trans.Resource   (MonadResource)
 --------------------------------------------------------------------------------
 -- App specific
 import           Config
 --------------------------------------------------------------------------------
 import qualified Amazonka                       as S3
 import qualified Amazonka.S3                    as S3
-import qualified Conduit                        as C (ConduitM, sinkTempFile)
+import           Control.Monad.Trans.Resource   (MonadResource)
 --------------------------------------------------------------------------------
 --
 
-data PathType = WithFilename | WithoutFilename
+data PathType = WithFilename | WithoutFilename | DigitalOcean
 
 warehouseFileName :: [Char]
 warehouseFileName = "warehouse.json"
 
-tmpDir :: FilePath
-tmpDir = "/tmp"
-
-tmpFile :: S3.BucketName -> String
-tmpFile bucketn = toString bucketn <> "." <> warehouseFileName
-
 --
--- Notes
 -- Tasks required for Sending an S3 request
 -- 1. configure the Authentication strategy
 -- 2. instantiate the desired operation type
@@ -93,7 +82,7 @@ mkS3Env cfg = do
        -- Fixed tls
        -- Endpoint is a property of Service,
        -- Service a property of Request
-       -- see root configure :: Service -> Env -> Env
+       -- see root package configure :: Service -> Env -> Env
        endpointInService :: Config -> S3.Service
        endpointInService cfg' = S3.setEndpoint
            True                                             -- ssl
@@ -112,15 +101,8 @@ request pid cfg s3env = S3.send s3env (getObject pid cfg)
     where
         getObject :: ProjectId -> Config -> S3.GetObject
         getObject pid' cfg' = S3.newGetObject
-            (bucketName pid)
-            (S3.ObjectKey $ pack $ mkFilename WithFilename cfg' pid')
-       -- newGetObject :: BucketName -> ObjectKey -> GetObject
-
-sinkFile :: MonadResource m => S3.BucketName -> C.ConduitM ByteString o m FilePath
-sinkFile bucketn = C.sinkTempFile tmpDir (tmpFile bucketn)
-
-bucketName :: ProjectId -> S3.BucketName
-bucketName = S3.BucketName
+            (S3.BucketName pid) -- ignored by digital ocean
+            (S3.ObjectKey . pack $ mkFilename DigitalOcean cfg' pid')
 
 -- |
 -- Where to retrieve project-specific data
@@ -134,6 +116,7 @@ mkFilename wf cfg projectId = do
     case wf of
         WithFilename -> path <> "/" <> warehouseFileName
         WithoutFilename -> path
+        DigitalOcean -> unpack projectId <> "/" <> path <> "/" <> warehouseFileName
 
     where
         mkDataDir :: Text -> Text

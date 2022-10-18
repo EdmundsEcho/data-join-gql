@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 889800996facbdb0e71bed44a5f6ac92b084aa3bc5c4db301bad09abbae9e61f
+-- hash: 294cdb9aeff7f78fc68911f976bba87f77444fd9e2e8d7290cfae0efebfc5380
 
 name:           obsetl
 version:        0.1.5.0
@@ -98,7 +98,7 @@ library
       TemplateHaskell
       TypeApplications
       TypeOperators
-  ghc-options: -Wall -fno-warn-redundant-constraints
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       aeson
     , aeson-pretty
@@ -110,13 +110,6 @@ library
     , conduit
     , conduit-extra
     , containers >=0.6.2.1 && <0.7
-    , data-accessor >=0.2.3 && <0.3
-    , data-has >=0.4.0.0 && <0.5
-    , hslogger >=1.3.1.0 && <1.4
-    , http-client >=0.6.4.1 && <0.7
-    , http-client-tls >=0.3.5.3 && <0.4
-    , lens
-    , minio-hs >=1.6.0 && <1.7
     , monad-logger >=0.3.32 && <0.4
     , morpheus-graphql >=0.17.0
     , morpheus-graphql-core >=0.17.0
@@ -125,16 +118,13 @@ library
     , protolude
     , resourcet >=1.2.4.3 && <1.3
     , safe-exceptions >=0.1.7.0 && <0.2
-    , servant-conduit >=0.15.1 && <0.16
+    , servant >=0.16.2 && <0.26
+    , servant-conduit >=0.15.1 && <0.26
     , servant-server >=0.16.2 && <0.26
     , stm >=2.5.0.0 && <2.6
-    , template-haskell >=2.14.0.0 && <2.20
     , text >=1.2.4.0 && <1.3
-    , text-conversions
-    , time >=1.13 && <2
     , transformers >=0.5.6 && <0.6
     , unliftio >=0.2.20 && <0.3
-    , vector >=0.12.1.2 && <0.13
     , wai >=3.2.2.1 && <3.3
     , wai-cors >=0.2.7 && <0.3
     , wai-extra
@@ -168,7 +158,7 @@ executable obsetl-exe
       TemplateHaskell
       TypeApplications
       TypeOperators
-  ghc-options: -Wall -fno-warn-redundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , aeson-pretty
@@ -180,13 +170,6 @@ executable obsetl-exe
     , conduit
     , conduit-extra
     , containers >=0.6.2.1 && <0.7
-    , data-accessor >=0.2.3 && <0.3
-    , data-has >=0.4.0.0 && <0.5
-    , hslogger >=1.3.1.0 && <1.4
-    , http-client >=0.6.4.1 && <0.7
-    , http-client-tls >=0.3.5.3 && <0.4
-    , lens
-    , minio-hs >=1.6.0 && <1.7
     , monad-logger >=0.3.32 && <0.4
     , morpheus-graphql >=0.17.0
     , morpheus-graphql-core >=0.17.0
@@ -196,16 +179,13 @@ executable obsetl-exe
     , protolude
     , resourcet >=1.2.4.3 && <1.3
     , safe-exceptions >=0.1.7.0 && <0.2
-    , servant-conduit >=0.15.1 && <0.16
+    , servant >=0.16.2 && <0.26
+    , servant-conduit >=0.15.1 && <0.26
     , servant-server >=0.16.2 && <0.26
     , stm >=2.5.0.0 && <2.6
-    , template-haskell >=2.14.0.0 && <2.20
     , text >=1.2.4.0 && <1.3
-    , text-conversions
-    , time >=1.13 && <2
     , transformers >=0.5.6 && <0.6
     , unliftio >=0.2.20 && <0.3
-    , vector >=0.12.1.2 && <0.13
     , wai >=3.2.2.1 && <3.3
     , wai-cors >=0.2.7 && <0.3
     , wai-extra
@@ -247,7 +227,7 @@ test-suite obsetl-test
       TemplateHaskell
       TypeApplications
       TypeOperators
-  ghc-options: -Wall -fno-warn-redundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , aeson-pretty
@@ -259,13 +239,6 @@ test-suite obsetl-test
     , conduit
     , conduit-extra
     , containers >=0.6.2.1 && <0.7
-    , data-accessor >=0.2.3 && <0.3
-    , data-has >=0.4.0.0 && <0.5
-    , hslogger >=1.3.1.0 && <1.4
-    , http-client >=0.6.4.1 && <0.7
-    , http-client-tls >=0.3.5.3 && <0.4
-    , lens
-    , minio-hs >=1.6.0 && <1.7
     , monad-logger >=0.3.32 && <0.4
     , morpheus-graphql >=0.17.0
     , morpheus-graphql-core >=0.17.0
@@ -275,7 +248,8 @@ test-suite obsetl-test
     , protolude
     , resourcet >=1.2.4.3 && <1.3
     , safe-exceptions >=0.1.7.0 && <0.2
-    , servant-conduit >=0.15.1 && <0.16
+    , servant >=0.16.2 && <0.26
+    , servant-conduit >=0.15.1 && <0.26
     , servant-server >=0.16.2 && <0.26
     , stm >=2.5.0.0 && <2.6
     , tasty >=0.7
@@ -283,13 +257,9 @@ test-suite obsetl-test
     , tasty-hunit >=0.10.0.2
     , tasty-quickcheck >=0.10.1.1
     , tasty-rerun >=1.1.17
-    , template-haskell >=2.14.0.0 && <2.20
     , text >=1.2.4.0 && <1.3
-    , text-conversions
-    , time >=1.13 && <2
     , transformers >=0.5.6 && <0.6
     , unliftio >=0.2.20 && <0.3
-    , vector >=0.12.1.2 && <0.13
     , wai >=3.2.2.1 && <3.3
     , wai-cors >=0.2.7 && <0.3
     , wai-extra

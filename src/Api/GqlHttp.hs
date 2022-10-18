@@ -1,9 +1,12 @@
+
 {-# LANGUAGE PolyKinds #-}
 -- |
 -- Module      : Api.GqlHttp
 -- Description : Bridge between Servant, GraphQL and the WebApp types
 --
 module Api.GqlHttp
+  ( serveGQL
+  )
   where
 -------------------------------------------------------------------------------
 import           Protolude

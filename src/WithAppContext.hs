@@ -41,7 +41,7 @@ import Protolude
 import Control.Concurrent.STM (TVar, newTVarIO, readTVar, writeTVar)
 import Control.Exception.Safe
 import Control.Monad.Logger
-import Conduit
+-- import Conduit
 ---------------------------------------------------------------------------------
 import Data.Aeson
   ( FromJSON,
@@ -74,11 +74,8 @@ type WithAppContext m =
   ( Typeable m,
     MonadReader Env m,
     MonadIO m,
-    MonadUnliftIO m,
-    MonadResource m,
-    MonadCatch m,
     MonadLogger m,
-    -- MonadUnliftIO m,
+    MonadCatch m,
     MonadThrow m
   )
 
@@ -90,8 +87,9 @@ type WithAppContext m =
 -- > Database :: ObsETL Model
 -- > Database :: ObsTest Model
 data Database = Database
-  { db :: !Data,
-    status :: !Text
+  { db :: !Data
+  , projectId :: !(Maybe ProjectId)
+  , status :: !Text
   }
   deriving (Show)
 
@@ -106,15 +104,17 @@ data Data
 dbInit :: Database
 dbInit =
   Database
-    { db = DataEmpty,
-      status = "Empty"
+    { db = DataEmpty
+    , projectId = Nothing
+    , status = "Empty"
     }
 
-dbNew :: ObsETL -> Database
-dbNew obsETL =
+dbNew :: ProjectId -> ObsETL -> Database
+dbNew pid obsETL =
   Database
-    { db = DataObsETL obsETL,
-      status = "Loaded"
+    { db = DataObsETL obsETL
+    , projectId = Just pid
+    , status = "Loaded"
     }
 
 --------------------------------------------------------------------------------

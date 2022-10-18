@@ -65,7 +65,6 @@ apiType = Proxy
 appM :: ServerT Api AppObs
 appM  = serveObsEtlApi :<|> serveGraphiQL
 
--- import Network.Wai.Middleware.RequestLogger
 --------------------------------------------------------------------------------
 -- ** Application defined in wai
 -- |
@@ -81,10 +80,13 @@ appM  = serveObsEtlApi :<|> serveGraphiQL
 --             => Proxy api -> (forall x. m x -> n x)
 --             -> ServerT api m -> ServerT api n
 --
+-- 🔖 Requires Servant.Conduit to access ToSourceIO and FromSourceIO
+--
 app :: Env -> Application
 app env = logStdoutDev . cors ( const $ Just corsPolicy )
         . serve apiType $ hoistServer apiType (nat env) appM
           -- cors ( const $ Just corsPolicy )
+
 
 -- |
 -- Single point of access to the module
