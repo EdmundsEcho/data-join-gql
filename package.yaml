@@ -62,7 +62,7 @@ dependencies:
   - base64 >= 0.4.2.3
   - bytestring >= 0.10.10.0 && < 0.20
   - conduit >= 1.3.4.2 && < 1.4
-  - conduit-extra >= 1.3.5 < 1.4   # sinks
+  - conduit-extra >= 1.3.5 && < 1.4
   - containers >= 0.6.2.1 && < 0.7
   - monad-logger >= 0.3.32 && < 0.4
   - morpheus-graphql >= 0.17.0
