@@ -34,5 +34,4 @@ ENV S3_HOST_BUCKET="luci-space.sfo3.digitaloceanspaces.com"
 CMD [ "/bin/obsetl-exe", \
       "--port", "5003", \
       "--data", "diamonds", \
-      "--mount", "shared"
-]
+      "--mount", "shared" ]
