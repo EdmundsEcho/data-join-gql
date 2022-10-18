@@ -27,5 +27,5 @@ USER appuser
 CMD [ "/bin/obsetl-exe", \
       "--port", "5003", \
       "--data", "diamonds", \
-      "--mount", "shared" , \
+      "--mount", "shared"
 ]

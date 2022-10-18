@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 294cdb9aeff7f78fc68911f976bba87f77444fd9e2e8d7290cfae0efebfc5380
+-- hash: 20208219c0e11067ae29210f9d5fc3023155713d48a07c8c2aecbf8ec6e32c83
 
 name:           obsetl
 version:        0.1.5.0
@@ -107,8 +107,8 @@ library
     , base >=4.7 && <5
     , base64 >=0.4.2.3
     , bytestring >=0.10.10.0 && <0.20
-    , conduit
-    , conduit-extra
+    , conduit >=1.3.4.2 && <1.4
+    , conduit-extra >=1.3.5 && <1.4
     , containers >=0.6.2.1 && <0.7
     , monad-logger >=0.3.32 && <0.4
     , morpheus-graphql >=0.17.0
@@ -127,7 +127,7 @@ library
     , unliftio >=0.2.20 && <0.3
     , wai >=3.2.2.1 && <3.3
     , wai-cors >=0.2.7 && <0.3
-    , wai-extra
+    , wai-extra >=3.1.7 && <3.2
     , warp >=3.3.9 && <3.4
   default-language: Haskell2010
 
@@ -167,8 +167,8 @@ executable obsetl-exe
     , base >=4.7 && <5
     , base64 >=0.4.2.3
     , bytestring >=0.10.10.0 && <0.20
-    , conduit
-    , conduit-extra
+    , conduit >=1.3.4.2 && <1.4
+    , conduit-extra >=1.3.5 && <1.4
     , containers >=0.6.2.1 && <0.7
     , monad-logger >=0.3.32 && <0.4
     , morpheus-graphql >=0.17.0
@@ -188,7 +188,7 @@ executable obsetl-exe
     , unliftio >=0.2.20 && <0.3
     , wai >=3.2.2.1 && <3.3
     , wai-cors >=0.2.7 && <0.3
-    , wai-extra
+    , wai-extra >=3.1.7 && <3.2
     , warp >=3.3.9 && <3.4
   default-language: Haskell2010
 
@@ -236,8 +236,8 @@ test-suite obsetl-test
     , base >=4.7 && <5
     , base64 >=0.4.2.3
     , bytestring >=0.10.10.0 && <0.20
-    , conduit
-    , conduit-extra
+    , conduit >=1.3.4.2 && <1.4
+    , conduit-extra >=1.3.5 && <1.4
     , containers >=0.6.2.1 && <0.7
     , monad-logger >=0.3.32 && <0.4
     , morpheus-graphql >=0.17.0
@@ -262,6 +262,6 @@ test-suite obsetl-test
     , unliftio >=0.2.20 && <0.3
     , wai >=3.2.2.1 && <3.3
     , wai-cors >=0.2.7 && <0.3
-    , wai-extra
+    , wai-extra >=3.1.7 && <3.2
     , warp >=3.3.9 && <3.4
   default-language: Haskell2010
