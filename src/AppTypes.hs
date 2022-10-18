@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DerivingStrategies #-}
 -- |
 -- Module      : AppTypes
 -- Description : Types specific for the Servant context
@@ -17,25 +18,29 @@
 module AppTypes
   ( module AppTypes
   , module WithAppContext
+  , module Config
   )
   where
 --------------------------------------------------------------------------------
 import           Protolude      hiding (State, Handler)
-import           WithAppContext
+import           Servant        (Handler)
 --------------------------------------------------------------------------------
 -- App specific
-import           Servant
+import           Config
+import           WithAppContext
 --------------------------------------------------------------------------------
   --
 -- ** The WebApp integrated into the GraphQL capacity.
 -- |
 -- Wraps the `Servant.Handler` with the Obs app context.
+-- Note: the Handler monad is: ExceptT ServantErr IO a
 --
 newtype AppObs a =
     AppObs
         { iniApp :: ReaderT Env (LoggingT Handler) a
         }
-    deriving ( Functor
+    deriving newtype
+             ( Functor
              , Applicative
              , Monad
              , MonadReader Env
@@ -43,6 +48,8 @@ newtype AppObs a =
              , MonadLogger
              , MonadThrow
              , MonadCatch
+             -- , MonadUnliftIO
+             -- , MonadResource
              -- , MonadError Text Already defined by Server
              )
 
@@ -55,7 +62,8 @@ newtype AppObs a =
 --
 nat :: Env -> AppObs a -> Handler a
 nat env app = runStderrLoggingT (
-                 runReaderT (iniApp app) env)
+                 runReaderT (iniApp app) env
+                 )
 
 --------------------------------------------------------------------------------
   --

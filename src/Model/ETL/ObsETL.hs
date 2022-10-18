@@ -29,11 +29,11 @@ import           Protolude
 ---------------------------------------------------------------------------------
 import qualified Data.Map.Strict       as Map (fromList, lookup, null, size,
                                                union)
-import           Data.Text             (append)
+-- import           Data.Text             (append)
 -------------------------------------------------------------------------------
 import           Data.Aeson            (ToJSON)
 ---------------------------------------------------------------------------------
-import           Lib.NodeManager
+-- import           Lib.NodeManager
 import           Model.ETL.Components  hiding (lookup, names, null, size,
                                         toList)
 import           Model.ETL.FieldValues
@@ -45,7 +45,7 @@ import           Model.ETL.Span        hiding (intersection, subset)
 -- = Observation model
 -- |
 data ObsETL = ObsETL
-        { obsID           :: !ID            -- ^ Implemented, but not may not be useful
+        { obsID           :: !ID
         , obsSubject      :: !Subject
         , obsMeasurements :: !Measurements
         } deriving (Show, Eq, Ord, Generic)
@@ -53,16 +53,16 @@ data ObsETL = ObsETL
 instance ToJSON ObsETL
 
 -- | Private smart constructor that utilizes an ID generator.
--- /Note/: The ID generator is implemented, but not exploited by the app.
-mkObsETL :: Subject -> Measurements -> NodeManager ObsETL
-mkObsETL s ms = do
-  idx <- generateIdx   -- just give me state (moved to value channel)
-  return $ ObsETL (mkID' idx) s ms -- return (a :: ObsETL)
-    where
-       mkID' :: Int32 -> ID
-       mkID' n = NewID $
-         ("OID"::Text) `append` show d3 `append` show d2 `append` show d1
-           where { d3 = n`quot`100; d2 = n`quot`10; d1 = n`quot`1 }
+mkObsETL :: ID -> Subject -> Measurements -> ObsETL
+mkObsETL = ObsETL
+  -- idx <- generateIdx   -- just give me state (moved to value channel)
+  --  return $ ObsETL id s ms -- return (a :: ObsETL)
+
+--    where
+--       mkID' :: Int32 -> ID
+--       mkID' n = NewID $
+--         ("OID"::Text) `append` show d3 `append` show d2 `append` show d1
+--           where { d3 = n`quot`100; d2 = n`quot`10; d1 = n`quot`1 }
 
 -- == Subject
 -- | The @Subject@ node is a record with

@@ -1,4 +1,4 @@
-FROM ghcr.io/lucivia/obs-base:1135615579
+FROM ghcr.io/lucivia/obs-base:2929201810
 
 COPY . /work
 WORKDIR /work
@@ -7,8 +7,25 @@ RUN stack build \
     --copy-bins \
     --local-bin-path=/bin/
 
-FROM ghcr.io/lucivia/obs-runtime:1135610655
+FROM ghcr.io/lucivia/obs-runtime:2929229145
 
-COPY --from=0 /bin/obsetl-exe /bin/obsetl-exe
+# appuser
+RUN groupadd -g 999 appuser && \
+    useradd -r -u 999 -g appuser appuser
 
-CMD ["/bin/obsetl-exe"]
+COPY --chown=appuser:appuser --from=0 /bin/obsetl-exe /bin/obsetl-exe
+
+# mount point of shared volume
+RUN mkdir /shared
+RUN chown appuser:appuser /shared
+
+# only docker listens to exposed port
+EXPOSE 5003
+
+USER appuser
+
+CMD [ "/bin/obsetl-exe", \
+      "--port", "5003", \
+      "--data", "diamonds", \
+      "--mount", "shared" , \
+]

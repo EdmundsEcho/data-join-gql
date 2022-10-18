@@ -6,19 +6,27 @@ module Api.HTTP.ObsTest (ObsTest , serveObsTest)
     where
 
 --------------------------------------------------------------------------------
+import           Protolude
+--------------------------------------------------------------------------------
 import           Data.Morpheus       (interpreter)
 import           Data.Morpheus.Types
+--------------------------------------------------------------------------------
 import           Servant
-
+--------------------------------------------------------------------------------
 import           Api.GQL.ObsTest     (gqlRoot)
 import           Api.GqlHttp
 import           AppTypes
-
 --------------------------------------------------------------------------------
 -- |
 -- == Endpoint type
 -- Servant Has Server types
-type ObsTest  = GQLAPI "obstest" "v1"
+
+type GQLTest (version :: Symbol) (name :: Symbol)
+  = version     -- endpoint
+  :> name       -- endpoint
+  :> ReqBody '[JSON] GQLRequest :> Post '[JSON] GQLResponse -- Servant Has Handler
+
+type ObsTest  = GQLTest "v1" "test"
 
 api :: GQLRequest -> AppObs GQLResponse
 api = interpreter gqlRoot

@@ -3,7 +3,7 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE KindSignatures        #-}
-{-# LANGUAGE PatternSynonyms       #-}
+-- {-# LANGUAGE PatternSynonyms       #-}
 
 -- |
 -- Module      : Model.Request

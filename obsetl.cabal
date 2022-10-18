@@ -1,19 +1,19 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7fa11d27d3dfa1f4c611a2cc7b3857b83d107c58aaafbf38bc0ad2b239739345
+-- hash: 294cdb9aeff7f78fc68911f976bba87f77444fd9e2e8d7290cfae0efebfc5380
 
 name:           obsetl
-version:        0.1.4.0
+version:        0.1.5.0
 description:    Please see the README on GitHub at <https://github.com/lucivia/obsetl#readme>
 homepage:       https://github.com/lucivia/obsetl#readme
 bug-reports:    https://github.com/lucivia/obsetl/issues
 author:         Edmund Cape
 maintainer:     edmund.cape@lucivia.com
-copyright:      Lucivia LLC 2021
+copyright:      Lucivia LLC 2022
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -52,6 +52,8 @@ library
       Api.HTTP.ObsTest
       App
       AppTypes
+      Config
+      HttpClient
       Lib.EitherM
       Lib.NodeManager
       Model.ETL.Components
@@ -96,29 +98,33 @@ library
       TemplateHaskell
       TypeApplications
       TypeOperators
-  ghc-options: -Wall -fno-warn-redundant-constraints
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       aeson
     , aeson-pretty
+    , amazonka
+    , amazonka-s3
     , base >=4.7 && <5
     , base64 >=0.4.2.3
     , bytestring >=0.10.10.0 && <0.20
+    , conduit
+    , conduit-extra
     , containers >=0.6.2.1 && <0.7
-    , hslogger >=1.3.1.0 && <1.4
     , monad-logger >=0.3.32 && <0.4
     , morpheus-graphql >=0.17.0
     , morpheus-graphql-core >=0.17.0
     , mtl >=2.2.2 && <3
     , optparse-applicative >=0.15.1.0 && <0.20
     , protolude
+    , resourcet >=1.2.4.3 && <1.3
     , safe-exceptions >=0.1.7.0 && <0.2
+    , servant >=0.16.2 && <0.26
+    , servant-conduit >=0.15.1 && <0.26
     , servant-server >=0.16.2 && <0.26
     , stm >=2.5.0.0 && <2.6
-    , template-haskell >=2.14.0.0 && <2.20
     , text >=1.2.4.0 && <1.3
-    , text-conversions
     , transformers >=0.5.6 && <0.6
-    , vector >=0.12.1.2 && <0.13
+    , unliftio >=0.2.20 && <0.3
     , wai >=3.2.2.1 && <3.3
     , wai-cors >=0.2.7 && <0.3
     , wai-extra
@@ -152,15 +158,18 @@ executable obsetl-exe
       TemplateHaskell
       TypeApplications
       TypeOperators
-  ghc-options: -Wall -fno-warn-redundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , aeson-pretty
+    , amazonka
+    , amazonka-s3
     , base >=4.7 && <5
     , base64 >=0.4.2.3
     , bytestring >=0.10.10.0 && <0.20
+    , conduit
+    , conduit-extra
     , containers >=0.6.2.1 && <0.7
-    , hslogger >=1.3.1.0 && <1.4
     , monad-logger >=0.3.32 && <0.4
     , morpheus-graphql >=0.17.0
     , morpheus-graphql-core >=0.17.0
@@ -168,14 +177,15 @@ executable obsetl-exe
     , obsetl
     , optparse-applicative >=0.15.1.0 && <0.20
     , protolude
+    , resourcet >=1.2.4.3 && <1.3
     , safe-exceptions >=0.1.7.0 && <0.2
+    , servant >=0.16.2 && <0.26
+    , servant-conduit >=0.15.1 && <0.26
     , servant-server >=0.16.2 && <0.26
     , stm >=2.5.0.0 && <2.6
-    , template-haskell >=2.14.0.0 && <2.20
     , text >=1.2.4.0 && <1.3
-    , text-conversions
     , transformers >=0.5.6 && <0.6
-    , vector >=0.12.1.2 && <0.13
+    , unliftio >=0.2.20 && <0.3
     , wai >=3.2.2.1 && <3.3
     , wai-cors >=0.2.7 && <0.3
     , wai-extra
@@ -217,15 +227,18 @@ test-suite obsetl-test
       TemplateHaskell
       TypeApplications
       TypeOperators
-  ghc-options: -Wall -fno-warn-redundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , aeson-pretty
+    , amazonka
+    , amazonka-s3
     , base >=4.7 && <5
     , base64 >=0.4.2.3
     , bytestring >=0.10.10.0 && <0.20
+    , conduit
+    , conduit-extra
     , containers >=0.6.2.1 && <0.7
-    , hslogger >=1.3.1.0 && <1.4
     , monad-logger >=0.3.32 && <0.4
     , morpheus-graphql >=0.17.0
     , morpheus-graphql-core >=0.17.0
@@ -233,7 +246,10 @@ test-suite obsetl-test
     , obsetl
     , optparse-applicative >=0.15.1.0 && <0.20
     , protolude
+    , resourcet >=1.2.4.3 && <1.3
     , safe-exceptions >=0.1.7.0 && <0.2
+    , servant >=0.16.2 && <0.26
+    , servant-conduit >=0.15.1 && <0.26
     , servant-server >=0.16.2 && <0.26
     , stm >=2.5.0.0 && <2.6
     , tasty >=0.7
@@ -241,11 +257,9 @@ test-suite obsetl-test
     , tasty-hunit >=0.10.0.2
     , tasty-quickcheck >=0.10.1.1
     , tasty-rerun >=1.1.17
-    , template-haskell >=2.14.0.0 && <2.20
     , text >=1.2.4.0 && <1.3
-    , text-conversions
     , transformers >=0.5.6 && <0.6
-    , vector >=0.12.1.2 && <0.13
+    , unliftio >=0.2.20 && <0.3
     , wai >=3.2.2.1 && <3.3
     , wai-cors >=0.2.7 && <0.3
     , wai-extra

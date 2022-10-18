@@ -12,23 +12,23 @@ import           Data.Aeson (ToJSON (..), Value (String))
 -- | Private
 -- Unifies new generation ObsKeys with wrapping
 -- previously generated IDs under type ID.
-data ID = NewID Text
+data ID = ProjectId Text
         | KeyID Text  deriving (Show, Ord, Generic)
 
 instance ToJSON ID where
   toJSON = String . unID
 
 instance Eq ID where
-  (NewID a) == (NewID b) = a == b
+  (ProjectId a) == (ProjectId b) = a == b
   (KeyID a) == (KeyID b) = a == b
-  (NewID a) == (KeyID b) = a == b
-  (KeyID a) == (NewID b) = a == b
+  (ProjectId a) == (KeyID b) = a == b
+  (KeyID a) == (ProjectId b) = a == b
 
 -- | Public
 unID :: ID -> Text
-unID (NewID i) = i
+unID (ProjectId i) = i
 unID (KeyID i) = i
 
 -- | Temporary fixed ID
-mkID :: ID
-mkID = NewID "OID001"
+mkID :: Text -> ID
+mkID = ProjectId

@@ -1,3 +1,13 @@
 .stack-work/
 *~hscope.out
 .DS_Store
+hie.yaml
+hscope.out
+report.html
+obsetl_doc.zip
+next_steps.md
+obsTestCase.json
+doc_servant.md
+ddd/
+res/
+warehouse.json

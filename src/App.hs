@@ -13,8 +13,8 @@
 module App
   ( -- * single export
     --
-    -- > :: AppConfig -> IO ()
-    -- [@AppConfig@]: Mostly a placeholder.  Currently holds port number.
+    -- > :: Config -> IO ()
+    -- [@Config@]: Mostly a placeholder.  Currently holds port number.
     --
     exec
   ) where
@@ -28,12 +28,14 @@ import qualified Network.Wai.Handler.Warp             as Warp
 import           Network.Wai.Middleware.Cors
 import           Network.Wai.Middleware.RequestLogger
 import           Servant
+-- import           Servant.Client.Streaming
+-- import qualified Servant.Types.SourceT                as S
 --------------------------------------------------------------------------------
-import           Api.HTTP.GraphiQL
-import           Api.HTTP.ObsETL
-import           Api.HTTP.ObsTest
-import           AppTypes                             (AppConfig (..), AppObs,
-                                                       Env (..), dbInit, nat)
+import           Api.HTTP.ObsETL                      (ObsEtlApi, serveObsEtlApi)
+import           Api.HTTP.GraphiQL                    (GraphiQL, serveGraphiQL)
+--------------------------------------------------------------------------------
+import           AppTypes                             (Config(..), AppObs,
+                                                       Env, mkAppEnv, dbInit, nat)
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
@@ -49,7 +51,7 @@ corsPolicy = simpleCorsResourcePolicy
 -- |
 -- Servant "has ServerT instance"
 --
-type Api = ObsTest :<|> ObsEtlApi :<|> GraphiQL
+type Api = ObsEtlApi :<|> GraphiQL
 
 -- |
 -- Proxy @Api
@@ -61,9 +63,8 @@ apiType = Proxy
 -- nat :: AppObs -> Handler
 --
 appM :: ServerT Api AppObs
-appM  = serveObsTest :<|> serveObsEtlApi :<|> serveGraphiQL
+appM  = serveObsEtlApi :<|> serveGraphiQL
 
--- import Network.Wai.Middleware.RequestLogger
 --------------------------------------------------------------------------------
 -- ** Application defined in wai
 -- |
@@ -79,19 +80,22 @@ appM  = serveObsTest :<|> serveObsEtlApi :<|> serveGraphiQL
 --             => Proxy api -> (forall x. m x -> n x)
 --             -> ServerT api m -> ServerT api n
 --
+-- 🔖 Requires Servant.Conduit to access ToSourceIO and FromSourceIO
+--
 app :: Env -> Application
 app env = logStdoutDev . cors ( const $ Just corsPolicy )
         . serve apiType $ hoistServer apiType (nat env) appM
           -- cors ( const $ Just corsPolicy )
 
+
 -- |
 -- Single point of access to the module
-exec :: AppConfig -> IO ()
-exec config = do
-  let p = port config
+exec :: Config -> IO ()
+exec cfg = do
+  let p = port cfg
   db <- newTVarIO dbInit
-  Warp.run p $ app (Env db (Just config))
-
+  env <- mkAppEnv db cfg
+  Warp.run p $ app env
 
   --
 --------------------------------------------------------------------------------

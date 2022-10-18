@@ -17,7 +17,7 @@ import           Prelude   (Show (..), String)
 --
 data ObsException
   = ObsNotInitialized
-  | MalformedConfig
+  | ConfigError        Text
   | TypeException      (Maybe Text)  -- ^ Should never happen
   | ValueException     (Maybe Text)  -- ^ From request input
   | ObsOtherException
@@ -27,7 +27,7 @@ data ObsException
 instance Show ObsException where
   show ObsNotInitialized     = "The server was not initialized with a valid state object."
   show ObsOtherException     = "Something else when wrong"
-  show MalformedConfig       = "The input is not properly formatted"
+  show (ConfigError mess)    = "The config is not properly formatted: " <> unpack mess
   show (ValueException mess) = "The value cannot be processed by this function: " <> toStr mess
   show (NoValueFound mess)   = "No value found: " <> toStr mess
   show (TypeException mess)  = "Type mismatch: " <> toStr mess

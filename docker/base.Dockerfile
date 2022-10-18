@@ -1,9 +1,9 @@
-FROM ghcr.io/lucivia/obs-src:1135599306
-
+FROM ghcr.io/lucivia/obs-src:2929174650
 WORKDIR /build-workdir
 
 ################################################################################
 # Install the right GHC version and update package index
+# 🔖 Rendering this image can take > 10 min
 
 RUN pwd && stack setup && stack update
 
