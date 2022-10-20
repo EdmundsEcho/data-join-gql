@@ -31,7 +31,7 @@ import           Data.Conduit (ConduitT)
 import           Control.Monad.Trans.Resource   ( ResourceT
                                                 , closeInternalState
                                                 , createInternalState
-                                                , runInternalState)
+                                                , runInternalState )
 --------------------------------------------------------------------------------
 --
 -- Endpoint type constructor
@@ -122,6 +122,7 @@ setDbWithS3 pid = do
 serveGQL :: (ProjectId -> GQLRequest -> AppObs GQLResponse)
          -> ServerT (GQLApi version name projectId) AppObs
 serveGQL = identity
+
 -- |
 -- == Handlers
 -- Servant Has Handler

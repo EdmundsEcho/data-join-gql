@@ -21,11 +21,11 @@ import           Model.ETL.ID
 -- /Note/: The order of the keys start from root. Each one maps to a
 -- lookup function for the corresponding collection.
 data Key =
-      OIKey   (Maybe ID)    -- ^ Obs ID Key
-    | SubKey  Text
-    | QualKey Text
-    | MeaKey  Text
-    | CompKey Text
+      OIKey   !(Maybe ID)    -- ^ Obs ID Key
+    | SubKey  !Text
+    | QualKey !Text
+    | MeaKey  !Text
+    | CompKey !Text
     | SpanKey
     deriving (Show, Eq, Ord, Generic)
 

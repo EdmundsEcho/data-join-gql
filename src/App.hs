@@ -28,17 +28,15 @@ import qualified Network.Wai.Handler.Warp             as Warp
 import           Network.Wai.Middleware.Cors
 import           Network.Wai.Middleware.RequestLogger
 import           Servant
--- import           Servant.Client.Streaming
--- import qualified Servant.Types.SourceT                as S
 --------------------------------------------------------------------------------
-import           Api.HTTP.ObsETL                      (ObsEtlApi, serveObsEtlApi)
-import           Api.HTTP.GraphiQL                    (GraphiQL, serveGraphiQL)
+import           Api.HTTP.ObsETL            (ObsEtlApi, serveObsEtlApi)
+import           Api.HTTP.HealthCheck       (HealthCheckApi, serveHealthCheckApi)
+import           Api.HTTP.GraphiQL          (GraphiQL, serveGraphiQL)
 --------------------------------------------------------------------------------
-import           AppTypes                             (Config(..), AppObs,
-                                                       Env, mkAppEnv, dbInit, nat)
+import           AppTypes                   (Config(..), AppObs,
+                                            Env, mkAppEnv, dbInit, nat)
 --------------------------------------------------------------------------------
 
---------------------------------------------------------------------------------
 -- ** Cors
 -- |
 -- Servant min cors policy
@@ -51,7 +49,7 @@ corsPolicy = simpleCorsResourcePolicy
 -- |
 -- Servant "has ServerT instance"
 --
-type Api = ObsEtlApi :<|> GraphiQL
+type Api = ObsEtlApi :<|> GraphiQL :<|> HealthCheckApi
 
 -- |
 -- Proxy @Api
@@ -63,7 +61,7 @@ apiType = Proxy
 -- nat :: AppObs -> Handler
 --
 appM :: ServerT Api AppObs
-appM  = serveObsEtlApi :<|> serveGraphiQL
+appM  = serveObsEtlApi :<|> serveGraphiQL :<|> serveHealthCheckApi
 
 --------------------------------------------------------------------------------
 -- ** Application defined in wai
@@ -85,8 +83,6 @@ appM  = serveObsEtlApi :<|> serveGraphiQL
 app :: Env -> Application
 app env = logStdoutDev . cors ( const $ Just corsPolicy )
         . serve apiType $ hoistServer apiType (nat env) appM
-          -- cors ( const $ Just corsPolicy )
-
 
 -- |
 -- Single point of access to the module
