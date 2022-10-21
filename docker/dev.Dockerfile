@@ -25,11 +25,12 @@ EXPOSE 5003
 USER appuser
 
 # do not include in production
-ENV AWS_ACCESS_KEY_ID="DO003ZZWAE34HMFMRCQ3"
-ENV AWS_SECRET_ACCESS_KEY="Y+4Ld8Cu/PCOgtMUmWTFR1O00T4g5YpR15tAX177PJI"
-ENV S3_REGION="US"
-ENV S3_HOST_BASE="sfo3.digitaloceanspaces.com"
-ENV S3_HOST_BUCKET="luci-space.sfo3.digitaloceanspaces.com"
+ENV AWS_ACCESS_KEY_ID=DO003ZZWAE34HMFMRCQ3
+ENV AWS_SECRET_ACCESS_KEY=Y+4Ld8Cu/PCOgtMUmWTFR1O00T4g5YpR15tAX177PJI
+ENV S3_REGION=US
+ENV S3_REGION_NAME=sfo3
+ENV S3_HOST_BASE=sfo3.digitaloceanspaces.com
+ENV S3_HOST_BUCKET=luci-space.sfo3.digitaloceanspaces.com
 
 CMD [ "/bin/obsetl-exe", \
       "--port", "5003", \
