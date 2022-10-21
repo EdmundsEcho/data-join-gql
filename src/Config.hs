@@ -41,6 +41,7 @@ data Config = Config
 -- used to instantiate the graphql server
 data FileShareCfg = FileShareCfg
  { region     :: !Text,
+   regionName :: !Text,
    hostBase   :: !Text,
    hostBucket :: !Text,
    accessId   :: !Text,
@@ -63,6 +64,7 @@ toString (S3.BucketName txt) = unpack txt
 fileShareCfgFromEnv :: IO FileShareCfg
 fileShareCfgFromEnv = FileShareCfg
     <$> (pack <$> getEnv "S3_REGION")
+    <*> (pack <$> getEnv "S3_REGION_NAME")
     <*> (pack <$> getEnv "S3_HOST_BASE")
     <*> (pack <$> getEnv "S3_HOST_BUCKET")
     <*> (pack <$> getEnv "AWS_ACCESS_KEY_ID")

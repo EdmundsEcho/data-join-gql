@@ -291,7 +291,7 @@ fromInputObsEtl ObsEtlInput {..}
           <$> fromInputMeasurements measurements                -- :: Input -> m Model.Measurements
 
         logInfoN  $ "Processing Input ObsETL for project: " <> show id
-        logDebugF result  -- ⬜ create a summary debug view without levels
+        -- logDebugF result  -- ⬜ create a summary debug view without levels
 
         pure $ pure result
 
