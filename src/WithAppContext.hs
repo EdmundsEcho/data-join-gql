@@ -21,6 +21,7 @@ module WithAppContext
     MonadLogger,
     filterLogger,
     runStderrLoggingT,
+    runStdoutLoggingT,
     runNoLoggingT,
     newTVarIO,
     logDebugN,

@@ -56,10 +56,12 @@ newtype AppObs a =
 -- |
 -- Natural transformation required to map the custom monad back to `Handler`.
 --
+-- Production version excludes debug log entries.
+--
 -- >:: AppObs a -> Handler a
 --
 nat :: Env -> AppObs a -> Handler a
-nat env app = runStderrLoggingT (
+nat env app = runStdoutLoggingT $ filterNoDebug  (
                  runReaderT (iniApp app) env
                  )
 

@@ -116,7 +116,7 @@ mkFilename wf cfg projectId = do
     case wf of
         WithFilename -> path <> "/" <> warehouseFileName
         WithoutFilename -> path
-        DigitalOcean -> unpack projectId <> "/" <> path <> "/" <> warehouseFileName
+        DigitalOcean -> unpack projectId <> path <> "/" <> warehouseFileName
 
     where
         mkDataDir :: Text -> Text
